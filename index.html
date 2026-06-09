@@ -88,8 +88,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 /* TABLES */
 .tw{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--bg)}
 table{width:100%;border-collapse:collapse;font-size:13px}
-thead th{background:var(--bg2);padding:11px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;transition:.1s}
-thead th:hover{background:var(--bg3);color:var(--text)}
+thead th{background:var(--bg2);padding:11px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;user-select:none;transition:.1s}
+thead th.sortable{cursor:pointer}
+thead th.sortable:hover{background:var(--bg3);color:var(--text)}
+thead th.sortable:hover .sort-ind{opacity:1}
+.sort-ind{opacity:.5;font-size:10px;margin-left:2px}
 thead th.r,td.r{text-align:right}thead th.c,td.c{text-align:center}
 td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
@@ -394,9 +397,9 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
   </div>
   <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Ranking de Lojas por Valor Vencido</div>
     <div class="tw"><table><thead><tr>
-      <th onclick="sortTbl('rt',0)">Loja</th><th>Regional</th><th>Auditor</th>
-      <th class="r" onclick="sortTbl('rt',3)">Valor (R$)</th><th class="r" onclick="sortTbl('rt',4)">Itens</th>
-      <th class="r" onclick="sortTbl('rt',5)">Mais Antigo</th><th style="width:150px">Participação</th>
+      <th>Loja</th><th>Regional</th><th>Auditor</th>
+      <th class="r">Valor (R$)</th><th class="r">Itens</th>
+      <th class="r">Mais Antigo</th><th style="width:150px">Participação</th>
     </tr></thead><tbody id="rt"></tbody></table></div>
   </div>
 </div>
@@ -442,9 +445,9 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
     <div class="aud-grid" id="aud-cards"></div>
     <div class="card"><div class="card-h"><i class="ti ti-table"></i> Quadro Comparativo de Auditores</div>
       <div class="tw"><table><thead><tr>
-        <th onclick="sortTbl('at',0)">Auditor</th><th class="r" onclick="sortTbl('at',1)">Lojas</th>
-        <th class="r" onclick="sortTbl('at',2)">Itens</th><th class="r" onclick="sortTbl('at',3)">Valor (R$)</th>
-        <th class="r" onclick="sortTbl('at',4)">% Total</th><th class="r" onclick="sortTbl('at',5)">Mais Antigo</th>
+        <th>Auditor</th><th class="r">Lojas</th>
+        <th class="r">Itens</th><th class="r">Valor (R$)</th>
+        <th class="r">% Total</th><th class="r">Mais Antigo</th>
         <th class="r">Ticket Médio</th><th class="c">Ação</th>
       </tr></thead><tbody id="at"></tbody></table></div>
     </div>
@@ -460,9 +463,9 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
     <div class="alert brand"><i class="ti ti-info-circle"></i><div>Cada gerente regional responde pelas lojas sob sua gestão. Clique em "Ver detalhe completo" para o diagnóstico de produtos, envelhecimento e plano de ação de cada regional.</div></div>
     <div id="reg-cards" class="aud-grid"></div>
     <div class="tw" style="margin:22px 0"><table><thead><tr>
-      <th onclick="sortTbl('regt',0)">Gerente Regional</th><th class="r" onclick="sortTbl('regt',1)">Lojas</th>
-      <th class="r" onclick="sortTbl('regt',2)">Itens</th><th class="r" onclick="sortTbl('regt',3)">Total (R$)</th>
-      <th class="r" onclick="sortTbl('regt',4)">% Total</th><th style="width:140px">Distribuição</th>
+      <th>Gerente Regional</th><th class="r">Lojas</th>
+      <th class="r">Itens</th><th class="r">Total (R$)</th>
+      <th class="r">% Total</th><th style="width:140px">Distribuição</th>
     </tr></thead><tbody id="regt"></tbody></table></div>
   </div>
   <div id="reg-detail-view" style="display:none"></div>
@@ -478,9 +481,9 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
       <input type="text" id="lf-search" placeholder="🔍 Buscar loja..." oninput="renderLojas()" style="min-width:180px">
     </div>
     <div class="tw"><table><thead><tr>
-      <th onclick="sortTbl('lt',0)">Loja</th><th>Regional</th><th>Auditor</th>
-      <th class="r" onclick="sortTbl('lt',3)">Itens</th><th class="r" onclick="sortTbl('lt',4)">Qtd</th>
-      <th class="r" onclick="sortTbl('lt',5)">Valor (R$)</th><th class="r" onclick="sortTbl('lt',6)">Mais Antigo</th><th class="c">Ação</th>
+      <th>Loja</th><th>Regional</th><th>Auditor</th>
+      <th class="r">Itens</th><th class="r">Qtd</th>
+      <th class="r">Valor (R$)</th><th class="r">Mais Antigo</th><th class="c">Ação</th>
     </tr></thead><tbody id="lt"></tbody></table></div>
   </div>
   <div id="loja-detail" style="display:none"></div>
@@ -555,12 +558,12 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
   <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-package"></i> Visão por Produto — Volume vs Dispersão</div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Produtos com alto valor vencido espalhados em várias lojas indicam compra centralizada sem considerar o giro individual de cada filial. Produtos de validade longa (24+ meses) que mesmo assim venceram são os casos mais graves de excesso.</div>
     <div class="tw"><table><thead><tr>
-      <th onclick="sortTbl('compra-prod',0)">Produto</th>
-      <th class="r" onclick="sortTbl('compra-prod',1)">Qtd Total</th>
-      <th class="r" onclick="sortTbl('compra-prod',2)">Lotes</th>
-      <th class="r" onclick="sortTbl('compra-prod',3)">Lojas</th>
-      <th class="r" onclick="sortTbl('compra-prod',4)">Validade Média</th>
-      <th class="r" onclick="sortTbl('compra-prod',5)">Valor Parado</th>
+      <th>Produto</th>
+      <th class="r">Qtd Total</th>
+      <th class="r">Lotes</th>
+      <th class="r">Lojas</th>
+      <th class="r">Validade Média</th>
+      <th class="r">Valor Parado</th>
       <th class="c">Diagnóstico</th>
     </tr></thead><tbody id="compra-prod"></tbody></table></div>
   </div>
@@ -611,10 +614,10 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
     <input type="text" id="pf-search" placeholder="🔍 Buscar produto..." oninput="renderProdutos()" style="min-width:180px">
   </div>
   <div class="tw"><table><thead><tr>
-    <th onclick="sortTbl('pt',0)">Produto</th><th>Loja</th><th>Linha</th>
-    <th class="r" onclick="sortTbl('pt',3)">Qtd</th><th class="r">Vencimento</th>
-    <th class="r" onclick="sortTbl('pt',5)">Dias</th><th class="r">Custo Un.</th>
-    <th class="r" onclick="sortTbl('pt',7)">Total (R$)</th><th class="c">Status</th>
+    <th>Produto</th><th>Loja</th><th>Linha</th>
+    <th class="r">Qtd</th><th class="r">Vencimento</th>
+    <th class="r">Dias</th><th class="r">Custo Un.</th>
+    <th class="r">Total (R$)</th><th class="c">Status</th>
   </tr></thead><tbody id="pt"></tbody></table></div>
 </div>
 
@@ -627,8 +630,8 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
     <div class="card"><div class="card-h"><i class="ti ti-bulb"></i> Leitura</div><div id="fab-insight" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
   </div>
   <div class="tw"><table><thead><tr>
-    <th onclick="sortTbl('ft',0)">Fabricante</th><th class="r" onclick="sortTbl('ft',1)">Itens</th>
-    <th class="r" onclick="sortTbl('ft',2)">Lojas</th><th class="r" onclick="sortTbl('ft',3)">Total (R$)</th><th class="r">% Total</th>
+    <th>Fabricante</th><th class="r">Itens</th>
+    <th class="r">Lojas</th><th class="r">Total (R$)</th><th class="r">% Total</th>
   </tr></thead><tbody id="ft"></tbody></table></div>
 </div>
 
@@ -879,18 +882,27 @@ function parseBR(v){
   return isNaN(n)?0:n;
 }
 function buildSnapshot(records){
+  // Blindagem: garante que Total/Qtd/Dias sejam SEMPRE numericos.
+  // No fluxo normal já vêm tratados por processXLSX, mas se um snapshot vier de
+  // outra origem (dados publicados, import manual, etc.) um valor textual corromperia
+  // o total inteiro por concatenacao de string. parseBR converte com seguranca.
+  const numDias=v=>{const n=(typeof v==='number')?v:parseFloat(String(v==null?'':v).replace(',','.'));return isNaN(n)?0:Math.round(n);};
+  records=(records||[]).map(r=>{
+    if(!r||typeof r!=='object')return {Dias:0,Total:0,Qtd:0};
+    return {...r, Total:parseBR(r.Total), Qtd:parseBR(r.Qtd), Dias:numDias(r.Dias)};
+  });
   // Separa os dois universos: vencidos (Dias<=0) e a vencer (Dias>0)
-  const vencidos=records.filter(r=>(r.Dias||0)<=0);
-  const aVencer=records.filter(r=>(r.Dias||0)>0);
+  const vencidos=records.filter(r=>r.Dias<=0);
+  const aVencer=records.filter(r=>r.Dias>0);
 
   const byF={},byR={},byL={},byA={};
   let total=0;
   for(const r of vencidos){
-    const v=r.Total||0,d=r.Dias||0;
+    const v=r.Total,d=r.Dias;
     total+=v;
     const f=r.Sigla;
     if(!byF[f])byF[f]={key:f,regional:r.Gerente,auditor:r.Auditor,total:0,items:0,maxDias:0,qtd:0};
-    byF[f].total+=v;byF[f].items++;byF[f].qtd+=r.Qtd||0;if(d<byF[f].maxDias)byF[f].maxDias=d;
+    byF[f].total+=v;byF[f].items++;byF[f].qtd+=r.Qtd;if(d<byF[f].maxDias)byF[f].maxDias=d;
     const rg=r.Gerente;
     if(!byR[rg])byR[rg]={key:rg,total:0,items:0,lojas:new Set()};
     byR[rg].total+=v;byR[rg].items++;byR[rg].lojas.add(f);
@@ -902,7 +914,7 @@ function buildSnapshot(records){
     byA[a].total+=v;byA[a].items++;byA[a].lojas.add(f);if(d<byA[a].maxDias)byA[a].maxDias=d;
   }
   const fin=(o,setk)=>Object.values(o).map(x=>{if(setk&&x[setk])x[setk]=x[setk].size;return x;}).sort((a,b)=>b.total-a.total);
-  const totalAVencer=aVencer.reduce((s,r)=>s+(r.Total||0),0);
+  const totalAVencer=aVencer.reduce((s,r)=>s+r.Total,0);
   return {
     grandTotal:total,totalItems:vencidos.length,
     byFilial:fin(byF),byRegional:fin(byR,'lojas'),byLinha:fin(byL),byAuditor:fin(byA,'lojas'),
@@ -1137,6 +1149,7 @@ function nav(id){
   if(id==='regional'){const dv=document.getElementById('reg-detail-view');const lv=document.getElementById('reg-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
   if(id==='auditores'){const dv=document.getElementById('aud-detail-view');const lv=document.getElementById('aud-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
   window.scrollTo(0,0);
+  setTimeout(()=>enableSorting(),0);
 }
 function revealConfigNav(){
   requirePwd('Área restrita','Digite a senha de operador para acessar as configurações.',function(){
@@ -1188,6 +1201,7 @@ function renderAll(){
   }
   hideEmptyPanel();
   renderResumo();renderAuditores();renderRegional();renderLojas();renderProdutos();renderPrioridade();renderFabricantes();renderRecorrentes();populateFilters();
+  setTimeout(()=>enableSorting(),0);
 }
 function showEmptyPanel(){
   let ov=document.getElementById('empty-panel-overlay');
@@ -1307,6 +1321,7 @@ function showAudDetail(aud){
     <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${cleanProd(r.Nome)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,14)}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td><td class="r tiny">${d.grandTotal>0?(r.Total/d.grandTotal*100).toFixed(2):'0'}%</td></tr>`).join('')}
     <tr class="total-row"><td colspan="7">Total ${aud}</td><td class="r">${brl(total)}</td><td class="r">${pctTotal.toFixed(1)}%</td></tr></tbody></table></div>`;
   window.scrollTo(0,0);
+  setTimeout(()=>enableSorting(),0);
 }
 function closeAudDetail(){document.getElementById('aud-detail-view').style.display='none';document.getElementById('aud-list-view').style.display='block';}
 // ─── INSIGHTS ───
@@ -2005,6 +2020,7 @@ function showRegionalDetail(reg){
     <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${cleanProd(r.Nome)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td><td class="r tiny">${d.grandTotal>0?(r.Total/d.grandTotal*100).toFixed(2):'0'}%</td></tr>`).join('')}
     <tr class="total-row"><td colspan="6">Total ${reg}</td><td class="r">${brl(total)}</td><td class="r">${pctTotalReg.toFixed(1)}%</td></tr></tbody></table></div></div>`;
   window.scrollTo(0,0);
+  setTimeout(()=>enableSorting(),0);
 }
 function closeRegionalDetail(){document.getElementById('reg-detail-view').style.display='none';document.getElementById('reg-list-view').style.display='block';}
 function toggleAcc(id){const e=document.getElementById(id);if(e)e.style.display=e.style.display==='none'?'block':'none';}
@@ -2035,6 +2051,7 @@ function showLojaDetail(filial){
   dd.innerHTML=`<div class="detail-bar"><button class="btn ghost" onclick="closeLojaDetail()"><i class="ti ti-arrow-left"></i> Voltar</button><h2>${filial}</h2><span class="pill">${loja?loja.regional:''}</span><span class="chip" style="background:${audColor(loja?loja.auditor:'')}22;color:${audColor(loja?loja.auditor:'')}">${loja?loja.auditor:''}</span><span style="margin-left:auto;font-size:13px" class="dim">${recs.length} itens · ${brl(total)}</span></div>
   <div class="tw"><table><thead><tr><th>Produto</th><th>Linha</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Custo Un.</th><th class="r">Total</th></tr></thead><tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${cleanProd(r.Nome)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,14)}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r">${brl(r.Custo)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}<tr class="total-row"><td colspan="7">Total</td><td class="r">${brl(total)}</td></tr></tbody></table></div>`;
   window.scrollTo(0,0);
+  setTimeout(()=>enableSorting(),0);
 }
 function closeLojaDetail(){document.getElementById('loja-detail').style.display='none';document.getElementById('loja-list').style.display='block';}
 // ─── PRODUTOS ───
@@ -2044,6 +2061,7 @@ function renderProdutos(){
   const recs=d.records.filter(r=>{if(lf&&r.Desc!==lf)return false;if(ljf&&r.Sigla!==ljf)return false;if(af&&r.Auditor!==af)return false;if(sr&&!r.Nome.toLowerCase().includes(sr))return false;const a=abs(r.Dias);if(st==='c'&&a<=180)return false;if(st==='a'&&(a<=60||a>180))return false;if(st==='r'&&a>60)return false;return true;}).sort((a,b)=>b.Total-a.Total);
   const tv=recs.reduce((s,r)=>s+r.Total,0);
   document.getElementById('pt').innerHTML=recs.map(r=>{const a=abs(r.Dias);const[cl,lb]=a>180?['red','Crítico']:a>60?['amber','Alerta']:['green','Recente'];return `<tr><td class="b" style="font-size:12px;max-width:200px">${cleanProd(r.Nome)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,12)}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r">${brl(r.Custo)}</td><td class="r b">${brl(r.Total)}</td><td class="c"><span class="chip ${cl}">${lb}</span></td></tr>`;}).join('')+`<tr class="total-row"><td colspan="7">${recs.length} produtos</td><td class="r">${brl(tv)}</td><td></td></tr>`;
+  setTimeout(()=>enableSorting(),0);
 }
 
 // ─── PRIORIDADE ───
@@ -2482,8 +2500,114 @@ function handleDropGated(e){
 }
 
 // ─── SORT ───
-const sortSt={};
-function sortTbl(id,col){const tb=document.getElementById(id);if(!tb)return;const rows=Array.from(tb.querySelectorAll('tr:not(.total-row)'));const k=id+col;sortSt[k]=sortSt[k]==='asc'?'desc':'asc';const dir=sortSt[k]==='asc'?1:-1;rows.sort((a,b)=>{const av=a.cells[col]?.textContent.trim()||'',bv=b.cells[col]?.textContent.trim()||'';const an=parseFloat(av.replace(/[^\d.,-]/g,'').replace(/\./g,'').replace(',','.')),bn=parseFloat(bv.replace(/[^\d.,-]/g,'').replace(/\./g,'').replace(',','.'));if(!isNaN(an)&&!isNaN(bn))return (an-bn)*dir;return av.localeCompare(bv)*dir;});const tr=tb.querySelector('.total-row');rows.forEach(r=>tb.appendChild(r));if(tr)tb.appendChild(tr);}
+// ─── ORDENACAO AUTOMATICA DE TABELAS ───
+// Torna TODOS os cabecalhos de tabela clicaveis (asc/desc), inferindo o tipo de
+// cada coluna (moeda BR, dias, data, texto) e ordenando corretamente. Aplicado
+// automaticamente a todas as tabelas, inclusive as reconstruidas via innerHTML.
+
+// Infere o tipo de uma coluna a partir de uma amostra de textos de celula.
+function _sortInferType(samples){
+  const vals=samples.map(s=>(s==null?'':String(s)).trim()).filter(s=>s!==''&&s!=='—'&&s!=='-');
+  if(!vals.length)return 'text';
+  let nNum=0,nDate=0,nDias=0;
+  for(const v of vals){
+    if(/^\d{2}\/\d{2}\/\d{4}$/.test(v)){nDate++;continue;}
+    if(/^-?\d+\s*d$/i.test(v)){nDias++;continue;}
+    const limpo=v.replace(/R\$/i,'').replace(/[↑↓↕%]/g,'').trim();
+    if(/^-?[\d.]+,?\d*$/.test(limpo)||/^-?\d+(\.\d+)?\s*[kKmM]?$/.test(limpo)||/^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(limpo)){nNum++;continue;}
+  }
+  const tot=vals.length;
+  if(nDate/tot>=0.6)return 'date';
+  if(nDias/tot>=0.6)return 'dias';
+  if((nNum+nDias)/tot>=0.6)return 'num';
+  return 'text';
+}
+// Converte texto de celula em valor comparavel conforme o tipo.
+function _sortToComparable(s,type){
+  s=(s==null?'':String(s)).trim();
+  if(type==='date'){const m=s.match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1]).getTime():-Infinity;}
+  if(type==='dias'){const m=s.match(/(-?\d+)\s*d/i);return m?parseInt(m[1],10):-Infinity;}
+  if(type==='num'){
+    let t=s.replace(/R\$/i,'').replace(/[↑↓↕%\s]/g,'');
+    let mult=1;const mm=t.match(/([kKmM])$/);
+    if(mm){mult=/[mM]/.test(mm[1])?1e6:1e3;t=t.slice(0,-1);}
+    if(t.includes(',')&&t.includes('.'))t=t.replace(/\./g,'').replace(',','.');
+    else if(t.includes(','))t=t.replace(/,(?=.*,)/g,'').replace(',','.');
+    else if(/^\-?\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,'');
+    const n=parseFloat(t);return isNaN(n)?-Infinity:n*mult;
+  }
+  return s.toLowerCase();
+}
+function _sortCmp(a,b,type,dir){
+  const va=_sortToComparable(a,type),vb=_sortToComparable(b,type);
+  if(type==='text')return va.localeCompare(vb,'pt-BR')*dir;
+  if(va<vb)return -1*dir;if(va>vb)return 1*dir;return 0;
+}
+// Decide se uma coluna e ordenavel: pula colunas com barras de progresso ou botoes,
+// e cabecalhos de "acao". colIdx e o indice da coluna (0-based).
+function _sortColIsSortable(th,bodyRows,colIdx){
+  const label=(th.textContent||'').trim().toLowerCase();
+  // Cabecalhos que sao visualmente nao-ordenaveis (barras/acoes/sinais)
+  const naoOrdenaveis=['participação','distribuição','urgência','ação','ação recomendada','diagnóstico','sinal','criticidade'];
+  if(naoOrdenaveis.includes(label))return false;
+  // Se as celulas dessa coluna contem barras ou botoes, nao ordena
+  for(const tr of bodyRows.slice(0,5)){
+    const td=tr.cells[colIdx];
+    if(td&&(td.querySelector('.pbar')||td.querySelector('.scorebar')||td.querySelector('button')))return false;
+  }
+  return true;
+}
+// Aplica a ordenacao a uma tabela quando um cabecalho e clicado.
+function _sortApply(table,colIdx,th){
+  const tbody=table.tBodies[0];if(!tbody)return;
+  const allRows=Array.from(tbody.rows);
+  const totalRow=allRows.find(r=>r.classList.contains('total-row'));
+  const rows=allRows.filter(r=>!r.classList.contains('total-row'));
+  if(rows.length<2)return;
+  // Direcao: alterna; primeiro clique em coluna numerica/dias/data = desc (maior->menor)
+  const samples=rows.slice(0,12).map(r=>r.cells[colIdx]?(r.cells[colIdx].textContent||''):'');
+  const type=_sortInferType(samples);
+  const prev=table.__sortState||{};
+  let dir;
+  if(prev.col===colIdx){dir=prev.dir===1?-1:1;}        // mesma coluna: alterna
+  else{dir=(type==='text')?1:-1;}                       // nova coluna: texto=A-Z, numero=maior->menor
+  rows.sort((a,b)=>_sortCmp(a.cells[colIdx]?a.cells[colIdx].textContent:'',b.cells[colIdx]?b.cells[colIdx].textContent:'',type,dir));
+  rows.forEach(r=>tbody.appendChild(r));
+  if(totalRow)tbody.appendChild(totalRow);            // total sempre por ultimo
+  table.__sortState={col:colIdx,dir};
+  // Atualiza setas em todos os th desta tabela
+  const ths=table.tHead?table.tHead.rows[0].cells:[];
+  for(let i=0;i<ths.length;i++){
+    const ind=ths[i].querySelector('.sort-ind');
+    if(ind)ind.textContent=(i===colIdx)?(dir===1?' ↑':' ↓'):' ↕';
+  }
+}
+// Varre todas as tabelas visiveis e instala a ordenacao nos cabecalhos.
+function enableSorting(root){
+  const scope=root||document;
+  const tables=scope.querySelectorAll('.tw table, .evotw table');
+  tables.forEach(table=>{
+    const thead=table.tHead;const tbody=table.tBodies[0];
+    if(!thead||!tbody||!thead.rows.length)return;
+    const headRow=thead.rows[0];
+    const bodyRows=Array.from(tbody.rows).filter(r=>!r.classList.contains('total-row'));
+    if(bodyRows.length<2){ // sem dados suficientes: limpa marcacao para nao enganar
+      Array.from(headRow.cells).forEach(th=>{const ind=th.querySelector('.sort-ind');if(ind)ind.remove();th.classList.remove('sortable');th.onclick=null;});
+      return;
+    }
+    Array.from(headRow.cells).forEach((th,idx)=>{
+      const sortable=_sortColIsSortable(th,bodyRows,idx);
+      if(!sortable){th.classList.remove('sortable');th.onclick=null;const ind=th.querySelector('.sort-ind');if(ind)ind.remove();return;}
+      th.classList.add('sortable');
+      // Adiciona indicador de seta (uma vez)
+      if(!th.querySelector('.sort-ind')){
+        const sp=document.createElement('span');sp.className='sort-ind';sp.style.opacity='.5';sp.style.fontSize='10px';sp.textContent=' ↕';
+        th.appendChild(sp);
+      }
+      th.onclick=()=>_sortApply(table,idx,th);
+    });
+  });
+}
 
 // ─── INIT ───
 const PERFIS_AUTH={"9f9459ab829ed2f1":{"tipo":"auditor","nome":"Auditores"},"61ad85086b96e594":{"tipo":"regional","nome":"ANNAPAULLA GARCIA","regional":"ANNAPAULLA GARCIA"},"74358ba97c1ad658":{"tipo":"regional","nome":"EVANDRO MACEDO","regional":"EVANDRO MACEDO"},"a14e8b3cda32656b":{"tipo":"regional","nome":"HENISLEY SABINO","regional":"HENISLEY SABINO"},"c045abf9e3682465":{"tipo":"regional","nome":"LEANDRO CAMPOS","regional":"LEANDRO CAMPOS"},"6c47a642760aaeb2":{"tipo":"regional","nome":"MATO GROSSO","regional":"MATO GROSSO"},"7b034588c1fcefc8":{"tipo":"regional","nome":"NABIO BARROS","regional":"NABIO BARROS"},"63b37faec5e15900":{"tipo":"regional","nome":"SERGIO ADRIANO","regional":"SERGIO ADRIANO"},"07aebf274cf976e1":{"tipo":"regional","nome":"WENDER PARTATA","regional":"WENDER PARTATA"},"e82518480466971e":{"tipo":"gerente","nome":"ABEL HANUN","gerente":"ABEL HANUN","lojas":["MORRINHOS"]},"5df8291a49bd83d4":{"tipo":"gerente","nome":"AKYLLA OLIVEIRA","gerente":"AKYLLA OLIVEIRA","lojas":["CONFRESA"]},"1cdea88ab28a93f0":{"tipo":"gerente","nome":"ANDERSON PEREIRA","gerente":"ANDERSON PEREIRA","lojas":["REDENÇÃO"]},"d797d988793ed564":{"tipo":"gerente","nome":"ANDRE FERNANDO","gerente":"ANDRE FERNANDO","lojas":["CRISTALINA"]},"e1e409f72c0f3921":{"tipo":"gerente","nome":"ANNAPAULLA GARCIA","gerente":"ANNAPAULLA GARCIA","lojas":["FABRICA APARECIDA"]},"f27f93941748c212":{"tipo":"gerente","nome":"ANTONIO CARLOS","gerente":"ANTONIO CARLOS","lojas":["PORANGATU"]},"d20587005ab397df":{"tipo":"gerente","nome":"CLESIO ALVES","gerente":"CLESIO ALVES","lojas":["JUSSARA"]},"9b9b7a534d6b25e9":{"tipo":"gerente","nome":"DANIEL BARREIRA","gerente":"DANIEL BARREIRA","lojas":["FORMOSA"]},"83dbe4691b80befd":{"tipo":"gerente","nome":"DAVID DOURADO","gerente":"DAVID DOURADO","lojas":["ALTAMIRA"]},"11fd4688ff14d3d6":{"tipo":"gerente","nome":"EDVANDO JOSE","gerente":"EDVANDO JOSE","lojas":["URUAÇU"]},"009e71340b65c04e":{"tipo":"gerente","nome":"ENIO JOSAFE","gerente":"ENIO JOSAFE","lojas":["MARABÁ"]},"b4b9bc93e6db1f8c":{"tipo":"gerente","nome":"EVANDRO MACEDO","gerente":"EVANDRO MACEDO","lojas":["UBS"]},"70077ae9d14aada8":{"tipo":"gerente","nome":"FABIO AUGUSTO","gerente":"FABIO AUGUSTO","lojas":["ARAGUAÍNA"]},"193cf71d9ec843c1":{"tipo":"gerente","nome":"FREDERICO CARRIJO","gerente":"FREDERICO CARRIJO","lojas":["GURUPI"]},"bd9c67e264aa02a6":{"tipo":"gerente","nome":"GEOVANNY VIGILATO","gerente":"GEOVANNY VIGILATO","lojas":["CUIABÁ"]},"ed567e51e2f8db0a":{"tipo":"gerente","nome":"HENISLEY SABINO","gerente":"HENISLEY SABINO","lojas":["GOIANIRA"]},"d761a0692400fd2a":{"tipo":"gerente","nome":"IALE MILHOMEM","gerente":"IALE MILHOMEM","lojas":["IMPERATRIZ"]},"504093ac9022e22a":{"tipo":"gerente","nome":"JOÃO CLÁUDIO","gerente":"JOÃO CLÁUDIO","lojas":["UBERLÂNDIA"]},"a5b12d5f08be23a9":{"tipo":"gerente","nome":"LEONARDO FREITAS","gerente":"LEONARDO FREITAS","lojas":["CANARANA"]},"e4a1a31648243234":{"tipo":"gerente","nome":"LORENA MOISES","gerente":"LORENA MOISES","lojas":["PARAGOMINAS"]},"92770d210d3ad68e":{"tipo":"gerente","nome":"MARCELO MULLER","gerente":"MARCELO MULLER","lojas":["PONTES E LACERDA"]},"a80bbab15b3d1c84":{"tipo":"gerente","nome":"MARLON GERMANO","gerente":"MARLON GERMANO","lojas":["PALMAS"]},"746149bd690a4ce2":{"tipo":"gerente","nome":"NATALINO NETO","gerente":"NATALINO NETO","lojas":["RIALMA"]},"3ca4fcd9cfcc81d4":{"tipo":"gerente","nome":"PEDRO MACIEL","gerente":"PEDRO MACIEL","lojas":["SÃO FELIX DO XINGU"]},"af2de83533ff1691":{"tipo":"gerente","nome":"RENATO TEODORO","gerente":"RENATO TEODORO","lojas":["JATAI"]},"25fee49c5e88728f":{"tipo":"gerente","nome":"REVALINO NETO","gerente":"REVALINO NETO","lojas":["MATRIZ"]},"740e8b2760398b20":{"tipo":"gerente","nome":"THIAGO VAZ","gerente":"THIAGO VAZ","lojas":["MOZARLÂNDIA"]},"cdcc96305025a4fa":{"tipo":"gerente","nome":"VINICIUS BRITO","gerente":"VINICIUS BRITO","lojas":["BARRA DO GARÇAS"]},"82e0f731d2decded":{"tipo":"gerente","nome":"WENDER PARTATA","gerente":"WENDER PARTATA","lojas":["RIO VERDE"]},"bd57162dc130d53c":{"tipo":"gerente","nome":"WILLIAN ANTIGO","gerente":"WILLIAN ANTIGO","lojas":["XINGUARA"]}};
