@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -341,7 +342,7 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
   <div class="topbar-actions">
     <span class="date-badge"><i class="ti ti-calendar-check" style="font-size:13px"></i> <span id="tb-date">—</span></span>
     <div id="sync-indicator" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:var(--bg2);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text3)">
-      <i class="ti ti-database-off" style="font-size:14px"></i> <span>Sem dados</span>
+      <i class="ti ti-cloud-off" style="font-size:14px"></i> <span>Sem sync</span>
     </div>
     <button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
     <button class="btn publish" onclick="requirePwd('Publicar para todos','Digite a senha de operador para publicar os dados.',openPublishModal)" title="Gera um index.html com todos os dados embutidos para subir no GitHub">
@@ -375,7 +376,7 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
   <div class="nav-item" onclick="nav('metas')"><i class="ti ti-target"></i> Metas de Redução</div>
   <div class="nav-item" onclick="nav('historico')"><i class="ti ti-history"></i> Histórico</div>
   <div class="nav-sec" style="margin-top:8px">Sistema</div>
-  <div class="nav-item" id="nav-config-btn" onclick="openConfigGated()" style="display:none"><i class="ti ti-cloud-upload"></i> Publicação (GitHub)</div>
+  <div class="nav-item" id="nav-config-btn" onclick="openConfigGated()" style="display:none"><i class="ti ti-cloud-cog"></i> Configurações de Sync</div>
   <div class="nav-item" onclick="revealConfigNav()" style="font-size:11px;color:var(--text3);padding:8px 18px;cursor:pointer" id="nav-config-lock"><i class="ti ti-lock" style="font-size:14px"></i> Área restrita</div>
 </div>
 
@@ -693,71 +694,93 @@ th.sd::after{content:' ↓';color:var(--brand);font-weight:800}
 
 <!-- PUBLICAÇÃO / GITHUB -->
 <div id="v-config" style="display:none">
-  <div class="view-head"><div><h2><i class="ti ti-cloud-upload"></i> Publicação (GitHub Pages)</h2>
-    <div class="sub">Como atualizar os dados que todos enxergam no link</div></div></div>
+  <div class="view-head"><div><h2><i class="ti ti-cloud-cog"></i> Configurações de Sincronização</h2>
+    <div class="sub">Sincronização automática via JSONBin — todos veem os dados ao importar</div></div></div>
 
   <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
-    <strong>Arquitetura sem servidor.</strong> Os dados ficam <strong>embutidos no próprio index.html</strong>. Não há banco, login de nuvem nem API externa. Quem abre o link vê exatamente o que foi publicado por último.
+    <strong>Como funciona:</strong> com a chave configurada, toda vez que você importa um XLSX os dados vão automaticamente para a nuvem (JSONBin) — e todos que têm o link veem na hora, sem precisar subir nada no GitHub. O arquivo no GitHub serve só para hospedar o painel; os dados viajam pela nuvem.
   </div></div>
 
   <div class="g2">
     <div class="card">
-      <div class="card-h"><i class="ti ti-list-numbers"></i> Fluxo de atualização (semanal — terças)</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--text2)">
-        <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
-          <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">1</span>
-          <span>Gere o <code style="font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px">Vencidos_DD_MM_AAAA.xlsx</code> (script Python ou VBA).</span>
+      <div class="card-h"><i class="ti ti-key"></i> Configuração (somente você e a Gabriela)</div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Master Key do JSONBin</label>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="jbin-key-input" placeholder="Cole sua Master Key aqui ($2a$10$...)" style="flex:1;padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">
+          <button class="btn ghost sm" onclick="toggleKeyVisibility()"><i class="ti ti-eye" id="eye-icon"></i></button>
         </div>
-        <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
-          <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">2</span>
-          <span>No topo, clique em <strong>Importar XLSX</strong> e selecione o arquivo (pede a senha de operador).</span>
-        </div>
-        <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
-          <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">3</span>
-          <span>Confira os números nas abas. Se algo estiver errado, veja a aba <strong>Caça-Erros</strong>.</span>
-        </div>
-        <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
-          <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">4</span>
-          <span>Clique em <strong>Publicar para todos</strong> → baixa um novo <code style="font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px">index.html</code> com os dados embutidos.</span>
-        </div>
-        <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
-          <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">5</span>
-          <span>Suba esse <code style="font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px">index.html</code> no repositório <code style="font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px">Vencidos-Agroquima</code> (substituindo o anterior).</span>
-        </div>
-        <div style="display:flex;gap:10px;align-items:flex-start">
-          <span style="background:#1e8449;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">✓</span>
-          <span><strong>Pronto.</strong> Em ~1 min o GitHub Pages atualiza e todos veem os dados novos ao abrir o link.</span>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">Guardada apenas no seu navegador. Nunca sai do seu computador.</div>
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Bin ID</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="jbin-id-display" readonly placeholder="Gerado ao criar o bin" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg2);color:var(--text);font-size:12px;font-family:monospace">
+          <button class="btn xs ghost" onclick="copyBinId()" title="Copiar"><i class="ti ti-copy"></i></button>
         </div>
       </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn primary" onclick="handleCreateBin()"><i class="ti ti-cloud-plus"></i> Criar Bin</button>
+        <button class="btn ghost" onclick="handleTestConnection()"><i class="ti ti-plug"></i> Testar conexão</button>
+        <button class="btn ghost" onclick="handleSaveConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
+      </div>
+      <div id="config-status" style="margin-top:14px;font-size:13px;display:none"></div>
     </div>
 
     <div class="card">
       <div class="card-h"><i class="ti ti-shield-check"></i> Estado e verificação</div>
       <div style="margin-top:4px;padding:12px 14px;background:var(--bg2);border-radius:var(--r-sm);border:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Status desta página</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Status atual</div>
         <div id="config-current-status" style="font-size:13px;color:var(--text2)">Carregando...</div>
       </div>
       <div style="margin-top:14px;font-size:12px;line-height:1.8;color:var(--text3)">
-        O indicador no topo confirma o estado real:
+        O indicador no topo reflete o estado real da sincronização:
         <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
-          <span><i class="ti ti-database-off" style="color:#94a3b8"></i> <strong style="color:#94a3b8">Sem dados</strong> — nenhuma importação carregada.</span>
-          <span><i class="ti ti-device-floppy" style="color:#d68910"></i> <strong style="color:#d68910">Não publicado</strong> — você importou, mas ainda não gerou/subiu o arquivo.</span>
-          <span><i class="ti ti-cloud-check" style="color:#1e8449"></i> <strong style="color:#1e8449">Publicado</strong> — dados embutidos e data da última publicação.</span>
+          <span><i class="ti ti-cloud-check" style="color:#1e8449"></i> <strong style="color:#1e8449">Sincronizado</strong> — dados na nuvem; todos veem o mais recente.</span>
+          <span><i class="ti ti-cloud" style="color:#2563eb"></i> <strong style="color:#2563eb">Conectado · nuvem vazia</strong> — online, mas ainda sem dados publicados.</span>
+          <span><i class="ti ti-cloud-x" style="color:#c0392b"></i> <strong style="color:#c0392b">Erro de sync</strong> — falha ao falar com a nuvem (os dados locais continuam).</span>
+          <span><i class="ti ti-cloud-off" style="color:#94a3b8"></i> <strong style="color:#94a3b8">Sem config</strong> — sincronização não configurada.</span>
         </div>
       </div>
       <div class="alert amber" style="margin-top:16px;font-size:12px"><i class="ti ti-alert-triangle"></i><div>
-        A senha de operador protege a importação/publicação contra bisbilhotagem. Não é cofre: quem abre o código-fonte vê os dados. Proteção real só com servidor interno (pendência futura).
+        Limite do plano grátis do JSONBin: ~100KB por bin. O painel comprime e corta os "a vencer" além de 180 dias para caber. A senha de operador protege contra bisbilhotagem, não é cofre.
       </div></div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:22px">
-    <div class="card-h"><i class="ti ti-users"></i> Quem faz o quê</div>
-    <div class="tw"><table><thead><tr><th>Pessoa</th><th>Papel</th><th>Ação</th></tr></thead>
+    <div class="card-h"><i class="ti ti-help-circle"></i> Passo a passo — configuração inicial</div>
+    <div style="font-size:13px;line-height:1.9;color:var(--text2)">
+      <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
+        <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">1</span>
+        <span>Acesse <a href="https://jsonbin.io" target="_blank" style="color:var(--brand);font-weight:600">jsonbin.io</a> e clique em <strong>Sign Up</strong> (gratuito).</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
+        <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">2</span>
+        <span>Após login, clique no seu nome → <strong>API Keys</strong> → copie a <strong>Master Key</strong>.</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
+        <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">3</span>
+        <span>Cole a Master Key ao lado e clique em <strong>Criar Bin</strong> (ou use o Bin ID já embutido).</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
+        <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">4</span>
+        <span>Clique em <strong>Publicar para todos</strong> no topo → baixe e suba o index.html no GitHub (uma vez, para embutir o Bin ID).</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <span style="background:#1e8449;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">✓</span>
+        <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX, todos veem na hora — automático, sem subir nada.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-users"></i> Quem usa o quê</div>
+    <div class="tw"><table><thead><tr><th>Pessoa</th><th>Papel</th><th>Precisa da Master Key?</th><th>O que vê</th></tr></thead>
     <tbody>
-      <tr><td class="b">João Vitor / Gabriela</td><td><span class="chip brand">Publicador</span></td><td>Importa o XLSX, publica o index.html e sobe no GitHub</td></tr>
-      <tr><td class="b">Fábio, Guilherme, Carlos...</td><td><span class="chip gray">Visualizador</span></td><td>Abre o link e vê os dados da última publicação</td></tr>
-      <tr><td class="b">Aldo, Rafa, Luciana...</td><td><span class="chip gray">Visualizador</span></td><td>Abre o link e vê os dados da última publicação</td></tr>
+      <tr><td class="b">João Vitor / Gabriela</td><td><span class="chip brand">Importador</span></td><td><span class="chip green">Sim — salva no navegador deles</span></td><td>Importa, sincroniza, todos veem</td></tr>
+      <tr><td class="b">Fábio, Guilherme, Carlos...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
+      <tr><td class="b">Aldo, Rafa, Luciana...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
     </tbody></table></div>
   </div>
 </div>
@@ -1078,8 +1101,8 @@ function handleUpload(inp){
       setTimeout(()=>toast('⚠️ '+nInc+' possível(is) inconsistência(s) detectada(s). Veja a aba "Caça-Erros".','amber'),1200);
     }
     nav('resumo');
-    // Sem auto-sync: a publicação é manual via "Publicar para todos" (GitHub).
-    atualizarStatus();
+    // Auto-sync: publica na nuvem se houver bin+chave configurados
+    if(getMasterKey()&&getBinId()) syncPush(); else atualizarStatus();
   };
   rd.onerror=()=>toast('Falha ao abrir o arquivo. Tente novamente.','red');
   rd.readAsArrayBuffer(file);inp.value='';
@@ -1101,7 +1124,7 @@ function handleUploadMulti(inp){
       if(erros>0)msg+=` ${erros} com erro.`;
       if(semData.length>0)msg+=` ${semData.length} sem data no nome (usaram data de hoje).`;
       toast(msg,erros>0?'amber':'green');
-      atualizarStatus();
+      if(getMasterKey()&&getBinId())setTimeout(()=>syncPush(),400); else atualizarStatus();
       nav('evolucao');
       return;
     }
@@ -1185,8 +1208,8 @@ function confirmDel(){
   }
   closeModal();renderHist();
   toast('Importação de '+r.importDate+' excluída.');
-  // A correção fica local; republique com "Publicar para todos" para todos verem.
-  atualizarStatus();
+  // Sincroniza a exclusão para a nuvem (todos veem a correção)
+  if(getMasterKey()&&getBinId()){setTimeout(()=>syncPush(),300);} else atualizarStatus();
 }
 
 function destroyChart(id){if(charts[id]){try{charts[id].destroy();}catch(e){}delete charts[id];}}
@@ -2331,13 +2354,13 @@ function generatePublish(){
 
 function embedAndDownload(html){
   const histSerial=JSON.stringify(history.map(h=>({importDate:h.importDate,records:h.allRecords||h.records})));
-  // Data desta publicação — fica embutida e alimenta o indicador de estado no arquivo publicado.
-  const pubDate=new Date().toLocaleDateString('pt-BR');
-  // Marca local: a partir de agora ESTA página também se considera "publicada".
-  saveJBinCfg({lastPublish:pubDate});
-  const dateScript=`<scr`+`ipt>var PUBLISHED_DATA_DATE='${pubDate}';<\/scr`+`ipt>`;
+  const binId=getBinId();
+  const masterKey=getMasterKey();
+  // Embute (1) Bin ID e (2) chave de leitura, para que TODOS os visitantes consigam ler
+  // da nuvem, mesmo que a conta JSONBin tenha allowlist bloqueando leitura publica.
+  const binIdScript=binId?`<scr`+`ipt>var PUBLISHED_BIN_ID='${binId}';${masterKey?`var PUBLISHED_READ_KEY='${masterKey}';`:''}<\/scr`+`ipt>`:'';
   const injection=`
-${dateScript}
+${binIdScript}
 <scr`+`ipt id="__published_data">
 (function(){
   try{
@@ -2383,67 +2406,263 @@ styleEl.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:ro
 document.head.appendChild(styleEl);
 
 // ─── ESTADO LOCAL / PUBLICAÇÃO (GitHub) ───
-// JSONBin foi REMOVIDO. A nuvem é o GitHub Pages: importa XLSX -> "Publicar para
-// todos" gera um index.html com os dados embutidos -> sobe no GitHub. Zero API externa.
-const JBIN_CFG_KEY = 'agroquima_status_cfg';
+// ─── JSONBIN SYNC (restaurado) ───
+// Sincronizacao automatica via JSONBin: ao abrir, baixa o mais recente da nuvem;
+// ao importar/excluir, publica automaticamente. O badge reflete o estado REAL:
+// verde só quando dados foram de fato baixados/publicados; azul quando apenas
+// conectado sem dados na nuvem; vermelho em erro; cinza sem config.
+const JBIN_CFG_KEY = 'agroquima_jbin_cfg';
+let jbinSyncing = false;
 
-// Config helpers — agora guardam só metadados locais (data da última publicação).
+// Credenciais embutidas: garantem que TODOS os dispositivos leiam os dados ao abrir
+// o link, sem configurar nada. (a conta JSONBin tem allowlist que bloqueia leitura anonima)
+const HARDCODED_BIN_ID = '6a25aba8da38895dfe95c414';
+const HARDCODED_READ_KEY = '$2a$10$NhmXfS0QZiXUxosdImwfGuw6SSpu/ofmat/2kSNj9YKW8I4beCIpq';
+
+// Config helpers
 function getJBinCfg(){ try{return JSON.parse(localStorage.getItem(JBIN_CFG_KEY)||'{}');}catch(e){return {};} }
 function saveJBinCfg(cfg){ localStorage.setItem(JBIN_CFG_KEY, JSON.stringify({...getJBinCfg(),...cfg})); }
+function getBinId(){ return getJBinCfg().binId || (typeof PUBLISHED_BIN_ID!=='undefined'?PUBLISHED_BIN_ID:HARDCODED_BIN_ID); }
+function getMasterKey(){ return getJBinCfg().masterKey || (typeof PUBLISHED_READ_KEY!=='undefined'?PUBLISHED_READ_KEY:HARDCODED_READ_KEY); }
+function getReadKey(){ return getJBinCfg().masterKey || (typeof PUBLISHED_READ_KEY!=='undefined'?PUBLISHED_READ_KEY:HARDCODED_READ_KEY); }
 
-// No-ops: substituem as antigas chamadas de nuvem espalhadas pelo código.
-// Mantidas como funções vazias para não quebrar os pontos de chamada existentes.
-function syncPull(){ atualizarStatus(); }
-function syncPush(){ /* publicação agora é manual via "Publicar para todos" */ }
-
-// ─── INDICADOR DE ESTADO (reflete só o que está nesta página, sem rede) ───
-// Estados possíveis:
-//   - 'vazio'      : nenhuma importação carregada
-//   - 'local'      : há dados importados mas ainda não foram publicados nesta sessão
-//   - 'publicado'  : dados embutidos vindos do GitHub OU publicados a partir desta página
-function atualizarStatus(){
-  const el=document.getElementById('sync-indicator');if(!el)return;
-  const n=(typeof history!=='undefined'&&Array.isArray(history))?history.length:0;
-  // Dados embutidos no arquivo publicado no GitHub (gerados pelo "Publicar para todos").
-  const veioDoGit=(typeof PUBLISHED_DATA_DATE!=='undefined');
-  const cfg=getJBinCfg();
-  const dataPub=cfg.lastPublish||(veioDoGit?PUBLISHED_DATA_DATE:null);
-
-  let color,icon,label;
-  if(n===0){
-    color='#94a3b8'; icon='ti-database-off'; label='Sem dados';
-  } else if(dataPub){
-    color='#1e8449'; icon='ti-cloud-check';
-    label=`${n} import. · publicado ${dataPub}`;
-  } else {
-    color='#d68910'; icon='ti-device-floppy';
-    label=`${n} import. · não publicado`;
-  }
-  el.title = (n===0)
-    ? 'Nenhuma importação carregada nesta página.'
-    : (dataPub
-        ? `Dados embutidos nesta página. Última publicação: ${dataPub}. Para atualizar todos, importe e use "Publicar para todos".`
-        : 'Você importou dados mas ainda não gerou o arquivo. Clique em "Publicar para todos" e suba no GitHub.');
-  el.innerHTML=`<i class="ti ${icon}" style="font-size:14px;color:${color}"></i><span style="font-size:11px;color:${color};margin-left:4px">${label}</span>`;
+// Low-level fetch
+async function jbinReq(method, path, body, masterKey){
+  const h={'Content-Type':'application/json'};
+  if(masterKey) h['X-Master-Key']=masterKey;
+  const opts={method,headers:h};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch('https://api.jsonbin.io/v3'+path,opts);
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.message||'Erro HTTP '+r.status);
+  return d;
 }
-// Compat: setSyncStatus agora apenas redireciona para o estado local real.
-function setSyncStatus(){ atualizarStatus(); }
+// Create a new public bin
+async function jbinCreate(masterKey){
+  const r=await fetch('https://api.jsonbin.io/v3/b',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Master-Key':masterKey,'X-Bin-Name':'Agroquima-Vencidos','X-Bin-Private':'false'},
+    body:JSON.stringify({history:[],app:'agroquima-vencidos',v:1})
+  });
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.message||'Erro ao criar bin');
+  return d.metadata?.id;
+}
+// Read bin (descompacta automaticamente se vier comprimido)
+async function jbinRead(binId, masterKey){
+  let lastErr, rec;
+  try{
+    const r=await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`,{headers:{}});
+    const d=await r.json();
+    if(r.ok){rec=d.record;}
+    else lastErr=new Error(d.message||('HTTP '+r.status));
+  }catch(e){lastErr=e;}
+  if(rec===undefined&&masterKey){
+    try{
+      const r=await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`,{headers:{'X-Master-Key':masterKey}});
+      const d=await r.json();
+      if(r.ok){rec=d.record;}
+      else lastErr=new Error(d.message||('HTTP '+r.status));
+    }catch(e){lastErr=e;}
+  }
+  if(rec===undefined) throw lastErr||new Error('Erro ao ler');
+  return descompactarPayload(rec);
+}
+// Write bin
+async function jbinWrite(binId, masterKey, payload){
+  const r=await fetch(`https://api.jsonbin.io/v3/b/${binId}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':masterKey},
+    body:JSON.stringify(payload)
+  });
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.message||'Erro ao salvar');
+  return d;
+}
+// Merge remote history into local
+function mergeRemote(remoteHistory){
+  if(!remoteHistory||!Array.isArray(remoteHistory)) return false;
+  const remDates=new Set(remoteHistory.map(h=>h.importDate));
+  const built=remoteHistory.map(h=>{const s=buildSnapshot(h.records);s.importDate=h.importDate;return s;});
+  history.forEach(h=>{if(!remDates.has(h.importDate))built.push(h);});
+  built.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
+  history=built;
+  save();
+  return true;
+}
 
-// Config view — popula o status local (sem nenhuma chamada externa).
+// ─── INDICADOR DE ESTADO (honesto: reflete o que realmente aconteceu) ───
+// status: 'ok' (dados na nuvem/sincronizados), 'conectado' (online, porem nuvem vazia),
+//         'syncing', 'error', 'offline'/'nokey' (sem config)
+function setSyncStatus(status,detail){
+  const el=document.getElementById('sync-indicator');if(!el)return;
+  const m={
+    ok:['#1e8449','ti-cloud-check','Sincronizado'],
+    conectado:['#2563eb','ti-cloud','Conectado · nuvem vazia'],
+    syncing:['#d68910','ti-cloud-upload','Sincronizando...'],
+    error:['#c0392b','ti-cloud-x','Erro de sync'],
+    offline:['#94a3b8','ti-cloud-off','Sem sync'],
+    nokey:['#94a3b8','ti-cloud-off','Sem config']
+  };
+  const[color,icon,label]=m[status]||m['offline'];
+  el.title = ({
+    ok:'Dados sincronizados com a nuvem (JSONBin). Todos que abrem o link veem o mais recente.',
+    conectado:'Conectado a nuvem, mas ainda nao ha dados publicados. Importe um XLSX para publicar.',
+    syncing:'Comunicando com a nuvem...',
+    error:'Falha ao falar com a nuvem. Os dados locais continuam disponiveis. '+(detail||''),
+    offline:'Sem sincronizacao configurada.',
+    nokey:'Sem sincronizacao configurada.'
+  })[status]||'';
+  el.innerHTML=`<i class="ti ${icon}" style="font-size:14px;color:${color}"></i><span style="font-size:11px;color:${color};margin-left:4px">${detail&&status==='ok'?detail:label}</span>`;
+}
+// Compat com chamadas antigas de atualizarStatus()
+function atualizarStatus(){
+  const n=(typeof history!=='undefined'&&Array.isArray(history))?history.length:0;
+  if(n===0&&!getBinId()){setSyncStatus('nokey');return;}
+  // Se ja temos dados localmente, mostramos sincronizado; senao, conectado.
+  setSyncStatus(n>0?'ok':'conectado');
+}
+
+// Pull from cloud (everyone does this on load)
+async function syncPull(){
+  const binId=getBinId();
+  if(!binId){setSyncStatus('nokey');return;}
+  setSyncStatus('syncing','Carregando...');
+  try{
+    const readKey=getReadKey();
+    const remote=await jbinRead(binId,readKey);
+    if(remote&&Array.isArray(remote.history)&&remote.history.length&&mergeRemote(remote.history)){
+      current=history[0];tbDate();renderAll();
+      setSyncStatus('ok');
+      saveJBinCfg({lastPull:new Date().toLocaleString('pt-BR')});
+    } else {
+      // Conectou, mas a nuvem esta vazia: NAO mostra verde falso.
+      setSyncStatus(history.length?'ok':'conectado');
+    }
+  }catch(e){
+    setSyncStatus('error',e.message.slice(0,20));
+    console.warn('JSONBin pull:',e.message);
+  }
+}
+
+// Janela maxima dos "a vencer" que vai para a nuvem (reduz tamanho do payload).
+const CLOUD_AVENCER_MAX_DIAS = 180;
+function recordsParaNuvem(allRecords){
+  if(!allRecords) return [];
+  return allRecords.filter(r=>{
+    const d=r.Dias||0;
+    if(d<=0) return true;
+    return d<=CLOUD_AVENCER_MAX_DIAS;
+  });
+}
+// Compressao LZString (se a lib estiver presente).
+function compactarPayload(obj){
+  const json=JSON.stringify(obj);
+  if(typeof LZString!=='undefined'&&LZString.compressToUTF16){
+    return {__lz:true,d:LZString.compressToUTF16(json)};
+  }
+  return obj;
+}
+function descompactarPayload(raw){
+  if(raw&&raw.__lz&&typeof LZString!=='undefined'&&LZString.decompressFromUTF16){
+    try{return JSON.parse(LZString.decompressFromUTF16(raw.d));}catch(e){return null;}
+  }
+  return raw;
+}
+
+// Push to cloud (importadores com master key)
+async function syncPush(){
+  const binId=getBinId(), masterKey=getMasterKey();
+  if(!binId||!masterKey) return;
+  if(jbinSyncing) return;
+  jbinSyncing=true;
+  setSyncStatus('syncing','Publicando...');
+  try{
+    const payload={
+      history:history.map(h=>({importDate:h.importDate,records:recordsParaNuvem(h.allRecords||h.records)})),
+      lastUpdate:new Date().toISOString(),
+      app:'agroquima-vencidos'
+    };
+    const corpo=compactarPayload(payload);
+    await jbinWrite(binId,masterKey,corpo);
+    setSyncStatus('ok');
+    saveJBinCfg({lastPush:new Date().toLocaleString('pt-BR')});
+    toast('☁ Dados publicados — todos verão agora','green');
+  }catch(e){
+    setSyncStatus('error',e.message.slice(0,20));
+    toast('Erro ao publicar: '+e.message,'red');
+  }finally{jbinSyncing=false;}
+}
+
+// Config view handlers
+function toggleKeyVisibility(){
+  const inp=document.getElementById('jbin-key-input');
+  const icon=document.getElementById('eye-icon');
+  if(!inp)return;
+  if(inp.type==='password'){inp.type='text';if(icon)icon.className='ti ti-eye-off';}
+  else{inp.type='password';if(icon)icon.className='ti ti-eye';}
+}
+function copyBinId(){
+  const v=document.getElementById('jbin-id-display').value;
+  if(v){navigator.clipboard.writeText(v).then(()=>toast('Bin ID copiado!'));}
+}
 function loadConfigView(){
   const cfg=getJBinCfg();
+  const keyInp=document.getElementById('jbin-key-input');
+  const idDisp=document.getElementById('jbin-id-display');
+  if(keyInp&&cfg.masterKey) keyInp.value=cfg.masterKey;
+  if(idDisp&&(cfg.binId||getBinId())) idDisp.value=cfg.binId||getBinId();
   const st=document.getElementById('config-current-status');
-  if(!st) return;
-  const n=(Array.isArray(history))?history.length:0;
-  const veioDoGit=(typeof PUBLISHED_DATA_DATE!=='undefined');
-  const dataPub=cfg.lastPublish||(veioDoGit?PUBLISHED_DATA_DATE:null);
-  if(n===0){
-    st.innerHTML=`<span style="color:#94a3b8"><i class="ti ti-database-off"></i> <strong>Sem dados.</strong></span> Importe um XLSX para começar.`;
-  } else if(dataPub){
-    st.innerHTML=`<span style="color:var(--green)"><i class="ti ti-cloud-check"></i> <strong>Publicado.</strong></span> ${n} importação(ões) embutida(s).<br><span style="font-size:11px;color:var(--text3)">Última publicação: ${dataPub}</span>`;
-  } else {
-    st.innerHTML=`<span style="color:#d68910"><i class="ti ti-device-floppy"></i> <strong>Não publicado.</strong></span> ${n} importação(ões) carregada(s) nesta página.<br><span style="font-size:11px;color:var(--text3)">Use "Publicar para todos" e suba no GitHub.</span>`;
+  if(st){
+    const binId=getBinId(), hasKey=!!getMasterKey();
+    if(binId&&hasKey) st.innerHTML=`<span style="color:var(--green)"><i class="ti ti-check"></i> <strong>Configurado e pronto.</strong></span> Bin: <code style="font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px">${binId}</code><br><span style="font-size:11px;color:var(--text3)">Última sincronização: ${cfg.lastPush||cfg.lastPull||'nunca'}</span>`;
+    else if(binId&&!hasKey) st.innerHTML=`<span style="color:var(--brand)"><i class="ti ti-eye"></i> <strong>Visualizador configurado.</strong></span> Lê da nuvem, mas não pode publicar.<br><span style="font-size:11px;color:var(--text3)">Bin ID: ${binId}</span>`;
+    else st.innerHTML=`<span style="color:var(--text3)"><i class="ti ti-alert-circle"></i> Não configurado. Siga os passos ao lado.</span>`;
   }
+}
+async function handleSaveConfig(){
+  const key=document.getElementById('jbin-key-input').value.trim();
+  const binId=document.getElementById('jbin-id-display').value.trim();
+  if(!key){showConfigStatus('warning','Cole a Master Key antes de salvar.');return;}
+  saveJBinCfg({masterKey:key,binId:binId||getJBinCfg().binId});
+  showConfigStatus('ok','Configuração salva com sucesso!');
+  loadConfigView();
+}
+async function handleCreateBin(){
+  const key=document.getElementById('jbin-key-input').value.trim();
+  if(!key){showConfigStatus('error','Cole a Master Key primeiro.');return;}
+  showConfigStatus('loading','Criando bin no JSONBin...');
+  try{
+    const binId=await jbinCreate(key);
+    document.getElementById('jbin-id-display').value=binId;
+    saveJBinCfg({masterKey:key,binId});
+    showConfigStatus('ok','Bin criado com sucesso! Bin ID: '+binId+'\n\nAgora clique em "Publicar para todos" para distribuir o link com o Bin ID embutido.');
+    setSyncStatus('conectado');
+    loadConfigView();
+    toast('Bin criado! Clique em "Publicar para todos"','green');
+  }catch(e){
+    showConfigStatus('error','Erro: '+e.message+'\n\nVerifique se a Master Key está correta.');
+  }
+}
+async function handleTestConnection(){
+  const key=document.getElementById('jbin-key-input').value.trim()||getMasterKey();
+  const binId=document.getElementById('jbin-id-display').value.trim()||getBinId();
+  if(!binId){showConfigStatus('error','Nenhum Bin ID configurado. Crie um bin primeiro.');return;}
+  showConfigStatus('loading','Testando conexão...');
+  try{
+    const data=await jbinRead(binId,key);
+    const histLen=data?.history?.length||0;
+    showConfigStatus('ok',`Conexão OK! Bin acessível. Histórico na nuvem: ${histLen} importação(ões).`);
+  }catch(e){
+    showConfigStatus('error','Falha: '+e.message);
+  }
+}
+function showConfigStatus(type,msg){
+  const el=document.getElementById('config-status');if(!el)return;
+  const m={ok:'#1e8449',error:'#c0392b',loading:'#d68910',warning:'#d68910'};
+  const i={ok:'ti-check-circle',error:'ti-alert-circle',loading:'ti-loader',warning:'ti-alert-triangle'};
+  el.style.display='block';
+  el.innerHTML=`<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);color:${m[type]||'var(--text2)'}"><i class="ti ${i[type]||'ti-info-circle'}" style="font-size:16px;flex-shrink:0;margin-top:1px${type==='loading'?';animation:spin 1s linear infinite':''}"></i><span style="font-size:12px;white-space:pre-wrap;color:inherit">${msg}</span></div>`;
 }
 
 // ─── TRAVA DE SENHA ───
@@ -2739,8 +2958,8 @@ function init(){
     tbDate();
     setTimeout(()=>{const lp=document.getElementById('login-pass');if(lp)lp.focus();},100);
   }
-  // Reflete o estado real desta página (sem nenhuma chamada de rede).
-  atualizarStatus();
+  // Busca o mais recente da nuvem (se houver bin configurado)
+  syncPull();
 }
 init();
 </script>
