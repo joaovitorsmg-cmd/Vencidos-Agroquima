@@ -241,6 +241,20 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 .evot .pos{color:var(--red);font-weight:800}
 .evot .neg{color:var(--green);font-weight:800}
 .evot .tr td{background:#f7d117!important;color:#1a1a1a;font-weight:800;border-color:#dcb800}
+/* MODO EXPORTAÇÃO PNG — contraste máximo p/ diretoria, independe do tema escuro */
+.evo-export-mode{background:#fff!important}
+.evo-export-mode .evo-export-title div:first-child{color:#08376a!important}
+.evo-export-mode .evo-export-title div:last-child{color:#333!important}
+.evo-export-mode .evotw{box-shadow:none;border-color:#c9c9c9;border-radius:4px}
+.evo-export-mode .evot{font-size:14px}
+.evo-export-mode .evot td{color:#000;background:#fff;border-color:#c9c9c9}
+.evo-export-mode .evot tr:nth-child(even) td{background:#f2f4f7}
+.evo-export-mode .evot td.nm{color:#000;font-weight:700}
+.evo-export-mode .evot .muted{color:#444}
+.evo-export-mode .evot .pos{color:#b91c1c}
+.evo-export-mode .evot .neg{color:#0e7a35}
+.evo-export-mode .evot .teq{color:#555}
+.evo-export-mode .evot .tr td{background:#f7d117!important;color:#111}
 /* HISTORY */
 .hist-e{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:11px;transition:.15s}
 .hist-e:hover{box-shadow:var(--sh-md)}
@@ -1940,54 +1954,66 @@ function renderEvo(){
   const div=document.getElementById('evo-body');
   const trendCard=document.getElementById('evo-trend-card');
 
-  // ── Gráfico de tendência: TODAS as importações em ordem cronológica ──
+  // ── Gráfico de tendência: importações em ordem cronológica ──
+  // Linha "Vencido" usa SÓ as leituras do arquivo de vencidos; importações completas
+  // não entram na evolução (viram null e o spanGaps liga os pontos medidos).
+  // Linha "A Vencer" segue o inverso: só existe nas importações completas.
   if(history.length>=2){
     trendCard.style.display='block';
     const ordered=[...history].sort((a,b)=>pdate(a.importDate)-pdate(b.importDate));
     const labels=ordered.map(h=>h.importDate);
-    const vencidos=ordered.map(h=>Math.round(h.grandTotal));
-    // A-vencer: só conta em importações COMPLETAS. Nas "só vencidos" vira null,
-    // e o spanGaps liga os pontos medidos sem despencar artificialmente pra zero.
+    const vencidos=ordered.map(h=>tipoEfetivo(h)==='vencidos'?Math.round(h.grandTotal):null);
     const aVencer=ordered.map(h=>tipoEfetivo(h)==='completa'?Math.round(h.totalAVencer||0):null);
-    const algumSoVencidos=ordered.some(h=>tipoEfetivo(h)==='vencidos');
+    const algumaCompleta=ordered.some(h=>tipoEfetivo(h)==='completa');
     destroyChart('evo');
     charts.evo=safeChart('ch-evo',{
       type:'line',
       data:{labels:labels,datasets:[
-        {label:'Vencido',data:vencidos,borderColor:'#d92d20',backgroundColor:'rgba(217,45,32,.08)',borderWidth:3,fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#d92d20'},
+        {label:'Vencido',data:vencidos,borderColor:'#d92d20',backgroundColor:'rgba(217,45,32,.08)',borderWidth:3,fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#d92d20',spanGaps:true},
         {label:'A Vencer',data:aVencer,borderColor:'#079455',backgroundColor:'rgba(7,148,85,.05)',borderWidth:2,borderDash:[6,4],fill:false,tension:.3,pointRadius:3,pointBackgroundColor:'#079455',spanGaps:true}
       ]},
-      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw==null?'A Vencer: não medido nesta data':c.dataset.label+': '+brl(c.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'rgba(128,128,128,.08)'}}}}
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw==null?(c.datasetIndex===0?'Vencido: importação completa (fora da evolução)':'A Vencer: não medido nesta data'):c.dataset.label+': '+brl(c.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'rgba(128,128,128,.08)'}}}}
     });
-    document.getElementById('leg-evo').innerHTML=`<span><span class="dot" style="background:#d92d20"></span>Vencido</span><span><span class="dot" style="background:#079455"></span>A Vencer</span>`+(algumSoVencidos?`<span style="color:var(--text3);font-size:10px"><i class="ti ti-info-circle"></i> A Vencer só nas importações completas</span>`:'');
+    document.getElementById('leg-evo').innerHTML=`<span><span class="dot" style="background:#d92d20"></span>Vencido (leituras do arquivo de vencidos)</span><span><span class="dot" style="background:#079455"></span>A Vencer (importações completas)</span>`+(algumaCompleta?`<span style="color:var(--text3);font-size:10px"><i class="ti ti-info-circle"></i> Importações completas não entram na evolução do vencido</span>`:'');
   } else {
     trendCard.style.display='none';
   }
 
-  if(history.length<2){div.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>Importe pelo menos 2 arquivos para visualizar a evolução. Atualmente há ${history.length} importação(ões). Dica: você pode importar arquivos antigos — a data é detectada pelo nome (ex: Vencidos_13_05_2025.xlsx).</div></div>`;return;}
-  const curr=current,ci=history.indexOf(curr),prev=history[ci+1]||history[history.length-1];
-  if(curr===prev){div.innerHTML='<div class="alert brand"><i class="ti ti-info-circle"></i><div>Selecione um período com duas datas diferentes.</div></div>';return;}
+  // ── Comparativo semanal: considera APENAS leituras do arquivo de vencidos ──
+  const evoHist=history.filter(h=>tipoEfetivo(h)==='vencidos'); // history já está em ordem decrescente de data
+  if(evoHist.length<2){div.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>A evolução semanal compara apenas <strong>leituras do arquivo de vencidos</strong> — importações completas (vencidos + a vencer) não entram. Há ${evoHist.length} leitura(s) de vencidos no histórico; importe pelo menos 2. Dica: a data é detectada pelo nome do arquivo (ex: Vencidos_13_05_2025.xlsx).</div></div>`;return;}
+  const refT=current?pdate(current.importDate):Infinity;
+  let curr=evoHist.find(h=>pdate(h.importDate)<=refT)||evoHist[0];
+  let prev=evoHist[evoHist.indexOf(curr)+1];
+  if(!prev){curr=evoHist[0];prev=evoHist[1];}
+  const aviso=(current&&tipoEfetivo(current)!=='vencidos')?`<div class="alert brand" style="margin-bottom:16px"><i class="ti ti-info-circle"></i><div>A importação ativa (${current.importDate}) é <strong>completa</strong> e não entra na evolução. Comparando as duas leituras de vencidos mais recentes: <strong>${prev.importDate} → ${curr.importDate}</strong>.</div></div>`:'';
   const Tc=curr.grandTotal,Tp=prev.grandTotal,diff=Tc-Tp,dp=Tp?diff/Tp*100:0,imp=diff<0;
   const all=new Set([...curr.byFilial.map(f=>f.key),...prev.byFilial.map(f=>f.key)]);
   const rows=[];
-  for(const f of all){const c=curr.byFilial.find(x=>x.key===f),p=prev.byFilial.find(x=>x.key===f);const vC=c?c.total:0,vP=p?p.total:0,dd=vC-vP,ddp=vP?dd/vP*100:(vC>0?999:0);rows.push({f,reg:c?c.regional:(p?p.regional:''),prev:vP,curr:vC,diff:dd,pct:ddp});}
+  for(const f of all){const c=curr.byFilial.find(x=>x.key===f),p=prev.byFilial.find(x=>x.key===f);const vC=c?c.total:0,vP=p?p.total:0,dd=vC-vP,ddp=vP?dd/vP*100:(vC>0?999:0);rows.push({f,reg:c?c.regional:(p?p.regional:''),prev:vP,curr:vC,diff:dd,pct:ddp,share:Tc>0?vC/Tc*100:0});}
   rows.sort((a,b)=>b.curr-a.curr);
-  const fd=(dd,p)=>{if(Math.abs(dd)<0.01)return '<span class="teq">—</span>';const cl=dd<0?'neg':'pos',ar=dd<0?'↓':'↑';return `<span class="${cl}">${ar} ${brl(Math.abs(dd))}</span>`;};
-  div.innerHTML=`
+  // Variação para a diretoria: seta + % (vermelho piorou, verde melhorou), NOVO/ZEROU nos extremos
+  const fv=r=>{
+    if(r.prev<=0&&r.curr>0)return '<span class="pos">NOVO</span>';
+    if(r.prev>0&&r.curr<=0)return '<span class="neg">ZEROU ↓</span>';
+    if(Math.abs(r.diff)<0.01)return '<span class="teq">—</span>';
+    return `<span class="${r.diff<0?'neg':'pos'}">${r.diff<0?'↓':'↑'} ${Math.abs(Math.round(r.pct))}%</span>`;
+  };
+  div.innerHTML=aviso+`
     <div class="g3">
-      <div class="metric ${imp?'green':'red'}"><div class="ml">Variação Total</div><div class="mv">${imp?'↓':'↑'} ${Math.abs(dp).toFixed(1)}%</div><div class="ms">${imp?'Redução de ':'Aumento de '}${brl(Math.abs(diff))}</div></div>
-      <div class="metric"><div class="ml">${prev.importDate} (anterior)</div><div class="mv">${brl(Tp)}</div><div class="ms">${prev.totalItems} itens</div></div>
-      <div class="metric ${imp?'green':'red'}"><div class="ml">${curr.importDate} (atual)</div><div class="mv">${brl(Tc)}</div><div class="ms">${curr.totalItems} itens</div></div>
+      <div class="metric"><div class="ml">${prev.importDate} (semana anterior)</div><div class="mv">${brl(Tp)}</div><div class="ms">${prev.totalItems} itens vencidos</div></div>
+      <div class="metric ${imp?'green':'red'}"><div class="ml">${curr.importDate} (atual)</div><div class="mv">${brl(Tc)}</div><div class="ms">${curr.totalItems} itens vencidos</div></div>
+      <div class="metric ${imp?'green':'red'}"><div class="ml">Variação da Semana</div><div class="mv">${imp?'↓':'↑'} ${Math.abs(dp).toFixed(1)}%</div><div class="ms">${imp?'Redução de ':'Aumento de '}${brl(Math.abs(diff))}</div></div>
     </div>
     <div class="view-head" style="margin-bottom:10px"><div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div><button class="btn ghost" onclick="exportarEvoPNG()" style="font-size:12px"><i class="ti ti-download"></i> Exportar imagem (PNG)</button></div>
     <div id="evo-export-area" style="background:var(--bg2);padding:18px;border-radius:12px">
     <div class="evo-export-title" style="display:none;margin-bottom:14px">
       <div style="font-size:18px;font-weight:800;color:var(--brand)">AGROQUIMA — Evolução do Vencido</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:2px">Comparativo por Loja · ${prev.importDate} → ${curr.importDate}</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:2px">Comparativo por Loja · ${prev.importDate} → ${curr.importDate} · leituras do arquivo de vencidos</div>
     </div>
-    <div class="evotw"><table class="evot"><thead><tr><th style="text-align:left;min-width:130px">LOJA</th><th>REGIONAL</th><th>${prev.importDate}</th><th>${curr.importDate}</th><th>DIFERENÇA</th><th>%</th></tr></thead>
-    <tbody>${rows.map(r=>`<tr><td class="nm">${r.f}</td><td style="text-align:left;font-size:11px" class="muted">${r.reg}</td><td>${r.prev>0?brl2(r.prev):'—'}</td><td>${r.curr>0?brl2(r.curr):'—'}</td><td>${fd(r.diff,r.pct)}</td><td class="${r.diff<0?'neg':r.diff>0?'pos':''}">${Math.abs(r.pct)>0&&Math.abs(r.pct)<999?Math.round(r.pct)+'%':'—'}</td></tr>`).join('')}</tbody>
-    <tfoot><tr class="tr"><td colspan="2">TOTAL</td><td>${brl2(Tp)}</td><td>${brl2(Tc)}</td><td>${fd(diff,dp)}</td><td class="${diff<0?'neg':'pos'}">${Math.round(Math.abs(dp))}%</td></tr></tfoot></table></div>
+    <div class="evotw"><table class="evot"><thead><tr><th style="text-align:left;min-width:130px">LOJA</th><th>REGIONAL</th><th>${prev.importDate}</th><th>${curr.importDate}</th><th>VARIAÇÃO</th><th>% DO TOTAL</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td class="nm">${r.f}</td><td style="text-align:left;font-size:11px" class="muted">${r.reg}</td><td>${r.prev>0?brl(r.prev):'—'}</td><td>${r.curr>0?brl(r.curr):'—'}</td><td>${fv(r)}</td><td>${r.curr>0?r.share.toFixed(1).replace('.',',')+'%':'—'}</td></tr>`).join('')}</tbody>
+    <tfoot><tr class="tr"><td colspan="2">TOTAL</td><td>${brl(Tp)}</td><td>${brl(Tc)}</td><td>${Math.abs(diff)<0.01?'—':(diff<0?'↓ ':'↑ ')+Math.abs(Math.round(dp))+'%'}</td><td>100%</td></tr></tfoot></table></div>
     </div>`;
 }
 
@@ -1999,18 +2025,20 @@ function exportarEvoPNG(){
   // Mostra o título (que fica oculto na tela) só durante a exportação
   const titulo=area.querySelector('.evo-export-title');
   if(titulo)titulo.style.display='block';
+  // Modo de alto contraste: fundo branco, texto preto sólido e vermelho/verde fortes,
+  // independente do tema escuro — evita letras apagadas/borradas na imagem.
+  area.classList.add('evo-export-mode');
+  const limpar=()=>{if(titulo)titulo.style.display='none';area.classList.remove('evo-export-mode');};
   toast('Gerando imagem...','brand');
-  // Detecta cor de fundo real do tema
-  const bg=getComputedStyle(document.body).getPropertyValue('--bg2').trim()||'#ffffff';
   html2canvas(area,{
     scale:3,                    // 3x resolução = imagem nítida
-    backgroundColor:bg,
+    backgroundColor:'#ffffff',  // sempre branco no PNG (papel/projetor)
     logging:false,
     useCORS:true,
     windowWidth:area.scrollWidth,
     windowHeight:area.scrollHeight
   }).then(canvas=>{
-    if(titulo)titulo.style.display='none';
+    limpar();
     // Nome do arquivo com a data atual
     const hoje=current?current.importDate.replace(/\//g,'_'):new Date().toLocaleDateString('pt-BR').replace(/\//g,'_');
     canvas.toBlob(blob=>{
@@ -2023,7 +2051,7 @@ function exportarEvoPNG(){
       toast('✓ Imagem salva! Confira em Downloads','green');
     },'image/png');
   }).catch(e=>{
-    if(titulo)titulo.style.display='none';
+    limpar();
     toast('Erro ao gerar imagem: '+e.message,'red');
   });
 }
