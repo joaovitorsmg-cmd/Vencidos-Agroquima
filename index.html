@@ -441,6 +441,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-clipboard-text"></i> Parecer do Auditor</div>
     <div id="parecer" style="font-size:14px;line-height:1.8;color:var(--text2)"></div>
   </div>
+  <div class="card" id="politica-devolucao" style="margin-bottom:22px;display:none"></div>
   <div class="alert brand" style="margin-bottom:0"><i class="ti ti-calendar-time"></i><div>A análise de <strong>sazonalidade</strong> (o que vence fora da época de venda e precisa escoar já) ganhou uma aba própria: <strong style="cursor:pointer;text-decoration:underline" onclick="nav('janela')">Janela de Venda</strong>.</div></div>
 </div>
 
@@ -459,7 +460,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         <option value="acao">🔴 Ação Imediata — Vence Fora da Janela de Venda</option>
         <option value="monitor">🟡 Monitorar — Janela Abre Antes de Vencer</option>
         <option value="janela">🟢 Dentro da Janela — Priorizar Giro (FEFO)</option>
-        <option value="vencido">⚫ Já Vencido — Devolução ou Baixa</option>
+        <option value="vencido">⚫ Já Vencido — Destinar por Política da Linha</option>
       </select>
       <select id="jf-loja" onchange="renderJanela()"><option value="">Todas as Lojas</option></select>
       <select id="jf-linha" onchange="renderJanela()"><option value="">Todas as Linhas</option></select>
@@ -549,7 +550,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-alertas" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-alarm"></i> Alertas de Vencimento</h2>
     <div class="sub">Produtos a vencer — dinheiro ainda recuperável se houver ação agora</div></div></div>
-  <div class="alert green"><i class="ti ti-shield-check"></i><div><strong>Prevenção, não constatação.</strong> Estes produtos ainda não venceram. Cada item aqui é uma oportunidade de venda, transferência entre lojas ou devolução ao fornecedor antes da perda. Escolha a janela de antecedência abaixo.</div></div>
+  <div class="alert green"><i class="ti ti-shield-check"></i><div><strong>Prevenção, não constatação.</strong> Estes produtos ainda não venceram. Cada item é uma oportunidade de ação antes da perda: <strong>pastagem (FAG)</strong> — negociar devolução à fábrica para itens de alto giro ou escoar por venda; <strong>nutrição animal (FAP/FCB)</strong> — escoar por venda imediata, sem opção de devolução futura; <strong>agrícola</strong> — verificar revalidação ou promover venda; <strong>demais</strong> — venda ou bonificação com fornecedor. Escolha a janela de antecedência abaixo.</div></div>
 
   <div class="window-selector">
     <span class="ws-label">Mostrar o que vence em até:</span>
@@ -632,7 +633,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-aging" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-hourglass"></i> Aging — Envelhecimento do Vencido</h2>
     <div class="sub">Distribuição por tempo de vencimento — define urgência e recuperabilidade</div></div></div>
-  <div class="alert brand"><i class="ti ti-info-circle"></i><div>Itens vencidos há <strong>menos de 30 dias</strong> ainda têm maior chance de negociação/troca com fornecedor. Itens há <strong>mais de 365 dias</strong> são candidatos a baixa/descarte. A faixa orienta a ação.</div></div>
+  <div class="alert brand"><i class="ti ti-info-circle"></i><div>Itens vencidos há <strong>menos de 30 dias</strong> ainda têm maior chance de ação. <strong>Atenção à política por linha:</strong> Nutrição Animal (FAP/FCB) — sem devolução, destinar como descarte ou venda imediata; Pastagem — devolução somente à FAG (não entre filiais); Agrícola — verificar revalidação de análise; demais — tentar bonificação com fornecedor. Itens há <strong>mais de 365 dias</strong> são candidatos a baixa/descarte.</div></div>
   <div class="g2-1">
     <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Valor por Faixa de Vencimento</div><div id="aging-bars"></div></div>
     <div class="card"><div class="card-h"><i class="ti ti-chart-pie"></i> Proporção</div><div class="chartbox"><canvas id="ch-aging" role="img" aria-label="Aging do vencido"></canvas></div></div>
@@ -1463,7 +1464,7 @@ function showAudDetail(aud){
     </div>
     <div class="card" style="margin-bottom:18px"><div class="card-h"><i class="ti ti-clipboard-check"></i> Ações recomendadas para ${aud}</div>
       <div class="action-item"><div class="action-num red">1</div><div class="action-content"><div class="action-title">Atacar os itens de maior score primeiro</div><div class="action-desc">Concentrar esforço nos lotes de maior valor × tempo vencido listados abaixo. ${recs.length>0?'Item prioritário: '+cleanProd(recs[0].Nome)+' ('+recs[0].Sigla+') — '+brl(recs[0].Total):''}.</div></div></div>
-      <div class="action-item"><div class="action-num amber">2</div><div class="action-content"><div class="action-title">Negociar troca com fornecedor nos itens recentes</div><div class="action-desc">${brl(ag.r)} estão vencidos há menos de 60 dias — janela ideal para negociar devolução ou troca antes que percam valor de revenda.</div></div></div>
+      <div class="action-item"><div class="action-num amber">2</div><div class="action-content"><div class="action-title">Acionar destino correto por linha nos itens recentes</div><div class="action-desc">${brl(ag.r)} estão vencidos há menos de 60 dias — prioridade imediata. Nutrição animal (FAP/FCB): descarte ou venda no estado (sem devolução). Pastagem (FAG): solicitar retorno à fábrica. Agrícola: verificar revalidação de análise. Demais: bonificação ou preço de custo.</div></div></div>
       <div class="action-item"><div class="action-num">3</div><div class="action-content"><div class="action-title">Reportar plano de baixa dos itens críticos</div><div class="action-desc">${brl(ag.c)} em itens com mais de 180 dias devem ter destinação definida (descarte, doação ou baixa contábil) com justificativa.</div></div></div>
     </div>
     <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Linha</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th><th class="r">% do total</th></tr></thead>
@@ -1504,9 +1505,9 @@ function renderInsights(){
     <div class="insight amber"><div class="insight-h"><div class="insight-icon amber"><i class="ti ti-package"></i></div><div class="insight-title">Produto Dominante</div></div>
       <div class="insight-metric" style="color:var(--amber)">${topFam?cleanProd(topFam[0]):'—'}</div>
       <div class="insight-body">O produto <strong>${topFam?cleanProd(topFam[0]):'—'}</strong> sozinho soma <strong>${topFam?brl(topFam[1]):'—'}</strong> (${topFam?Math.round(topFam[1]/T*100):0}% do total). Uma ação focada neste único item teria impacto desproporcional na redução.</div></div>
-    <div class="insight green"><div class="insight-h"><div class="insight-icon green"><i class="ti ti-clock-check"></i></div><div class="insight-title">Janela de Recuperação</div></div>
+    <div class="insight green"><div class="insight-h"><div class="insight-icon green"><i class="ti ti-clock-check"></i></div><div class="insight-title">Janela de Ação</div></div>
       <div class="insight-metric" style="color:var(--green)">${brl(ag.r)} (${recPct}%)</div>
-      <div class="insight-body"><strong>${recPct}% do valor</strong> (${ag.ri} itens) venceu há menos de 60 dias. Esta é a <strong>janela ideal</strong> para negociar troca/devolução com fornecedores antes que percam valor de revenda. Ação rápida aqui evita perda consolidada.</div></div>
+      <div class="insight-body"><strong>${recPct}% do valor</strong> (${ag.ri} itens) venceu há menos de 60 dias — prioridade imediata. A ação varia por linha: <strong>pastagem</strong> → solicitar devolução à FAG; <strong>agrícola</strong> → verificar revalidação; <strong>nutrição animal</strong> → descarte ou venda imediata (sem devolução); <strong>demais</strong> → bonificação ou preço de custo.</div></div>
     <div class="insight purple"><div class="insight-h"><div class="insight-icon purple"><i class="ti ti-user-shield"></i></div><div class="insight-title">Responsabilização</div></div>
       <div class="insight-metric" style="color:var(--purple)">${topAud?topAud.key:'—'}</div>
       <div class="insight-body"><strong>${topAud?topAud.key:'—'}</strong> responde por <strong>${topAud?brl(topAud.total):'—'}</strong> (${topAud?Math.round(topAud.total/T*100):0}%). Os 2 maiores auditores concentram <strong>${Math.round((d.byAuditor.slice(0,2).reduce((s,a)=>s+a.total,0))/T*100)}%</strong> do total. Cobrança individual de plano de ação é o caminho.</div></div>`;
@@ -1515,11 +1516,64 @@ function renderInsights(){
   document.getElementById('parecer').innerHTML=`
     <p>O estoque vencido da rede totaliza <strong>${brl(T)}</strong> distribuídos em <strong>${d.totalItems} itens</strong> e <strong>${d.byFilial.length} lojas</strong>. A análise revela alta concentração: <strong>${top.key}</strong> sozinha responde por ${Math.round(top.total/T*100)}% do total, e o produto <strong>${topFam?cleanProd(topFam[0]):'—'}</strong> por ${topFam?Math.round(topFam[1]/T*100):0}%.</p>
     <br>
-    <p>Pelo perfil de envelhecimento, <strong>${recPct}% do valor é recente</strong> (≤60 dias) e portanto recuperável via negociação com fornecedor — esta deve ser a prioridade imediata. Em contrapartida, <strong>${critPct}%</strong> está vencido há mais de 180 dias e tende a baixa contábil.</p>
+    <p>Pelo perfil de envelhecimento, <strong>${recPct}% do valor é recente</strong> (≤60 dias) — prioridade de ação imediata. A estratégia varia por linha: <strong>nutrição animal</strong> (FAP/FCB) não tem devolução — destinar como descarte ou venda no estado atual; <strong>pastagem</strong> (FAG) solicitar devolução à fábrica para sementes de alto giro; <strong>agrícola</strong> verificar revalidação de análise com o fornecedor; <strong>demais linhas</strong> tentar bonificação ou venda a preço de custo. Em contrapartida, <strong>${critPct}%</strong> está vencido há mais de 180 dias e tende a baixa contábil.</p>
     <br>
-    <p><strong>Recomendação de auditoria:</strong> (1) acionar imediatamente os auditores ${d.byAuditor.slice(0,2).map(a=>a.key).join(' e ')} sobre suas carteiras; (2) priorizar negociação de troca dos ${ag.ri} itens recentes; (3) definir destinação dos ${ag.ci} itens críticos; (4) revisar política de compra dos produtos recorrentes em múltiplas lojas para evitar reincidência.</p>`;
+    <p><strong>Recomendação de auditoria:</strong> (1) acionar imediatamente os auditores ${d.byAuditor.slice(0,2).map(a=>a.key).join(' e ')} sobre suas carteiras; (2) destinar os ${ag.ri} itens recentes conforme política de cada linha (ver "Política de Devolução" abaixo); (3) definir destinação dos ${ag.ci} itens críticos; (4) revisar política de compra dos produtos recorrentes em múltiplas lojas para evitar reincidência.</p>`;
   renderProdAnalise();
+  renderPoliticaDevolucao();
   carregarCambio();
+}
+
+// ─── POLÍTICA DE DEVOLUÇÃO — card na aba Insights ───
+function renderPoliticaDevolucao(){
+  const el=document.getElementById('politica-devolucao');
+  if(!el)return;
+  const d=current;
+  if(!d||!d.records.length){el.style.display='none';return;}
+
+  // Agrupa valor e itens por tipo de estratégia
+  const grupos={
+    proibido:{label:'Nutrição Animal',sub:'Linha 1 — FAP / FCB',cor:'red',
+      regra:'FAP e FCB (fábricas Agroquima) <strong>não aceitam devolução de nenhum produto</strong>. Destinar obrigatoriamente como descarte ou venda imediata no estado atual.',
+      val:0,itens:0},
+    fag:{label:'Sementes de Pastagem',sub:'Produzidas pela FAG',cor:'amber',
+      regra:'Devolução somente da filial à FAG — <strong>sem transferência entre filiais</strong>. FAG aceita em casos de sementes com alto giro (ex: O. Ruziziensis). Para demais sementes de pastagem: bonificação ou venda.',
+      val:0,itens:0},
+    revalidacao:{label:'Sementes Agrícolas',sub:'Fornecedores externos',cor:'amber',
+      regra:'Fornecedores externos: alguns aceitam <strong>revalidação da análise de sementes</strong> (caso raro). Caso contrário: bonificação ou venda a preço de custo com margem mínima.',
+      val:0,itens:0},
+    bonificacao:{label:'Outras Linhas',sub:'Fornecedores externos',cor:'gray',
+      regra:'Sem previsão de devolução/troca. Tentar <strong>bonificação ou venda a preço de custo</strong> com margem mínima. Agrícola e demais seguem a mesma orientação.',
+      val:0,itens:0}
+  };
+
+  d.records.forEach(r=>{
+    const s=getReturnStrategy(r);
+    if(s.tipo==='proibido'){grupos.proibido.val+=r.Total;grupos.proibido.itens++;}
+    else if(s.tipo==='devolucao_fag'||s.tipo==='tentativa_fag'){grupos.fag.val+=r.Total;grupos.fag.itens++;}
+    else if(s.tipo==='revalidacao'){grupos.revalidacao.val+=r.Total;grupos.revalidacao.itens++;}
+    else{grupos.bonificacao.val+=r.Total;grupos.bonificacao.itens++;}
+  });
+
+  const T=d.grandTotal;
+  const corMap={red:'var(--red)',amber:'var(--amber)',gray:'var(--text3)'};
+  const rows=Object.values(grupos).filter(g=>g.val>0).map(g=>`
+    <tr>
+      <td><div class="b" style="font-size:13px">${g.label}</div><div class="tiny muted">${g.sub}</div></td>
+      <td class="r b ${g.cor==='red'?'neg':''}" style="white-space:nowrap">${brl(g.val)}</td>
+      <td class="r" style="white-space:nowrap">${g.itens} itens<br><span class="tiny muted">${T>0?Math.round(g.val/T*100):0}%</span></td>
+      <td style="font-size:12px;color:${corMap[g.cor]||'var(--text2)'}">${g.regra}</td>
+    </tr>`).join('');
+
+  el.style.display='block';
+  el.innerHTML=`
+    <div class="card-h"><i class="ti ti-arrows-exchange"></i> Política de Devolução por Linha</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Cada linha de produto tem uma tratativa operacional diferente para produtos vencidos. Use esta tabela para definir o destino correto de cada item antes de qualquer negociação.</div>
+    <div class="tw"><table><thead><tr><th>Linha</th><th class="r">Valor Vencido</th><th class="r">Qtd</th><th>Orientação Operacional</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="alert brand" style="margin-top:14px;margin-bottom:0">
+      <i class="ti ti-info-circle"></i>
+      <div><strong>Regra mantida:</strong> Nutrição Animal da filial Cuiabá (FCB) não aparece neste relatório. Para <em>todas</em> as demais filiais com nutrição animal vencida: <strong>sem devolução</strong> — FAP e FCB não recebem de volta. · Pastagem: devolução somente à FAG (não entre filiais). · Em todos os casos sem devolução possível a decisão é descarte ou venda no estado atual.</div>
+    </div>`;
 }
 
 // ─── JANELA DE VENDA (aba própria — tabela única sobre TODOS os lotes) ───
@@ -1529,7 +1583,7 @@ const JCATS={
   acao:{ord:0,nome:'Ação Imediata — Vence Fora da Janela de Venda',cor:'var(--red)',mcls:'red'},
   monitor:{ord:1,nome:'Monitorar — Janela Abre Antes de Vencer',cor:'var(--amber)',mcls:'amber'},
   janela:{ord:2,nome:'Dentro da Janela — Priorizar Giro (FEFO)',cor:'var(--green)',mcls:'green'},
-  vencido:{ord:3,nome:'Já Vencido — Devolução ou Baixa',cor:'var(--gray)',mcls:''}
+  vencido:{ord:3,nome:'Já Vencido — Destinar por Política da Linha',cor:'var(--gray)',mcls:''}
 };
 
 // Classifica um lote (vencido OU a vencer) frente à janela de venda da sua linha
@@ -1537,7 +1591,7 @@ function classifyJanela(r){
   const t=new Date();t.setHours(0,0,0,0);
   const vt=pdate(r.DtVenc)||null;
   const dv=vt!==null?Math.round((vt-t.getTime())/86400000):(r.Dias||0);
-  if(dv<0)return{cat:'vencido',dv,rec:`Vencido há ${-dv} dia(s) — retirar de venda: negociar devolução com o fornecedor ou registrar baixa`};
+  if(dv<0){const strat=getReturnStrategy(r);return{cat:'vencido',dv,rec:`Vencido há ${-dv} dia(s) — ${strat.acao}. ${strat.detalhe}`};}
   const saz=getSazonalidade(r);
   const mesesAbre=mesesAteJanela(saz,t);
   const abre=mesesAbre>0?new Date(t.getFullYear(),t.getMonth()+mesesAbre,1).getTime():t.getTime();
@@ -1617,6 +1671,47 @@ function getSazonalidade(rec){
   if(desc.includes('pastagem')||desc.includes('pastagens'))return SAZONALIDADE.pastagem;
   if(desc.includes('semente')||desc.includes('agricola')||desc.includes('agrícola')||desc.includes('distribuicao'))return SAZONALIDADE.agricola;
   return null; // linha não mapeada
+}
+
+// ─── POLÍTICA DE DEVOLUÇÃO POR LINHA/FABRICANTE ───
+// Regras operacionais Agroquima: cada linha tem tratativa diferente para produtos vencidos.
+// Nutrição Animal → FAP e FCB são fábricas próprias que NÃO aceitam devolução alguma.
+// Sementes de Pastagem → produzidas pela FAG; devolução somente da filial à FAG (sem transferência entre filiais).
+// FAG aceita em casos de sementes com alto giro (ex: O. Ruziziensis).
+// Linha Agrícola → fornecedores externos; raros casos de revalidação de análise de semente; caso contrário bonificação/custo.
+// Demais → fornecedores externos sem previsão de devolução; tentar bonificação ou venda a preço de custo.
+function getReturnStrategy(rec){
+  const desc=(rec.Desc||'').toLowerCase();
+  const nome=(rec.Nome||'').toLowerCase();
+  if(desc.includes('nutri')){
+    return{tipo:'proibido',
+      acao:'Descarte ou venda no estado atual (sem devolução)',
+      detalhe:'FAP e FCB (fábricas Agroquima) não aceitam devolução de nenhum produto de nutrição animal. Destinar como descarte ou venda imediata no estado atual.',
+      cor:'red'};
+  }
+  if(desc.includes('pastagem')||desc.includes('pastagens')){
+    const altoGiro=nome.includes('ruziziensis')||nome.includes('ruz');
+    if(altoGiro){
+      return{tipo:'devolucao_fag',
+        acao:'Solicitar devolução à FAG (semente de alto giro)',
+        detalhe:'FAG aceita devolução de sementes de pastagem com alto giro (ex: O. Ruziziensis). Acionar compras para negociar retorno à fábrica. Não transferir entre filiais.',
+        cor:'amber'};
+    }
+    return{tipo:'tentativa_fag',
+      acao:'Tentar devolução à FAG ou bonificação/venda',
+      detalhe:'Pastagem produzida pela FAG. Devolução possível somente da filial para a FAG — sem transferência entre filiais. Para sementes de baixo giro: bonificação ou venda.',
+      cor:'amber'};
+  }
+  if(desc.includes('semente')||desc.includes('agricola')||desc.includes('agrícola')||desc.includes('distribuicao')){
+    return{tipo:'revalidacao',
+      acao:'Verificar revalidação de análise ou bonificação/custo',
+      detalhe:'Linha agrícola: alguns fornecedores aceitam revalidação da análise de sementes. Caso contrário: bonificação ou venda a preço de custo (margem mínima). Devolução rara.',
+      cor:'amber'};
+  }
+  return{tipo:'bonificacao',
+    acao:'Negociar bonificação ou venda a preço de custo',
+    detalhe:'Fornecedor externo sem previsão de devolução/troca. Tentar bonificação ou venda com margem mínima (preço de custo).',
+    cor:'gray'};
 }
 
 // Verifica se um mês está dentro da janela de venda
@@ -1779,7 +1874,7 @@ function renderAging(){
       <div class="aging-val">${brl(b.val)}</div><div class="aging-items">${b.items} itens</div></div>`).join('');
   destroyChart('aging');
   charts.aging=safeChart('ch-aging',{type:'doughnut',data:{labels:buckets.map(b=>b.label),datasets:[{data:buckets.map(b=>Math.round(b.val)),backgroundColor:buckets.map(b=>b.color),borderWidth:3,borderColor:getComputedStyle(document.body).getPropertyValue('--bg')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:c=>c.label+': '+brl(c.raw)}}},cutout:'55%'}});
-  const recs={'0-30 dias':'Negociar troca/devolução com fornecedor — janela ideal de recuperação','31-90 dias':'Acionar fornecedor com urgência; avaliar venda promocional','91-180 dias':'Última chance de negociação; preparar destinação','181-365 dias':'Avaliar baixa contábil ou doação','+365 dias':'Baixa/descarte — registrar perda com justificativa'};
+  const recs={'0-30 dias':'Pastagem → solicitar devolução à FAG; Agrícola → verificar revalidação; Nutrição Animal → descarte/venda imediata (sem devolução FAP/FCB); demais → bonificação ou preço de custo','31-90 dias':'Acionar destino conforme linha com urgência: nutrição animal → descarte ou venda; pastagem → última tentativa com FAG; agrícola → revalidação ou custo; demais → venda promocional','91-180 dias':'Última chance de ação antes de baixa: definir descarte, doação ou venda no estado atual por linha','181-365 dias':'Avaliar baixa contábil ou doação; formalizar justificativa de perda','+365 dias':'Baixa/descarte — registrar perda com justificativa formal'};
   document.getElementById('aging-rec').innerHTML=buckets.map(b=>`<tr><td class="b">${b.label}</td><td class="r">${brl(b.val)}</td><td class="r">${b.items}</td><td class="dim" style="font-size:12px">${recs[b.label]}</td></tr>`).join('');
 }
 
@@ -1885,7 +1980,7 @@ function renderAlertas(){
   const soma=arr=>arr.reduce((s,r)=>s+r.Total,0);
   // Monta cards de faixa só das que têm itens (respeitando a janela)
   const tiers=[];
-  if(faixas.f30.length)tiers.push({cls:'t-red',ic:'ti-alarm-filled',lbl:'Vence em até 30 dias',v:soma(faixas.f30),n:faixas.f30.length,sub:'Ação imediata — negociar troca/devolução já'});
+  if(faixas.f30.length)tiers.push({cls:'t-red',ic:'ti-alarm-filled',lbl:'Vence em até 30 dias',v:soma(faixas.f30),n:faixas.f30.length,sub:'Ação imediata — acionar destino por linha (ver Insights › Política de Devolução)'});
   if(faixas.f60.length)tiers.push({cls:'t-amber',ic:'ti-clock-exclamation',lbl:'31 a 60 dias',v:soma(faixas.f60),n:faixas.f60.length,sub:'Planejar transferência entre lojas'});
   if(faixas.f90.length)tiers.push({cls:'t-green',ic:'ti-clock',lbl:'61 a 90 dias',v:soma(faixas.f90),n:faixas.f90.length,sub:'Acionar compras e monitorar giro'});
   if(faixas.f180.length)tiers.push({cls:'t-gray',ic:'ti-calendar',lbl:'91 a 180 dias',v:soma(faixas.f180),n:faixas.f180.length,sub:'Em observação'});
@@ -2142,7 +2237,7 @@ function showRegionalDetail(reg){
     </div>
     <div class="card" style="margin-bottom:18px"><div class="card-h"><i class="ti ti-clipboard-check"></i> Ações recomendadas para ${reg}</div>
       <div class="action-item"><div class="action-num red">1</div><div class="action-content"><div class="action-title">Atacar os itens de maior valor primeiro</div><div class="action-desc">${recs.length>0?'Item prioritário: '+cleanProd(recs[0].Nome)+' ('+recs[0].Sigla+') — '+brl(recs[0].Total):''}. Concentrar esforço nos lotes de maior valor listados acima.</div></div></div>
-      <div class="action-item"><div class="action-num amber">2</div><div class="action-content"><div class="action-title">Negociar troca nos itens recentes</div><div class="action-desc">${brl(ag.r)} estão vencidos há menos de 60 dias — janela ideal para devolução ou troca com fornecedor.</div></div></div>
+      <div class="action-item"><div class="action-num amber">2</div><div class="action-content"><div class="action-title">Acionar destino correto por linha nos itens recentes</div><div class="action-desc">${brl(ag.r)} estão vencidos há menos de 60 dias. Nutrição animal (FAP/FCB): descarte/venda imediata (sem devolução). Pastagem (FAG): solicitar retorno à fábrica. Agrícola: verificar revalidação. Demais: bonificação ou preço de custo.</div></div></div>
       <div class="action-item"><div class="action-num">3</div><div class="action-content"><div class="action-title">Alinhar com os auditores das lojas</div><div class="action-desc">Coordenar com ${auditores.map(a=>a[0]).join(', ')} as ações em cada loja e cobrar plano de baixa dos ${brl(ag.c)} em itens críticos.</div></div></div>
     </div>
     <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os itens vencidos (${recs.length})</div>
@@ -2391,7 +2486,7 @@ function renderFabricantes(){
     document.getElementById('ft').innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Nenhum produto vencido</td></tr>';
     return;
   }
-  document.getElementById('fab-insight').innerHTML=`<p><strong>${t1.fab}</strong> lidera com <strong>${brl(t1.total)}</strong> (${(t1.total/T*100).toFixed(1)}%).</p><br><p>Top 3 fabricantes = <strong>${(fabs.slice(0,3).reduce((s,f)=>s+f.total,0)/T*100).toFixed(0)}%</strong> do total.</p><br><p><strong>Ação:</strong> revisar prazos mínimos de validade na compra e negociar acordo de troca/devolução com estes fornecedores.</p>`;
+  document.getElementById('fab-insight').innerHTML=`<p><strong>${t1.fab}</strong> lidera com <strong>${brl(t1.total)}</strong> (${(t1.total/T*100).toFixed(1)}%).</p><br><p>Top 3 fabricantes = <strong>${(fabs.slice(0,3).reduce((s,f)=>s+f.total,0)/T*100).toFixed(0)}%</strong> do total.</p><br><p><strong>Ação por fabricante:</strong> FAP/FCB (nutrição animal) — sem devolução, destinar como descarte ou venda; FAG (pastagem) — solicitar devolução para sementes de alto giro; fornecedores externos — revisar prazos mínimos de validade na compra e tentar bonificação ou revalidação conforme a linha.</p>`;
   document.getElementById('ft').innerHTML=fabs.map(f=>`<tr><td style="font-size:12px" class="b">${f.fab}</td><td class="r">${f.items}</td><td class="r">${f.lojas}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/T*100).toFixed(1)}%</td></tr>`).join('');
 }
 
