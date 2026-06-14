@@ -362,12 +362,6 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <div id="sync-indicator" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:var(--bg2);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text3)">
       <i class="ti ti-cloud-off" style="font-size:14px"></i> <span>Sem sync</span>
     </div>
-    <button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
-    <button class="btn publish" onclick="requirePwd('Publicar para todos','Digite a senha de operador para publicar os dados.',openPublishModal)" title="Gera um index.html com todos os dados embutidos para subir no GitHub">
-      <i class="ti ti-world-upload"></i> Publicar para todos
-    </button>
-    <button class="btn primary" onclick="triggerImport()" style="cursor:pointer"><i class="ti ti-upload"></i> Importar XLSX</button>
-    <input type="file" id="up-top" accept=".xlsx,.xls" multiple style="display:none" onchange="handleUploadMulti(this)">
   </div>
 </div>
 
@@ -450,6 +444,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="view-head"><div><h2><i class="ti ti-calendar-time"></i> Janela de Venda</h2>
     <div class="sub">Cada lote cruzado com a época de venda da sua linha — o que escoar antes que vença fora de temporada</div></div></div>
   <div class="alert brand"><i class="ti ti-info-circle"></i><div>Um produto pode estar dentro da validade e ainda assim estar perdido: se a <strong>janela de venda</strong> da linha (safra, seca ou ano todo) só abrir <em>depois</em> do vencimento, não haverá comprador. Esta tela classifica <strong>todos os lotes — vencidos e a vencer</strong> — pela chance real de venda. Clique nas <strong>bolinhas da legenda</strong> ou use os filtros para focar uma situação.</div></div>
+  <div id="j-tipo-notice" style="display:none;margin-bottom:16px"></div>
   <div class="g4" id="j-metrics" style="margin-bottom:22px"></div>
   <div class="card">
     <div class="card-h"><i class="ti ti-calendar-stats"></i> Tabela Única — Situação de Cada Lote</div>
@@ -750,8 +745,20 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 
 <!-- PUBLICAÇÃO / GITHUB -->
 <div id="v-config" style="display:none">
-  <div class="view-head"><div><h2><i class="ti ti-cloud-cog"></i> Configurações de Sincronização</h2>
-    <div class="sub">Sincronização automática via JSONBin — todos veem os dados ao importar</div></div></div>
+  <div class="view-head"><div><h2><i class="ti ti-cloud-cog"></i> Área Restrita — Configurações e Operações</h2>
+    <div class="sub">Importação, publicação e sincronização via JSONBin</div></div></div>
+
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-tool"></i> Operações</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:4px">
+      <button class="btn primary" onclick="triggerImport()"><i class="ti ti-upload"></i> Importar XLSX</button>
+      <input type="file" id="up-top" accept=".xlsx,.xls" multiple style="display:none" onchange="handleUploadMulti(this)">
+      <button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir relatório</button>
+      <button class="btn publish" onclick="requirePwd('Publicar para todos','Digite a senha de operador para publicar os dados.',openPublishModal)" title="Gera um index.html com todos os dados embutidos para subir no GitHub">
+        <i class="ti ti-world-upload"></i> Publicar para todos
+      </button>
+    </div>
+  </div>
 
   <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
     <strong>Arquitetura combinada (vencidos na nuvem + a vencer no GitHub):</strong> os <strong>vencidos</strong> vão automaticamente para a nuvem (JSONBin) toda vez que alguém importa — leves, cabem no limite, ideais para a atualização semanal da Gabriela. Os <strong>a vencer</strong> (muito maiores) são embutidos no index.html via "Publicar para todos" e hospedados no GitHub — atualização mensal do auditor. Ao abrir o link, o painel <strong>junta os dois</strong>: vencidos frescos da nuvem + a vencer do arquivo.
@@ -1611,6 +1618,16 @@ function pickJCat(c){const s=document.getElementById('jf-cat');s.value=s.value==
 
 function renderJanela(){
   const d=current;if(!d)return;
+  // Aviso quando a importação ativa não é completa (faltam dados de a-vencer)
+  const jNotice=document.getElementById('j-tipo-notice');
+  if(jNotice){
+    if(tipoEfetivo(d)!=='completa'){
+      jNotice.style.display='block';
+      jNotice.innerHTML=`<div class="alert amber"><i class="ti ti-alert-triangle"></i><div><strong>Importação atual não é completa.</strong> Os dados de produtos a vencer (Ação Imediata, Monitorar, Dentro da Janela) não estão disponíveis nesta importação — apenas os lotes <strong>já vencidos</strong> aparecem na tabela abaixo. Para ver a análise completa, selecione uma <strong style="cursor:pointer;text-decoration:underline" onclick="nav('historico')">importação completa no Histórico</strong>.</div></div>`;
+    }else{
+      jNotice.style.display='none';
+    }
+  }
   const all=d.allRecords||d.records||[];
   // descrição das janelas configuradas (fonte: SAZONALIDADE)
   const vistos=new Set();
@@ -1948,16 +1965,22 @@ function setAlertWindow(dias){
 }
 function renderAlertas(){
   const d=current;
+  const empty=document.getElementById('alertas-empty');
+  const content=document.getElementById('alertas-content');
+  // Alertas de vencimento só existem em importações completas (que incluem a-vencer)
+  if(!d||tipoEfetivo(d)!=='completa'){
+    empty.style.display='block';content.style.display='none';
+    empty.querySelector('h3').textContent='Importação completa necessária';
+    empty.querySelector('p').textContent='Esta aba mostra apenas dados de importações completas (vencidos + a vencer). A importação ativa contém somente vencidos. Selecione uma importação completa no Histórico para visualizar os alertas de vencimento.';
+    return;
+  }
   const todos=(d.aVencer||[]).slice();
   // Filtra pela janela selecionada (Dias positivo = faltam X dias)
   const itens=todos.filter(r=>r.Dias>0 && r.Dias<=alertWindow).sort((a,b)=>a.Dias-b.Dias);
-
-  const empty=document.getElementById('alertas-empty');
-  const content=document.getElementById('alertas-content');
   if(todos.length===0){
     empty.style.display='block';content.style.display='none';
-    empty.querySelector('h3').textContent='Nenhum produto a vencer no relatório';
-    empty.querySelector('p').textContent='O relatório importado contém apenas itens já vencidos. Para ver alertas, gere o relatório no sistema incluindo produtos disponíveis com data futura.';
+    empty.querySelector('h3').textContent='Nenhum produto a vencer nesta importação';
+    empty.querySelector('p').textContent='A importação completa ativa não contém itens a vencer. Isso pode indicar que a planilha foi gerada apenas com vencidos.';
     return;
   }
   if(itens.length===0){
