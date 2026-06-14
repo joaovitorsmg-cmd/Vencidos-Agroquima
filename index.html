@@ -547,6 +547,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <div class="sub">Produtos a vencer — dinheiro ainda recuperável se houver ação agora</div></div></div>
   <div class="alert green"><i class="ti ti-shield-check"></i><div><strong>Prevenção, não constatação.</strong> Estes produtos ainda não venceram. Cada item é uma oportunidade de ação antes da perda: <strong>pastagem (FAG)</strong> — negociar devolução à fábrica para itens de alto giro ou escoar por venda; <strong>nutrição animal (FAP/FCB)</strong> — escoar por venda imediata, sem opção de devolução futura; <strong>agrícola</strong> — verificar revalidação ou promover venda; <strong>demais</strong> — venda ou bonificação com fornecedor. Escolha a janela de antecedência abaixo.</div></div>
 
+  <div id="alertas-fonte-notice" style="display:none;margin-bottom:12px"></div>
   <div class="window-selector">
     <span class="ws-label">Mostrar o que vence em até:</span>
     <div class="ws-btns">
@@ -1618,17 +1619,29 @@ function pickJCat(c){const s=document.getElementById('jf-cat');s.value=s.value==
 
 function renderJanela(){
   const d=current;if(!d)return;
-  // Aviso quando a importação ativa não é completa (faltam dados de a-vencer)
+  // Suplementa registros de a-vencer quando importação atual não é completa
+  let all=d.allRecords||d.records||[];
+  let fonteAVencer=null;
+  if(tipoEfetivo(d)!=='completa'){
+    const uc=ultimaCompleta(null);
+    if(uc&&uc.aVencer&&uc.aVencer.length){
+      fonteAVencer=uc;
+      all=[...all,...uc.aVencer]; // mescla vencidos atuais + a-vencer da última completa
+    }
+  }
+  // Aviso sobre fonte dos dados
   const jNotice=document.getElementById('j-tipo-notice');
   if(jNotice){
-    if(tipoEfetivo(d)!=='completa'){
+    if(fonteAVencer){
       jNotice.style.display='block';
-      jNotice.innerHTML=`<div class="alert amber"><i class="ti ti-alert-triangle"></i><div><strong>Importação atual não é completa.</strong> Os dados de produtos a vencer (Ação Imediata, Monitorar, Dentro da Janela) não estão disponíveis nesta importação — apenas os lotes <strong>já vencidos</strong> aparecem na tabela abaixo. Para ver a análise completa, selecione uma <strong style="cursor:pointer;text-decoration:underline" onclick="nav('historico')">importação completa no Histórico</strong>.</div></div>`;
+      jNotice.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>Os produtos <strong>a vencer</strong> são da última importação completa (<strong>${fonteAVencer.importDate}</strong>). Os <strong>já vencidos</strong> são da importação ativa (${d.importDate}). Os prazos são calculados a partir de hoje.</div></div>`;
+    }else if(tipoEfetivo(d)!=='completa'){
+      jNotice.style.display='block';
+      jNotice.innerHTML=`<div class="alert amber"><i class="ti ti-alert-triangle"></i><div><strong>Nenhuma importação completa no histórico.</strong> Apenas os lotes já vencidos aparecem nesta tabela.</div></div>`;
     }else{
       jNotice.style.display='none';
     }
   }
-  const all=d.allRecords||d.records||[];
   // descrição das janelas configuradas (fonte: SAZONALIDADE)
   const vistos=new Set();
   document.getElementById('j-windows').innerHTML='Janelas consideradas: '+Object.values(SAZONALIDADE).filter(s=>{if(vistos.has(s.nome))return false;vistos.add(s.nome);return true;}).map(s=>`<strong>${s.nome}</strong> — ${s.desc}`).join(' · ')+'. A situação de cada lote é calculada pela validade frente à abertura da próxima janela.';
@@ -1967,20 +1980,44 @@ function renderAlertas(){
   const d=current;
   const empty=document.getElementById('alertas-empty');
   const content=document.getElementById('alertas-content');
-  // Alertas de vencimento só existem em importações completas (que incluem a-vencer)
+  // Se importação ativa não é completa, busca a última importação completa disponível no histórico
+  let fonteDados=d;
+  let fonteAviso=null;
   if(!d||tipoEfetivo(d)!=='completa'){
-    empty.style.display='block';content.style.display='none';
-    empty.querySelector('h3').textContent='Importação completa necessária';
-    empty.querySelector('p').textContent='Esta aba mostra apenas dados de importações completas (vencidos + a vencer). A importação ativa contém somente vencidos. Selecione uma importação completa no Histórico para visualizar os alertas de vencimento.';
-    return;
+    const uc=ultimaCompleta(null); // sem limite de data — pega a mais recente completa do histórico
+    if(uc){
+      fonteDados=uc;
+      fonteAviso=uc.importDate;
+    }else{
+      empty.style.display='block';content.style.display='none';
+      empty.querySelector('h3').textContent='Nenhuma importação completa disponível';
+      empty.querySelector('p').textContent='Para ver os alertas de vencimento é necessário ao menos uma importação completa (vencidos + a vencer) no histórico.';
+      return;
+    }
   }
-  const todos=(d.aVencer||[]).slice();
-  // Filtra pela janela selecionada (Dias positivo = faltam X dias)
-  const itens=todos.filter(r=>r.Dias>0 && r.Dias<=alertWindow).sort((a,b)=>a.Dias-b.Dias);
+  // Exibe aviso quando os dados de a-vencer vêm de outra importação
+  const fonteNotice=document.getElementById('alertas-fonte-notice');
+  if(fonteNotice){
+    if(fonteAviso){
+      fonteNotice.style.display='block';
+      fonteNotice.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>Os dados de <strong>a vencer</strong> são da última importação completa disponível (<strong>${fonteAviso}</strong>). A importação ativa (${d?d.importDate:'—'}) é "só vencidos" e não contém produtos futuros. Os prazos são recalculados a partir de hoje.</div></div>`;
+    }else{
+      fonteNotice.style.display='none';
+    }
+  }
+  // Recalcula Dias de cada registro a partir de DtVenc vs hoje (corrige defasagem de importações antigas)
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const todos=(fonteDados.aVencer||[]).map(r=>{
+    const vt=pdate(r.DtVenc);
+    const diasAtual=vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0);
+    return {...r,Dias:diasAtual};
+  }).filter(r=>r.Dias>0); // filtra os que já venceram desde a última importação completa
+  // Filtra pela janela selecionada
+  const itens=todos.filter(r=>r.Dias<=alertWindow).sort((a,b)=>a.Dias-b.Dias);
   if(todos.length===0){
     empty.style.display='block';content.style.display='none';
-    empty.querySelector('h3').textContent='Nenhum produto a vencer nesta importação';
-    empty.querySelector('p').textContent='A importação completa ativa não contém itens a vencer. Isso pode indicar que a planilha foi gerada apenas com vencidos.';
+    empty.querySelector('h3').textContent='Nenhum produto a vencer';
+    empty.querySelector('p').textContent='A importação completa mais recente não contém itens a vencer (ou todos já venceram desde então).';
     return;
   }
   if(itens.length===0){
