@@ -785,7 +785,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
 
   <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
-    <strong>Arquitetura combinada (vencidos na nuvem + a vencer no GitHub):</strong> os <strong>vencidos</strong> vão automaticamente para a nuvem (JSONBin) toda vez que alguém importa — leves, cabem no limite, ideais para a atualização semanal da Gabriela. Os <strong>a vencer</strong> (muito maiores) são embutidos no index.html via "Publicar para todos" e hospedados no GitHub — atualização mensal do auditor. Ao abrir o link, o painel <strong>junta os dois</strong>: vencidos frescos da nuvem + a vencer do arquivo.
+    <strong>Sincronização automática com fallback para o GitHub:</strong> a cada importação, o app tenta publicar o arquivo <strong>completo</strong> (vencidos + a vencer) direto na nuvem (JSONBin) — quando cabe no limite do plano grátis, todo mundo vê na hora. Quando o arquivo é grande demais para a nuvem: no <strong>seu</strong> navegador (com o Token do GitHub configurado), o app cria sozinho uma branch no repositório com o index.html completo, pronta para você revisar e mesclar. Em qualquer outro navegador (ex.: o da Gabriela, sem token), o app baixa o index.html completo automaticamente para ela enviar para você finalizar a publicação — o Token nunca sai do seu próprio navegador.
   </div></div>
 
   <div class="g2">
@@ -806,9 +806,18 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
           <button class="btn xs ghost" onclick="copyBinId()" title="Copiar"><i class="ti ti-copy"></i></button>
         </div>
       </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Token do GitHub (branch automática)</label>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="gh-token-input" placeholder="ghp_... ou github_pat_..." style="flex:1;padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">
+          <button class="btn ghost sm" onclick="toggleGhTokenVisibility()"><i class="ti ti-eye" id="gh-eye-icon"></i></button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">Só você precisa configurar este token, e <strong>somente neste navegador/dispositivo</strong> — ele <strong>nunca</strong> é embutido no arquivo publicado nem enviado para a nuvem, porque dá acesso de escrita ao repositório. Use um <strong>fine-grained PAT</strong> restrito ao repositório <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">Vencidos-Agroquima</code>, com permissão apenas de <strong>Contents: Read and write</strong>. Em qualquer outro dispositivo (ex.: o da Gabriela), quando o arquivo for grande demais para a nuvem, o app só baixa o index.html completo para ela te enviar — só você cria a branch, usando este token local.</div>
+      </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn primary" onclick="handleCreateBin()"><i class="ti ti-cloud-plus"></i> Criar Bin</button>
         <button class="btn ghost" onclick="handleTestConnection()"><i class="ti ti-plug"></i> Testar conexão</button>
+        <button class="btn ghost" onclick="handleTestGithub()"><i class="ti ti-brand-github"></i> Testar GitHub</button>
         <button class="btn ghost" onclick="handleSaveConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
       </div>
       <div id="config-status" style="margin-top:14px;font-size:13px;display:none"></div>
@@ -830,7 +839,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         </div>
       </div>
       <div class="alert amber" style="margin-top:16px;font-size:12px"><i class="ti ti-alert-triangle"></i><div>
-        Limite do plano grátis do JSONBin: ~100KB por bin. Por isso a nuvem leva <strong>só os vencidos</strong> (poucos, cabem folgado); os "a vencer" vão pelo GitHub. A senha de operador protege contra bisbilhotagem, não é cofre.
+        Limite do plano grátis do JSONBin: ~100KB por bin. Quando o arquivo completo (vencidos + a vencer) não cabe, o app cria a branch automática no GitHub (só no navegador onde o Token está configurado) ou baixa o arquivo completo (nos demais navegadores) em vez de publicar na nuvem. A senha de operador protege contra bisbilhotagem, não é cofre. O Token do GitHub <strong>nunca</strong> é embutido no arquivo publicado — sempre use um token <strong>fine-grained</strong> restrito a este repositório, só com permissão de conteúdo.
       </div></div>
     </div>
   </div>
@@ -854,18 +863,23 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">4</span>
         <span>Clique em <strong>Publicar para todos</strong> no topo → baixe e suba o index.html no GitHub (uma vez, para embutir o Bin ID).</span>
       </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
+        <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">5</span>
+        <span>(Só no seu navegador, opcional) No GitHub: <strong>Settings → Developer settings → Fine-grained tokens → Generate new token</strong>, restrinja ao repositório <strong>Vencidos-Agroquima</strong> e dê permissão de <strong>Contents: Read and write</strong>. Cole o token ao lado e clique em <strong>Salvar</strong> — ele fica só neste navegador, nunca é publicado.</span>
+      </div>
       <div style="display:flex;gap:10px;align-items:flex-start">
         <span style="background:#1e8449;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">✓</span>
-        <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX, todos veem na hora — automático, sem subir nada.</span>
+        <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX, todos veem na hora — e se o arquivo for grande demais para a nuvem, no seu navegador (com o token) uma branch é criada sozinha no GitHub para você revisar e mesclar.</span>
       </div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:22px">
     <div class="card-h"><i class="ti ti-users"></i> Quem usa o quê</div>
-    <div class="tw"><table><thead><tr><th>Pessoa</th><th>Papel</th><th>Precisa da Master Key?</th><th>O que vê</th></tr></thead>
+    <div class="tw"><table><thead><tr><th>Pessoa</th><th>Papel</th><th>Precisa configurar algo?</th><th>O que vê</th></tr></thead>
     <tbody>
-      <tr><td class="b">João Vitor / Gabriela</td><td><span class="chip brand">Importador</span></td><td><span class="chip green">Sim — salva no navegador deles</span></td><td>Importa, sincroniza, todos veem</td></tr>
+      <tr><td class="b">João Vitor</td><td><span class="chip brand">Administrador</span></td><td><span class="chip green">Sim — Master Key e Token do GitHub, só no próprio navegador</span></td><td>Importa, sincroniza, e nos casos de arquivo grande revisa/mescla a branch criada automaticamente no GitHub</td></tr>
+      <tr><td class="b">Gabriela</td><td><span class="chip brand">Importadora</span></td><td><span class="chip green">Não — o token não é distribuído</span></td><td>Importa o XLSX semanal; sincroniza na hora quando cabe na nuvem, ou recebe o index.html já pronto para baixar e enviar ao João quando o arquivo é grande demais</td></tr>
       <tr><td class="b">Fábio, Guilherme, Carlos...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
       <tr><td class="b">Aldo, Rafa, Luciana...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
     </tbody></table></div>
@@ -2708,39 +2722,38 @@ function openPublishModal(){
 function closePublishModal(){document.getElementById('modal-publish').classList.remove('open');}
 
 function generatePublish(){
-  // We need to read the current page's HTML and embed all history data
   const btn=document.querySelector('#modal-publish .btn.publish');
   btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" style="animation:spin 1s linear infinite;font-size:15px"></i> Gerando...';
-
-  fetch(window.location.href)
-    .then(r=>r.text())
-    .then(html=>{
-      embedAndDownload(html);
-      btn.disabled=false;btn.innerHTML='<i class="ti ti-download"></i> Gerar e Baixar index.html';
-    })
-    .catch(()=>{
-      // fetch blocked (file://), try XMLHttpRequest
-      const xhr=new XMLHttpRequest();
-      xhr.open('GET',window.location.href,true);
-      xhr.onload=()=>{embedAndDownload(xhr.responseText);btn.disabled=false;btn.innerHTML='<i class="ti ti-download"></i> Gerar e Baixar index.html';};
-      xhr.onerror=()=>{
-        // Last resort: inline approach — inject history into the page's own source
-        embedAndDownloadInline();
-        btn.disabled=false;btn.innerHTML='<i class="ti ti-download"></i> Gerar e Baixar index.html';
-      };
-      xhr.send();
-    });
+  fetchCurrentHtml().then(html=>{
+    downloadHtml(buildEmbeddedHtml(html));
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-download"></i> Gerar e Baixar index.html';
+  });
 }
 
-function embedAndDownload(html){
+// Lê o HTML da própria página publicada (fetch; cai para XHR; cai para o DOM atual).
+function fetchCurrentHtml(){
+  return fetch(window.location.href).then(r=>r.text()).catch(()=>new Promise(resolve=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('GET',window.location.href,true);
+    xhr.onload=()=>resolve(xhr.responseText);
+    xhr.onerror=()=>resolve(document.documentElement.outerHTML);
+    xhr.send();
+  }));
+}
+
+// Injeta todo o histórico (vencidos + a vencer) + credenciais de leitura da nuvem no HTML,
+// pronto para subir no GitHub. Função pura: não baixa nada.
+// IMPORTANTE: o Token do GitHub NUNCA entra aqui — ele dá acesso de ESCRITA ao repositório,
+// e este arquivo é público (GitHub Pages + histórico de commits). Ele deve existir só no
+// localStorage de quem o configurou, nunca em texto publicado/commitado.
+function buildEmbeddedHtml(html){
   const histSerial=JSON.stringify(history.map(h=>({importDate:h.importDate,records:h.allRecords||h.records})));
   const binId=getBinId();
   const masterKey=getMasterKey();
-  // Embute (1) Bin ID e (2) chave de leitura, para que TODOS os visitantes consigam ler
-  // da nuvem, mesmo que a conta JSONBin tenha allowlist bloqueando leitura publica.
-  const binIdScript=binId?`<scr`+`ipt>var PUBLISHED_BIN_ID='${binId}';${masterKey?`var PUBLISHED_READ_KEY='${masterKey}';`:''}<\/scr`+`ipt>`:'';
+  // Embute (1) Bin ID e (2) chave de leitura, para que TODOS os visitantes consigam ler da nuvem.
+  const credsScript=binId?`<scr`+`ipt>var PUBLISHED_BIN_ID='${binId}';${masterKey?`var PUBLISHED_READ_KEY='${masterKey}';`:''}<\/scr`+`ipt>`:'';
   const injection=`
-${binIdScript}
+${credsScript}
 <scr`+`ipt id="__published_data">
 (function(){
   try{
@@ -2757,14 +2770,7 @@ ${binIdScript}
   }catch(e){}
 })();
 <\/scr`+`ipt>`;
-  const out=html.replace('<head>','<head>'+injection);
-  downloadHtml(out);
-}
-
-function embedAndDownloadInline(){
-  // Fallback: get the document HTML directly and inject
-  const html=document.documentElement.outerHTML;
-  embedAndDownload(html);
+  return html.replace('<head>','<head>'+injection);
 }
 
 function downloadHtml(content){
@@ -2780,6 +2786,98 @@ function downloadHtml(content){
   atualizarStatus();
 }
 
+// ─── BRANCH AUTOMÁTICA NO GITHUB (fallback quando o arquivo completo não cabe no JSONBin) ───
+// Quando vencidos+a vencer juntos passam do limite do plano grátis do JSONBin, em vez de só
+// publicar os vencidos na nuvem, o app cria sozinho uma branch no GitHub com o index.html
+// completo embutido (mesmo conteúdo de "Publicar para todos"). Não abre Pull Request: alguém
+// com acesso ao repositório revisa a branch e mescla manualmente.
+// SEGURANÇA: o Token do GitHub dá acesso de ESCRITA ao repositório. Ele só existe no
+// localStorage de quem o configurou (function getGhToken abaixo NÃO tem fallback embutido/
+// publicado) — diferente do Bin ID/chave de leitura do JSONBin, ele nunca é injetado no
+// index.html publicado nem comitado. Por isso, só quem configurou o token no PRÓPRIO
+// navegador consegue disparar a branch automática; nos demais dispositivos (ex.: Gabriela),
+// o fallback é baixar o arquivo completo para alguém com o token subir manualmente.
+const GH_OWNER='joaovitorsmg-cmd';
+const GH_REPO='Vencidos-Agroquima';
+const GH_BASE_BRANCH='main';
+const GH_FILE_PATH='index.html';
+
+function getGhToken(){ return getJBinCfg().ghToken||''; }
+function saveGhToken(tok){ saveJBinCfg({ghToken:tok}); }
+
+async function ghReq(path,opts){
+  const token=getGhToken();
+  if(!token) throw new Error('Token do GitHub não configurado');
+  const o=opts||{};
+  const r=await fetch('https://api.github.com'+path,{
+    method:o.method||'GET',
+    headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+    body:o.body?JSON.stringify(o.body):undefined
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error((d&&d.message)||('Erro HTTP '+r.status));
+  return d;
+}
+function utf8ToBase64(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin='';
+  for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function ghBranchName(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return `dados-${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+async function ghCreateBranchWithFile(content){
+  const baseRef=await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/git/ref/heads/${GH_BASE_BRANCH}`);
+  const baseSha=baseRef.object.sha;
+  let branchName=ghBranchName();
+  try{
+    await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/git/refs`,{method:'POST',body:{ref:'refs/heads/'+branchName,sha:baseSha}});
+  }catch(e){
+    branchName+='-'+Math.random().toString(36).slice(2,6); // colisão rara de nome: tenta de novo com sufixo
+    await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/git/refs`,{method:'POST',body:{ref:'refs/heads/'+branchName,sha:baseSha}});
+  }
+  const fileInfo=await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE_PATH}?ref=${GH_BASE_BRANCH}`);
+  await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE_PATH}`,{method:'PUT',body:{
+    message:'Atualização automática: arquivo completo (vencidos + a vencer) — '+new Date().toLocaleString('pt-BR'),
+    content:utf8ToBase64(content),
+    sha:fileInfo.sha,
+    branch:branchName
+  }});
+  return branchName;
+}
+async function syncPushGithubBranch(){
+  const token=getGhToken();
+  if(!token){
+    // Este dispositivo não tem o Token do GitHub configurado (caso normal da Gabriela —
+    // o token fica só no navegador de quem o configurou, nunca é distribuído publicamente).
+    // Mantém a experiência fluida: baixa o arquivo completo automaticamente, para enviar
+    // a quem tem acesso ao GitHub finalizar a publicação.
+    setSyncStatus('conectado','arquivo p/ publicar');
+    try{
+      const html=await fetchCurrentHtml();
+      downloadHtml(buildEmbeddedHtml(html));
+      toast('📦 Arquivo completo (vencidos + a vencer) é grande para a nuvem — baixamos o index.html automaticamente. Envie-o para quem tem acesso ao GitHub finalizar a publicação.','amber');
+    }catch(e){
+      toast('Arquivo completo é grande demais para a nuvem e não foi possível gerá-lo automaticamente: '+e.message,'red');
+    }
+    return;
+  }
+  setSyncStatus('syncing','Criando branch no GitHub...');
+  try{
+    const html=await fetchCurrentHtml();
+    const out=buildEmbeddedHtml(html);
+    const branch=await ghCreateBranchWithFile(out);
+    setSyncStatus('ok','Branch criada');
+    saveJBinCfg({lastPush:new Date().toLocaleString('pt-BR')});
+    toast('🌿 Arquivo completo enviado para a branch "'+branch+'" no GitHub. Acesse o repositório para revisar e mesclar.','green');
+  }catch(e){
+    setSyncStatus('error',e.message.slice(0,20));
+    toast('Erro ao criar branch no GitHub: '+e.message,'red');
+  }
+}
+
 // CSS spin animation for loader
 const styleEl=document.createElement('style');
 styleEl.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
@@ -2788,9 +2886,12 @@ document.head.appendChild(styleEl);
 // ─── ESTADO LOCAL / PUBLICAÇÃO (GitHub) ───
 // ─── JSONBIN SYNC (restaurado) ───
 // Sincronizacao automatica via JSONBin: ao abrir, baixa o mais recente da nuvem;
-// ao importar/excluir, publica automaticamente. O badge reflete o estado REAL:
-// verde só quando dados foram de fato baixados/publicados; azul quando apenas
-// conectado sem dados na nuvem; vermelho em erro; cinza sem config.
+// ao importar/excluir, publica automaticamente o arquivo COMPLETO (vencidos + a vencer).
+// Quando o arquivo é grande demais para o JSONBin, syncPush cai para syncPushGithubBranch
+// (mais abaixo), que cria uma branch no GitHub com o index.html completo embutido.
+// O badge reflete o estado REAL: verde só quando dados foram de fato baixados/publicados
+// (nuvem OU branch); azul quando apenas conectado sem dados na nuvem; vermelho em erro;
+// cinza sem config.
 const JBIN_CFG_KEY = 'agroquima_jbin_cfg';
 let jbinSyncing = false;
 
@@ -2859,25 +2960,18 @@ async function jbinWrite(binId, masterKey, payload){
   if(!r.ok) throw new Error(d.message||'Erro ao salvar');
   return d;
 }
-// Merge remote history into local
+// Merge remote history into local. A nuvem agora carrega o histórico COMPLETO (vencidos +
+// a vencer) sempre que cabe no limite do JSONBin — por isso cada data remota é autoritativa
+// por si só; não há mais combinação com dados locais. Datas que só existem localmente (ainda
+// não publicadas, por exemplo arquivo grande pendente de branch/merge no GitHub) são mantidas.
 function mergeRemote(remoteHistory){
   if(!remoteHistory||!Array.isArray(remoteHistory)) return false;
-  // Índice dos dados LOCAIS por data (vêm do index.html publicado: contêm os a-vencer).
-  const localPorData={};
-  history.forEach(h=>{localPorData[h.importDate]=h.allRecords||h.records||[];});
   const remDates=new Set(remoteHistory.map(h=>h.importDate));
   const built=remoteHistory.map(h=>{
-    const remotos=h.records||[];                          // da nuvem: só vencidos
-    const locais=localPorData[h.importDate]||[];          // do arquivo: tudo (inclui a-vencer)
-    // COMBINA: vencidos da nuvem (fonte mais fresca) + a-vencer dos dados locais.
-    // Evita duplicar vencidos que por acaso existam nos dois lados.
-    const locaisAVencer=locais.filter(r=>(r.Dias||0)>0);  // só os a-vencer do local
-    const combinados=remotos.concat(locaisAVencer);
-    const s=buildSnapshot(combinados);
+    const s=buildSnapshot(h.records||[]);
     s.importDate=h.importDate;
     return s;
   });
-  // Mantém as datas que só existem localmente (ainda não foram para a nuvem).
   history.forEach(h=>{if(!remDates.has(h.importDate))built.push(h);});
   built.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
   history=built;
@@ -2946,17 +3040,13 @@ async function syncPull(){
   }
 }
 
-// Janela maxima dos "a vencer" que vai para a nuvem (reduz tamanho do payload).
-// ARQUITETURA COMBINADA:
-//  • Nuvem (JSONBin): leva SÓ os vencidos (Dias<=0). São poucos e cabem nos 100KB.
-//    A Gabriela importa semanalmente e isso sincroniza automaticamente para todos.
-//  • GitHub ("Publicar para todos"): leva os "a vencer" embutidos no index.html.
-//    O auditor publica mensalmente (o arquivo aguenta vários MB).
-//  • Ao carregar, o painel MESCLA: vencidos-da-nuvem + a-vencer-do-arquivo.
-function recordsParaNuvem(allRecords){
-  if(!allRecords) return [];
-  return allRecords.filter(r=>(r.Dias||0)<=0);   // só vencidos vão para a nuvem
-}
+// ARQUITETURA:
+//  • Nuvem (JSONBin): a cada importação, tenta levar o arquivo COMPLETO (vencidos + a vencer).
+//    Se couber no limite do plano grátis (~100KB, já compactado), todos sincronizam na hora.
+//  • Se NÃO couber: o app cria sozinho uma branch no GitHub com o index.html completo embutido
+//    (ver syncPushGithubBranch). Alguém com acesso ao repositório revisa e mescla a branch —
+//    a partir daí, o arquivo publicado já nasce com os dados novos para todo mundo.
+const JBIN_SIZE_LIMIT = 95*1024; // margem de segurança abaixo do limite real do JSONBin
 // Compressao LZString (se a lib estiver presente).
 function compactarPayload(obj){
   const json=JSON.stringify(obj);
@@ -2972,7 +3062,8 @@ function descompactarPayload(raw){
   return raw;
 }
 
-// Push to cloud (importadores com master key)
+// Push to cloud (importadores com master key). Tenta sempre o arquivo COMPLETO; se passar do
+// limite do JSONBin, cai para a branch automática no GitHub (syncPushGithubBranch).
 async function syncPush(){
   const binId=getBinId(), masterKey=getMasterKey();
   if(!binId||!masterKey) return;
@@ -2981,11 +3072,16 @@ async function syncPush(){
   setSyncStatus('syncing','Publicando...');
   try{
     const payload={
-      history:history.map(h=>({importDate:h.importDate,records:recordsParaNuvem(h.allRecords||h.records)})),
+      history:history.map(h=>({importDate:h.importDate,records:h.allRecords||h.records||[]})),
       lastUpdate:new Date().toISOString(),
       app:'agroquima-vencidos'
     };
     const corpo=compactarPayload(payload);
+    const tamanho=new Blob([JSON.stringify(corpo)]).size;
+    if(tamanho>JBIN_SIZE_LIMIT){
+      await syncPushGithubBranch();
+      return;
+    }
     await jbinWrite(binId,masterKey,corpo);
     setSyncStatus('ok');
     saveJBinCfg({lastPush:new Date().toLocaleString('pt-BR')});
@@ -3012,8 +3108,10 @@ function loadConfigView(){
   const cfg=getJBinCfg();
   const keyInp=document.getElementById('jbin-key-input');
   const idDisp=document.getElementById('jbin-id-display');
+  const ghInp=document.getElementById('gh-token-input');
   if(keyInp&&cfg.masterKey) keyInp.value=cfg.masterKey;
   if(idDisp&&(cfg.binId||getBinId())) idDisp.value=cfg.binId||getBinId();
+  if(ghInp&&cfg.ghToken) ghInp.value=cfg.ghToken;
   const st=document.getElementById('config-current-status');
   if(st){
     const binId=getBinId(), hasKey=!!getMasterKey();
@@ -3025,8 +3123,9 @@ function loadConfigView(){
 async function handleSaveConfig(){
   const key=document.getElementById('jbin-key-input').value.trim();
   const binId=document.getElementById('jbin-id-display').value.trim();
+  const ghToken=document.getElementById('gh-token-input').value.trim();
   if(!key){showConfigStatus('warning','Cole a Master Key antes de salvar.');return;}
-  saveJBinCfg({masterKey:key,binId:binId||getJBinCfg().binId});
+  saveJBinCfg({masterKey:key,binId:binId||getJBinCfg().binId,ghToken:ghToken||getJBinCfg().ghToken});
   showConfigStatus('ok','Configuração salva com sucesso!');
   loadConfigView();
 }
@@ -3057,6 +3156,25 @@ async function handleTestConnection(){
     showConfigStatus('ok',`Conexão OK! Bin acessível. Histórico na nuvem: ${histLen} importação(ões).`);
   }catch(e){
     showConfigStatus('error','Falha: '+e.message);
+  }
+}
+function toggleGhTokenVisibility(){
+  const inp=document.getElementById('gh-token-input');
+  const icon=document.getElementById('gh-eye-icon');
+  if(!inp)return;
+  if(inp.type==='password'){inp.type='text';if(icon)icon.className='ti ti-eye-off';}
+  else{inp.type='password';if(icon)icon.className='ti ti-eye';}
+}
+async function handleTestGithub(){
+  const token=document.getElementById('gh-token-input').value.trim()||getGhToken();
+  if(!token){showConfigStatus('error','Cole o Token do GitHub primeiro.');return;}
+  showConfigStatus('loading','Testando conexão com o GitHub...');
+  try{
+    saveGhToken(token);
+    await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/git/ref/heads/${GH_BASE_BRANCH}`);
+    showConfigStatus('ok',`Conexão OK! Token válido, com acesso ao repositório ${GH_OWNER}/${GH_REPO}.`);
+  }catch(e){
+    showConfigStatus('error','Falha: '+e.message+'\n\nVerifique se o token tem permissão "Contents: Read and write" neste repositório.');
   }
 }
 function showConfigStatus(type,msg){
