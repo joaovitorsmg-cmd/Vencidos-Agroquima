@@ -3141,8 +3141,9 @@ async function handleSaveConfig(){
   const key=document.getElementById('jbin-key-input').value.trim();
   const binId=document.getElementById('jbin-id-display').value.trim();
   const ghToken=document.getElementById('gh-token-input').value.trim();
-  if(!key){showConfigStatus('warning','Cole a Master Key antes de salvar.');return;}
-  saveJBinCfg({masterKey:key,binId:binId||getJBinCfg().binId,ghToken:ghToken||getJBinCfg().ghToken});
+  const cfg=getJBinCfg();
+  if(!key&&!cfg.masterKey&&!ghToken){showConfigStatus('warning','Cole a Master Key e/ou o Token do GitHub antes de salvar.');return;}
+  saveJBinCfg({masterKey:key||cfg.masterKey,binId:binId||cfg.binId,ghToken:ghToken||cfg.ghToken});
   showConfigStatus('ok','Configuração salva com sucesso!');
   loadConfigView();
 }
