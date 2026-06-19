@@ -802,7 +802,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
 
   <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
-    <strong>Sincronização automática com fallback para o GitHub:</strong> a cada importação, o app tenta publicar o arquivo <strong>completo</strong> (vencidos + a vencer) direto na nuvem (JSONBin) — quando cabe no limite do plano grátis, todo mundo vê na hora. Quando o arquivo é grande demais para a nuvem: no <strong>seu</strong> navegador (com o Token do GitHub configurado), o app cria sozinho uma branch no repositório com o index.html completo, pronta para você revisar e mesclar. Em qualquer outro navegador (ex.: o da Gabriela, sem token), o app baixa o index.html completo automaticamente para ela enviar para você finalizar a publicação — o Token nunca sai do seu próprio navegador.
+    <strong>Sincronização automática com fallback para o GitHub:</strong> a cada importação, o app tenta publicar o arquivo <strong>completo</strong> (vencidos + a vencer) direto na nuvem (JSONBin) — quando cabe no limite do plano grátis, todo mundo vê na hora. Quando o arquivo é grande demais para a nuvem: em qualquer navegador com o Token do GitHub configurado, o app cria sozinho uma branch com o index.html completo e <strong>abre um Pull Request</strong> — isso dispara uma notificação real do GitHub (e-mail + push no app do celular) para quem tem acesso ao repositório revisar e mesclar. Em navegadores sem token (ex.: o da Gabriela, se ela não tiver o dela), o app baixa o index.html completo automaticamente para enviar a alguém com token finalizar a publicação. O Token nunca sai do navegador onde foi configurado.
   </div></div>
 
   <div class="g2">
@@ -829,7 +829,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
           <input type="password" id="gh-token-input" placeholder="ghp_... ou github_pat_..." style="flex:1;padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">
           <button class="btn ghost sm" onclick="toggleGhTokenVisibility()"><i class="ti ti-eye" id="gh-eye-icon"></i></button>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:5px">Só você precisa configurar este token, e <strong>somente neste navegador/dispositivo</strong> — ele <strong>nunca</strong> é embutido no arquivo publicado nem enviado para a nuvem, porque dá acesso de escrita ao repositório. Use um <strong>fine-grained PAT</strong> restrito ao repositório <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">Vencidos-Agroquima</code>, com permissão apenas de <strong>Contents: Read and write</strong>. Em qualquer outro dispositivo (ex.: o da Gabriela), quando o arquivo for grande demais para a nuvem, o app só baixa o index.html completo para ela te enviar — só você cria a branch, usando este token local.</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">Configure este token <strong>somente no navegador/dispositivo de quem vai usá-lo</strong> — ele <strong>nunca</strong> é embutido no arquivo publicado nem enviado para a nuvem, porque dá acesso de escrita ao repositório. Use um <strong>fine-grained PAT</strong> restrito ao repositório <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">Vencidos-Agroquima</code>, com permissão de <strong>Contents: Read and write</strong> + <strong>Pull requests: Read and write</strong> (essa segunda é o que permite o app abrir o PR sozinho e disparar a notificação no GitHub). Quem não configurar um token aqui (ex.: a Gabriela, se ela não tiver o dela) só recebe o index.html completo pra enviar a alguém que tenha.</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn primary" onclick="handleCreateBin()"><i class="ti ti-cloud-plus"></i> Criar Bin</button>
@@ -856,7 +856,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         </div>
       </div>
       <div class="alert amber" style="margin-top:16px;font-size:12px"><i class="ti ti-alert-triangle"></i><div>
-        Limite do plano grátis do JSONBin: ~100KB por bin. Quando o arquivo completo (vencidos + a vencer) não cabe, o app cria a branch automática no GitHub (só no navegador onde o Token está configurado) ou baixa o arquivo completo (nos demais navegadores) em vez de publicar na nuvem. A senha de operador protege contra bisbilhotagem, não é cofre. O Token do GitHub <strong>nunca</strong> é embutido no arquivo publicado — sempre use um token <strong>fine-grained</strong> restrito a este repositório, só com permissão de conteúdo.
+        Limite do plano grátis do JSONBin: ~100KB por bin. Quando o arquivo completo (vencidos + a vencer) não cabe, o app cria uma branch e abre um Pull Request automático no GitHub (nos navegadores onde o Token está configurado, com notificação real no GitHub/celular) ou baixa o arquivo completo (nos demais navegadores) em vez de publicar na nuvem. A senha de operador protege contra bisbilhotagem, não é cofre. O Token do GitHub <strong>nunca</strong> é embutido no arquivo publicado — sempre use um token <strong>fine-grained</strong> restrito a este repositório, com permissão de conteúdo e de Pull requests.
       </div></div>
     </div>
   </div>
@@ -882,11 +882,11 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       </div>
       <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
         <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">5</span>
-        <span>(Só no seu navegador, opcional) No GitHub: <strong>Settings → Developer settings → Fine-grained tokens → Generate new token</strong>, restrinja ao repositório <strong>Vencidos-Agroquima</strong> e dê permissão de <strong>Contents: Read and write</strong>. Cole o token ao lado e clique em <strong>Salvar</strong> — ele fica só neste navegador, nunca é publicado.</span>
+        <span>(Opcional, em qualquer navegador que vá publicar arquivos grandes) No GitHub: <strong>Settings → Developer settings → Fine-grained tokens → Generate new token</strong>, restrinja ao repositório <strong>Vencidos-Agroquima</strong> e dê permissão de <strong>Contents: Read and write</strong> e <strong>Pull requests: Read and write</strong>. Cole o token ao lado e clique em <strong>Salvar</strong> — ele fica só neste navegador, nunca é publicado.</span>
       </div>
       <div style="display:flex;gap:10px;align-items:flex-start">
         <span style="background:#1e8449;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">✓</span>
-        <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX, todos veem na hora — e se o arquivo for grande demais para a nuvem, no seu navegador (com o token) uma branch é criada sozinha no GitHub para você revisar e mesclar.</span>
+        <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX, todos veem na hora — e se o arquivo for grande demais para a nuvem, no navegador com o token uma branch é criada e um Pull Request é aberto sozinho no GitHub, notificando quem tem acesso pra revisar e mesclar.</span>
       </div>
     </div>
   </div>
@@ -895,8 +895,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <div class="card-h"><i class="ti ti-users"></i> Quem usa o quê</div>
     <div class="tw"><table><thead><tr><th>Pessoa</th><th>Papel</th><th>Precisa configurar algo?</th><th>O que vê</th></tr></thead>
     <tbody>
-      <tr><td class="b">João Vitor</td><td><span class="chip brand">Administrador</span></td><td><span class="chip green">Sim — Master Key e Token do GitHub, só no próprio navegador</span></td><td>Importa, sincroniza, e nos casos de arquivo grande revisa/mescla a branch criada automaticamente no GitHub</td></tr>
-      <tr><td class="b">Gabriela</td><td><span class="chip brand">Importadora</span></td><td><span class="chip green">Não — o token não é distribuído</span></td><td>Importa o XLSX semanal; sincroniza na hora quando cabe na nuvem, ou recebe o index.html já pronto para baixar e enviar ao João quando o arquivo é grande demais</td></tr>
+      <tr><td class="b">João Vitor</td><td><span class="chip brand">Administrador</span></td><td><span class="chip green">Sim — Master Key e Token do GitHub, só no próprio navegador</span></td><td>Importa, sincroniza, e nos casos de arquivo grande recebe a notificação do Pull Request automático no GitHub/celular pra revisar e mesclar</td></tr>
+      <tr><td class="b">Gabriela</td><td><span class="chip brand">Importadora</span></td><td><span class="chip green">Opcional — só se quiser publicar arquivos grandes sozinha</span></td><td>Importa o XLSX semanal; sincroniza na hora quando cabe na nuvem. Com token próprio configurado, abre o PR automático sozinha; sem token, recebe o index.html já pronto para enviar a quem tiver</td></tr>
       <tr><td class="b">Fábio, Guilherme, Carlos...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
       <tr><td class="b">Aldo, Rafa, Luciana...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
     </tbody></table></div>
@@ -2803,17 +2803,23 @@ function downloadHtml(content){
   atualizarStatus();
 }
 
-// ─── BRANCH AUTOMÁTICA NO GITHUB (fallback quando o arquivo completo não cabe no JSONBin) ───
+// ─── BRANCH + PULL REQUEST AUTOMÁTICOS NO GITHUB (fallback quando o arquivo completo não cabe no JSONBin) ───
 // Quando vencidos+a vencer juntos passam do limite do plano grátis do JSONBin, em vez de só
 // publicar os vencidos na nuvem, o app cria sozinho uma branch no GitHub com o index.html
-// completo embutido (mesmo conteúdo de "Publicar para todos"). Não abre Pull Request: alguém
-// com acesso ao repositório revisa a branch e mescla manualmente.
+// completo embutido (mesmo conteúdo de "Publicar para todos") e abre um Pull Request dessa
+// branch para a main. Abrir o PR via API faz o GitHub notificar quem tem acesso ao repositório
+// (e-mail + push no app do GitHub no celular) — ninguém precisa ficar checando o site. O PR
+// fica pendente até alguém com acesso revisar e clicar em "Mesclar" manualmente; o app nunca
+// mescla por conta própria.
 // SEGURANÇA: o Token do GitHub dá acesso de ESCRITA ao repositório. Ele só existe no
 // localStorage de quem o configurou (function getGhToken abaixo NÃO tem fallback embutido/
 // publicado) — diferente do Bin ID/chave de leitura do JSONBin, ele nunca é injetado no
 // index.html publicado nem comitado. Por isso, só quem configurou o token no PRÓPRIO
-// navegador consegue disparar a branch automática; nos demais dispositivos (ex.: Gabriela),
-// o fallback é baixar o arquivo completo para alguém com o token subir manualmente.
+// navegador consegue disparar a branch/PR automáticos; nos demais dispositivos (ex.: Gabriela,
+// se ela não tiver o próprio token), o fallback é baixar o arquivo completo para alguém com o
+// token subir manualmente. Pra abrir PR (não só a branch), o token precisa também da permissão
+// "Pull requests: Read and write" — sem ela, o app ainda cria a branch normalmente e devolve um
+// link pronto pra abrir o PR manualmente em 1 toque (não dispara notificação automática nesse caso).
 const GH_OWNER='joaovitorsmg-cmd';
 const GH_REPO='Vencidos-Agroquima';
 const GH_BASE_BRANCH='main';
@@ -2864,6 +2870,20 @@ async function ghCreateBranchWithFile(content){
   }});
   return branchName;
 }
+// Abre o PR via API (gera notificação real do GitHub — e-mail + push no app do celular).
+// Exige a permissão extra "Pull requests: Read and write" no token; se faltar, o caller cai
+// para o link manual de comparação (ghCompareUrl), que não depende de permissão nenhuma.
+async function ghCreatePullRequest(branchName){
+  return ghReq(`/repos/${GH_OWNER}/${GH_REPO}/pulls`,{method:'POST',body:{
+    title:'Atualização automática: dados completos — '+new Date().toLocaleString('pt-BR'),
+    head:branchName,
+    base:GH_BASE_BRANCH,
+    body:'Pull Request criado automaticamente pelo app porque o arquivo completo (vencidos + a vencer) passou do limite do JSONBin.\n\nRevise e clique em **Merge pull request** para publicar para todos.'
+  }});
+}
+function ghCompareUrl(branchName){
+  return `https://github.com/${GH_OWNER}/${GH_REPO}/compare/${GH_BASE_BRANCH}...${branchName}?expand=1`;
+}
 async function syncPushGithubBranch(){
   const token=getGhToken();
   if(!token){
@@ -2886,9 +2906,18 @@ async function syncPushGithubBranch(){
     const html=await fetchCurrentHtml();
     const out=buildEmbeddedHtml(html);
     const branch=await ghCreateBranchWithFile(out);
-    setSyncStatus('ok','Branch criada');
-    saveJBinCfg({lastPush:new Date().toLocaleString('pt-BR')});
-    toast('🌿 Arquivo completo enviado para a branch "'+branch+'" no GitHub. Acesse o repositório para revisar e mesclar.','green');
+    try{
+      const pr=await ghCreatePullRequest(branch);
+      setSyncStatus('ok','PR #'+pr.number+' aberto');
+      saveJBinCfg({lastPush:new Date().toLocaleString('pt-BR')});
+      toast('🔔 Pull Request #'+pr.number+' aberto no GitHub. Quem tem acesso já recebeu a notificação (app/e-mail) e pode revisar e mesclar.','green');
+    }catch(e){
+      // Branch foi criada com sucesso; só o PR falhou (ex.: token sem permissão de Pull requests).
+      // Sem o PR, não há notificação automática — mas o link abaixo abre a tela de criar PR em 1 toque.
+      setSyncStatus('ok','Branch criada');
+      saveJBinCfg({lastPush:new Date().toLocaleString('pt-BR')});
+      toast('🌿 Branch "'+branch+'" criada, mas o PR automático falhou ('+e.message+'). Abra manualmente: '+ghCompareUrl(branch),'amber');
+    }
   }catch(e){
     setSyncStatus('error',e.message.slice(0,20));
     toast('Erro ao criar branch no GitHub: '+e.message,'red');
@@ -3061,7 +3090,8 @@ async function syncPull(){
 //  • Nuvem (JSONBin): a cada importação, tenta levar o arquivo COMPLETO (vencidos + a vencer).
 //    Se couber no limite do plano grátis (~100KB, já compactado), todos sincronizam na hora.
 //  • Se NÃO couber: o app cria sozinho uma branch no GitHub com o index.html completo embutido
-//    (ver syncPushGithubBranch). Alguém com acesso ao repositório revisa e mescla a branch —
+//    e abre um Pull Request (ver syncPushGithubBranch) — isso notifica quem tem acesso ao
+//    repositório (e-mail + push no app do GitHub no celular). Alguém revisa e mescla o PR —
 //    a partir daí, o arquivo publicado já nasce com os dados novos para todo mundo.
 const JBIN_SIZE_LIMIT = 95*1024; // margem de segurança abaixo do limite real do JSONBin
 // Compressao LZString (se a lib estiver presente).
@@ -3190,9 +3220,9 @@ async function handleTestGithub(){
   try{
     saveGhToken(token);
     await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/git/ref/heads/${GH_BASE_BRANCH}`);
-    showConfigStatus('ok',`Conexão OK! Token válido, com acesso ao repositório ${GH_OWNER}/${GH_REPO}.`);
+    showConfigStatus('ok',`Conexão OK! Token válido, com acesso ao repositório ${GH_OWNER}/${GH_REPO}.\n\nObs.: este teste só confirma a permissão "Contents". Pra abrir Pull Request automático (e notificação no GitHub), o token também precisa de "Pull requests: Read and write" — sem confirmação aqui, só na hora de publicar um arquivo grande de verdade.`);
   }catch(e){
-    showConfigStatus('error','Falha: '+e.message+'\n\nVerifique se o token tem permissão "Contents: Read and write" neste repositório.');
+    showConfigStatus('error','Falha: '+e.message+'\n\nVerifique se o token tem permissão "Contents: Read and write" e "Pull requests: Read and write" neste repositório.');
   }
 }
 function showConfigStatus(type,msg){
