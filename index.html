@@ -74,6 +74,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .btn.ghost{background:transparent;border-color:var(--border)}
 .btn.sm{padding:5px 10px;font-size:12px}
 .btn.xs{padding:3px 8px;font-size:11px}
+.btn.icon-only{padding:0;width:36px;height:36px;justify-content:center;flex-shrink:0}
+.btn.icon-only i{font-size:16px}
 .btn.publish{background:linear-gradient(135deg,#1e8449,#27ae60);color:#fff;border:none;font-weight:700}
 .btn.publish:hover{filter:brightness(1.1)}
 .btn.publish i{font-size:15px}
@@ -495,7 +497,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- JANELA DE VENDA -->
 <div id="v-janela" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-calendar-time"></i> Janela de Venda</h2>
-    <div class="sub">Cada lote cruzado com a época de venda da sua linha — o que escoar antes que vença fora de temporada</div></div></div>
+    <div class="sub">Cada lote cruzado com a época de venda da sua linha — o que escoar antes que vença fora de temporada</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('janela','Janela_de_Venda')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
   <div class="alert brand"><i class="ti ti-info-circle"></i><div>Um produto pode estar dentro da validade e ainda assim estar perdido: se a <strong>janela de venda</strong> da linha (safra, seca ou ano todo) só abrir <em>depois</em> do vencimento, não haverá comprador. Esta tela classifica <strong>todos os lotes — vencidos e a vencer</strong> — pela chance real de venda. Clique nas <strong>bolinhas da legenda</strong> ou use os filtros para focar uma situação.</div></div>
   <div id="j-tipo-notice" style="display:none;margin-bottom:16px"></div>
   <div class="g4" id="j-metrics" style="margin-bottom:22px"></div>
@@ -652,7 +655,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- ANÁLISE DE COMPRA -->
 <div id="v-compra" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-shopping-cart-x"></i> Análise de Compra</h2>
-    <div class="sub">Diagnóstico da causa-raiz: produtos comprados em excesso ou sem giro compatível</div></div></div>
+    <div class="sub">Diagnóstico da causa-raiz: produtos comprados em excesso ou sem giro compatível</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('compra','Analise_de_Compra')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
   <div class="alert amber"><i class="ti ti-bulb"></i><div><strong>O vencido é o sintoma; a compra é a causa.</strong> Esta análise cruza o volume parado com o tempo de prateleira do produto para sinalizar compras desproporcionais ao giro. Quando houver dados de venda no sistema, o cruzamento com giro real torna o diagnóstico ainda mais preciso.</div></div>
   <div class="filters">
     <select id="cp-reg" onchange="renderCompra()"><option value="">Todos os Regionais</option></select>
@@ -689,7 +693,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- AGING -->
 <div id="v-aging" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-hourglass"></i> Aging — Envelhecimento do Vencido</h2>
-    <div class="sub">Distribuição por tempo de vencimento — define urgência e recuperabilidade</div></div></div>
+    <div class="sub">Distribuição por tempo de vencimento — define urgência e recuperabilidade</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('aging','Aging_Envelhecimento')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
   <div class="alert brand"><i class="ti ti-info-circle"></i><div>Itens vencidos há <strong>menos de 30 dias</strong> ainda têm maior chance de ação. <strong>Atenção à política por linha:</strong> Nutrição Animal (FAP/FCB) — sem devolução, destinar como descarte ou venda imediata; Pastagem — devolução somente à FAG (não entre filiais); Agrícola — verificar revalidação de análise; demais — tentar bonificação com fornecedor. Itens há <strong>mais de 365 dias</strong> são candidatos a baixa/descarte.</div></div>
   <div class="filters">
     <select id="ag-reg" onchange="renderAging()"><option value="">Todos os Regionais</option></select>
@@ -711,7 +716,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- PRIORIDADE / PLANO DE AÇÃO -->
 <div id="v-prioridade" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-alert-triangle"></i> Plano de Ação Prioritário</h2>
-    <div class="sub">Itens ordenados por criticidade — comece pelo topo</div></div></div>
+    <div class="sub">Itens ordenados por criticidade — comece pelo topo</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('prioridade','Plano_de_Acao')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
   <div class="alert amber"><i class="ti ti-calculator"></i><div><strong>Score de Criticidade = Valor × Dias Vencido.</strong> Combina impacto financeiro e tempo de exposição. A coluna <strong>Ação Prescrita</strong> aplica a política operacional da Agroquima por linha de produto.</div></div>
   <div class="filters">
     <select id="pa-reg" onchange="renderPrioridade()"><option value="">Todos os Regionais</option></select>
@@ -731,7 +737,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- PRODUTOS -->
 <div id="v-produtos" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-package"></i> Produtos Vencidos</h2>
-    <div class="sub">Detalhamento completo item a item</div></div></div>
+    <div class="sub">Detalhamento completo item a item</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('produtos','Produtos_Vencidos')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
   <div class="filters">
     <select id="pf-linha" onchange="renderProdutos()"><option value="">Todas as Linhas</option></select>
     <select id="pf-loja" onchange="renderProdutos()"><option value="">Todas as Lojas</option></select>
@@ -752,7 +759,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-fabricantes" style="display:none">
   <div id="fab-list-view">
     <div class="view-head"><div><h2><i class="ti ti-building-factory-2"></i> Análise por Fabricante</h2>
-      <div class="sub">Identifica concentração de fornecedores para renegociação</div></div></div>
+      <div class="sub">Identifica concentração de fornecedores para renegociação</div></div>
+      <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('fabricantes','Analise_por_Fabricante')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
     <div class="g2-1">
       <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Top Fabricantes</div><div class="chartbox tall"><canvas id="ch-fab" role="img" aria-label="Top fabricantes"></canvas></div></div>
       <div class="card"><div class="card-h"><i class="ti ti-bulb"></i> Leitura</div><div id="fab-insight" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
@@ -768,7 +776,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- RECORRENTES -->
 <div id="v-recorrentes" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-repeat"></i> Produtos Recorrentes</h2>
-    <div class="sub">Itens vencidos em múltiplas lojas — problema sistêmico de compra ou giro</div></div></div>
+    <div class="sub">Itens vencidos em múltiplas lojas — problema sistêmico de compra ou giro</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('recorrentes','Produtos_Recorrentes')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
   <div class="alert amber"><i class="ti ti-bulb"></i><div>Produtos vencidos em <strong>2 ou mais lojas</strong> indicam falha sistêmica de planejamento de compra, prazo de validade na aquisição ou baixo giro. Exigem revisão de política comercial — não apenas ação pontual de loja.</div></div>
   <div class="tw"><table><thead><tr>
     <th>Produto</th><th>Linha</th><th class="r">Lojas</th><th class="r">Itens</th><th class="r">Valor (R$)</th><th>Lojas Afetadas</th>
@@ -2382,6 +2391,41 @@ function exportarEvoPNG(){
   });
 }
 
+// Exporta o conteúdo completo de uma aba (cards, gráficos e tabelas visíveis) como imagem PNG
+function exportarAbaPNG(viewId,nomeArquivo){
+  const area=document.getElementById('v-'+viewId);
+  if(!area){toast('Aba não encontrada','red');return;}
+  if(typeof html2canvas==='undefined'){toast('Carregando biblioteca, tente em 2 segundos','amber');return;}
+  const btns=area.querySelectorAll('.view-export-btn');
+  btns.forEach(b=>b.style.visibility='hidden');
+  toast('Gerando imagem...','brand');
+  const bg=getComputedStyle(document.body).backgroundColor||'#ffffff';
+  // Escala dinâmica: abas curtas saem nítidas (até 2x); abas com tabelas muito longas
+  // reduzem a escala para não passar do limite de altura de canvas do navegador (~65535px)
+  const scale=Math.max(0.4,Math.min(2,28000/area.scrollHeight));
+  html2canvas(area,{
+    scale,
+    backgroundColor:bg,
+    logging:false,
+    useCORS:true
+  }).then(canvas=>{
+    btns.forEach(b=>b.style.visibility='');
+    const hoje=current?current.importDate.replace(/\//g,'_'):new Date().toLocaleDateString('pt-BR').replace(/\//g,'_');
+    canvas.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=`${nomeArquivo}_${hoje}.png`;
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      toast('✓ Imagem salva! Confira em Downloads','green');
+    },'image/png');
+  }).catch(e=>{
+    btns.forEach(b=>b.style.visibility='');
+    toast('Erro ao gerar imagem: '+e.message,'red');
+  });
+}
+
 // ─── REGIONAL ───
 function renderRegional(){
   const d=current,T=d.grandTotal;
@@ -2751,6 +2795,7 @@ function showFabricanteDetail(fab){
     <div class="detail-bar">
       <button class="btn ghost" onclick="closeFabricanteDetail()"><i class="ti ti-arrow-left"></i> Voltar</button>
       <h2>${fab}</h2><span style="margin-left:auto;font-size:13px" class="dim">${lojas.length} loja(s) · ${recs.length} itens · ${brl(total)} · <strong>${pctTotal.toFixed(1)}% do total</strong></span>
+      <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('fabricantes','Analise_por_Fabricante')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button>
     </div>
     <div class="g2" style="margin-bottom:18px">
       <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Por Loja/Filial</div>
