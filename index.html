@@ -640,9 +640,15 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="view-head"><div><h2><i class="ti ti-shopping-cart-x"></i> Análise de Compra</h2>
     <div class="sub">Diagnóstico da causa-raiz: produtos comprados em excesso ou sem giro compatível</div></div></div>
   <div class="alert amber"><i class="ti ti-bulb"></i><div><strong>O vencido é o sintoma; a compra é a causa.</strong> Esta análise cruza o volume parado com o tempo de prateleira do produto para sinalizar compras desproporcionais ao giro. Quando houver dados de venda no sistema, o cruzamento com giro real torna o diagnóstico ainda mais preciso.</div></div>
+  <div class="filters">
+    <select id="cp-reg" onchange="renderCompra()"><option value="">Todos os Regionais</option></select>
+    <select id="cp-loja" onchange="renderCompra()"><option value="">Todas as Lojas</option></select>
+    <select id="cp-aud" onchange="renderCompra()"><option value="">Todos os Auditores</option></select>
+  </div>
   <div id="compra-metrics" class="metrics"></div>
   <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-alert-octagon"></i> Sinais de Compra Excessiva (over-buying)</div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Lotes únicos de alto valor representam um único pedido grande. Quando o lote inteiro vence, é forte indício de que a quantidade comprada superou a capacidade de venda da(s) loja(s) no prazo de validade.</div>
+    <div class="legend"><span><span class="dot" style="background:var(--red-dk)"></span>Crítico — lote acima de R$ 50 mil parado</span><span><span class="dot" style="background:var(--amber-dk)"></span>Atenção — entre R$ 20 mil e R$ 50 mil</span><span><span class="dot" style="background:var(--text2)"></span>Moderado — abaixo de R$ 20 mil</span></div>
     <div class="tw"><table><thead><tr>
       <th>Produto</th><th>Loja</th><th>Lote</th><th class="r">Qtd no Lote</th>
       <th class="r">Validade (meses)</th><th class="r">Valor Parado</th><th class="c">Sinal</th>
@@ -650,6 +656,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
   <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-package"></i> Visão por Produto — Volume vs Dispersão</div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Produtos com alto valor vencido espalhados em várias lojas indicam compra centralizada sem considerar o giro individual de cada filial. Produtos de validade longa (24+ meses) que mesmo assim venceram são os casos mais graves de excesso.</div>
+    <div class="legend"><span><span class="dot" style="background:var(--red-dk)"></span>Excesso grave (validade 24m+) ou centralizado em 3+ lojas</span><span><span class="dot" style="background:var(--amber-dk)"></span>Disperso em 2+ lojas ou múltiplos lotes parados</span><span><span class="dot" style="background:var(--text2)"></span>Pontual — caso isolado</span></div>
     <div class="tw"><table><thead><tr>
       <th>Produto</th>
       <th class="r">Qtd Total</th>
@@ -670,12 +677,19 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="view-head"><div><h2><i class="ti ti-hourglass"></i> Aging — Envelhecimento do Vencido</h2>
     <div class="sub">Distribuição por tempo de vencimento — define urgência e recuperabilidade</div></div></div>
   <div class="alert brand"><i class="ti ti-info-circle"></i><div>Itens vencidos há <strong>menos de 30 dias</strong> ainda têm maior chance de ação. <strong>Atenção à política por linha:</strong> Nutrição Animal (FAP/FCB) — sem devolução, destinar como descarte ou venda imediata; Pastagem — devolução somente à FAG (não entre filiais); Agrícola — verificar revalidação de análise; demais — tentar bonificação com fornecedor. Itens há <strong>mais de 365 dias</strong> são candidatos a baixa/descarte.</div></div>
+  <div class="filters">
+    <select id="ag-reg" onchange="renderAging()"><option value="">Todos os Regionais</option></select>
+    <select id="ag-loja" onchange="renderAging()"><option value="">Todas as Lojas</option></select>
+    <select id="ag-aud" onchange="renderAging()"><option value="">Todos os Auditores</option></select>
+  </div>
+  <div id="aging-metrics" class="metrics"></div>
   <div class="g2-1">
     <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Valor por Faixa de Vencimento</div><div id="aging-bars"></div></div>
     <div class="card"><div class="card-h"><i class="ti ti-chart-pie"></i> Proporção</div><div class="chartbox"><canvas id="ch-aging" role="img" aria-label="Aging do vencido"></canvas></div></div>
   </div>
   <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Recomendação por Faixa</div>
-    <div class="tw"><table><thead><tr><th>Faixa</th><th class="r">Valor</th><th class="r">Itens</th><th>Ação Recomendada</th></tr></thead>
+    <div class="legend"><span><span class="dot" style="background:var(--green-dk)"></span>Recuperável — ainda há chance real de retorno/bonificação</span><span><span class="dot" style="background:var(--amber-dk)"></span>Atenção — última janela antes de virar baixa</span><span><span class="dot" style="background:var(--red-dk)"></span>Crítico — avaliar baixa/descarte e formalizar perda</span></div>
+    <div class="tw"><table><thead><tr><th>Faixa</th><th class="c">Urgência</th><th class="r">Valor</th><th class="r">% do Filtrado</th><th class="r">Itens</th><th>Ação Recomendada</th></tr></thead>
     <tbody id="aging-rec"></tbody></table></div>
   </div>
 </div>
@@ -685,10 +699,16 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="view-head"><div><h2><i class="ti ti-alert-triangle"></i> Plano de Ação Prioritário</h2>
     <div class="sub">Itens ordenados por criticidade — comece pelo topo</div></div></div>
   <div class="alert amber"><i class="ti ti-calculator"></i><div><strong>Score de Criticidade = Valor × Dias Vencido.</strong> Combina impacto financeiro e tempo de exposição. A coluna <strong>Ação Prescrita</strong> aplica a política operacional da Agroquima por linha de produto.</div></div>
+  <div class="filters">
+    <select id="pa-reg" onchange="renderPrioridade()"><option value="">Todos os Regionais</option></select>
+    <select id="pa-loja" onchange="renderPrioridade()"><option value="">Todas as Lojas</option></select>
+    <select id="pa-aud" onchange="renderPrioridade()"><option value="">Todos os Auditores</option></select>
+  </div>
   <div id="action-summary" class="metrics"></div>
   <div class="card"><div class="card-h"><i class="ti ti-flame"></i> Top 25 — Foco Imediato</div>
+    <div class="legend"><span><span class="dot" style="background:var(--red-dk)"></span>#1–3 — ataque primeiro, maior impacto combinado</span><span><span class="dot" style="background:var(--amber-dk)"></span>#4–8 — segunda onda</span><span><span class="dot" style="background:var(--text2)"></span>#9–25 — agendar para a semana</span></div>
     <div class="tw"><table><thead><tr>
-      <th>#</th><th>Produto</th><th>Loja</th><th>Auditor</th><th class="r">Valor (R$)</th>
+      <th>#</th><th>Produto</th><th>Loja</th><th>Regional</th><th>Auditor</th><th class="r">Valor (R$)</th>
       <th class="r">Dias</th><th class="r">Score</th><th>Ação Prescrita</th>
     </tr></thead><tbody id="prio-t"></tbody></table></div>
   </div>
@@ -2012,25 +2032,34 @@ async function carregarCambio(){
 
 // ─── AGING ───
 function renderAging(){
-  const d=current,T=d.grandTotal;
+  const d=current;
+  const rf=document.getElementById('ag-reg').value,ljf=document.getElementById('ag-loja').value,af=document.getElementById('ag-aud').value;
+  const recsFiltered=d.records.filter(r=>(!rf||r.Gerente===rf)&&(!ljf||r.Sigla===ljf)&&(!af||r.Auditor===af));
+  const T=recsFiltered.reduce((s,r)=>s+r.Total,0);
   const buckets=[
-    {label:'0-30 dias',min:0,max:30,color:'#0b5cab'},
-    {label:'31-90 dias',min:31,max:90,color:'#2b7fd4'},
-    {label:'91-180 dias',min:91,max:180,color:'#d68910'},
-    {label:'181-365 dias',min:181,max:365,color:'#e8590c'},
-    {label:'+365 dias',min:366,max:99999,color:'#c0392b'}
+    {label:'0-30 dias',min:0,max:30,color:'#0b5cab',urg:'green',urgLabel:'Recuperável'},
+    {label:'31-90 dias',min:31,max:90,color:'#2b7fd4',urg:'green',urgLabel:'Recuperável'},
+    {label:'91-180 dias',min:91,max:180,color:'#d68910',urg:'amber',urgLabel:'Atenção'},
+    {label:'181-365 dias',min:181,max:365,color:'#e8590c',urg:'red',urgLabel:'Crítico'},
+    {label:'+365 dias',min:366,max:99999,color:'#c0392b',urg:'red',urgLabel:'Crítico'}
   ];
   buckets.forEach(b=>{b.val=0;b.items=0;});
-  d.records.forEach(r=>{const x=abs(r.Dias);for(const b of buckets){if(x>=b.min&&x<=b.max){b.val+=r.Total;b.items++;break;}}});
-  const maxVal=Math.max(...buckets.map(b=>b.val));
+  recsFiltered.forEach(r=>{const x=abs(r.Dias);for(const b of buckets){if(x>=b.min&&x<=b.max){b.val+=r.Total;b.items++;break;}}});
+  const maxVal=Math.max(...buckets.map(b=>b.val),1);
+  const recuperavel=buckets.filter(b=>b.urg==='green').reduce((s,b)=>s+b.val,0);
+  const critico=buckets.filter(b=>b.urg==='red').reduce((s,b)=>s+b.val,0);
+  document.getElementById('aging-metrics').innerHTML=`
+    <div class="metric"><div class="ml">Total no filtro</div><div class="mv">${brl(T)}</div><div class="ms">${recsFiltered.length} itens vencidos</div></div>
+    <div class="metric green"><div class="ml">Recuperável (≤90d)</div><div class="mv">${brl(recuperavel)}</div><div class="ms">${T?Math.round(recuperavel/T*100):0}% do filtrado — ainda dá pra agir</div></div>
+    <div class="metric red"><div class="ml">Crítico (+180d)</div><div class="mv">${brl(critico)}</div><div class="ms">${T?Math.round(critico/T*100):0}% do filtrado — candidato a baixa</div></div>`;
   document.getElementById('aging-bars').innerHTML=buckets.map(b=>`
     <div class="aging-row"><div class="aging-label">${b.label}</div>
-      <div class="aging-bar-wrap"><div class="aging-bar" style="width:${maxVal?b.val/maxVal*100:0}%;background:${b.color}">${b.val>maxVal*0.15?Math.round(b.val/T*100)+'%':''}</div></div>
+      <div class="aging-bar-wrap"><div class="aging-bar" style="width:${maxVal?b.val/maxVal*100:0}%;background:${b.color}">${b.val>maxVal*0.15?Math.round(b.val/(T||1)*100)+'%':''}</div></div>
       <div class="aging-val">${brl(b.val)}</div><div class="aging-items">${b.items} itens</div></div>`).join('');
   destroyChart('aging');
   charts.aging=safeChart('ch-aging',{type:'doughnut',data:{labels:buckets.map(b=>b.label),datasets:[{data:buckets.map(b=>Math.round(b.val)),backgroundColor:buckets.map(b=>b.color),borderWidth:3,borderColor:getComputedStyle(document.body).getPropertyValue('--bg')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:c=>c.label+': '+brl(c.raw)}}},cutout:'55%'}});
   const recs={'0-30 dias':'Pastagem → solicitar devolução à FAG; Agrícola → verificar revalidação; Nutrição Animal → descarte/venda imediata (sem devolução FAP/FCB); demais → bonificação ou preço de custo','31-90 dias':'Acionar destino conforme linha com urgência: nutrição animal → descarte ou venda; pastagem → última tentativa com FAG; agrícola → revalidação ou custo; demais → venda promocional','91-180 dias':'Última chance de ação antes de baixa: definir descarte, doação ou venda no estado atual por linha','181-365 dias':'Avaliar baixa contábil ou doação; formalizar justificativa de perda','+365 dias':'Baixa/descarte — registrar perda com justificativa formal'};
-  document.getElementById('aging-rec').innerHTML=buckets.map(b=>`<tr><td class="b">${b.label}</td><td class="r">${brl(b.val)}</td><td class="r">${b.items}</td><td class="dim" style="font-size:12px">${recs[b.label]}</td></tr>`).join('');
+  document.getElementById('aging-rec').innerHTML=buckets.map(b=>`<tr><td class="b">${b.label}</td><td class="c"><span class="chip ${b.urg}">${b.urgLabel}</span></td><td class="r">${brl(b.val)}</td><td class="r">${T?Math.round(b.val/T*100):0}%</td><td class="r">${b.items}</td><td class="dim" style="font-size:12px">${recs[b.label]}</td></tr>`).join('');
 }
 
 // ─── ANÁLISE DE COMPRA ───
@@ -2043,10 +2072,13 @@ function shelfMonths(r){
   return days>0?Math.round(days/30):null;
 }
 function renderCompra(){
-  const d=current,T=d.grandTotal;
+  const d=current;
+  const rf=document.getElementById('cp-reg').value,ljf=document.getElementById('cp-loja').value,af=document.getElementById('cp-aud').value;
+  const filtered=d.records.filter(r=>(!rf||r.Gerente===rf)&&(!ljf||r.Sigla===ljf)&&(!af||r.Auditor===af));
+  const T=filtered.reduce((s,r)=>s+r.Total,0);
   // Per-product aggregation
   const pm={};
-  d.records.forEach(r=>{
+  filtered.forEach(r=>{
     const n=cleanProd(r.Nome);
     if(!pm[n])pm[n]={name:n,qtd:0,valor:0,lotes:new Set(),lojas:new Set(),shelfSum:0,shelfN:0};
     pm[n].qtd+=r.Qtd;pm[n].valor+=r.Total;pm[n].lotes.add(r.Lote);pm[n].lojas.add(r.Sigla);
@@ -2061,22 +2093,21 @@ function renderCompra(){
   const multiLoja=prods.filter(p=>p.lojas>1);
   const multiLojaVal=multiLoja.reduce((s,p)=>s+p.valor,0);
   document.getElementById('compra-metrics').innerHTML=`
-    <div class="metric red"><div class="ml">Produto + Comprado</div><div class="mv" style="font-size:16px">${topProd?topProd.name:'—'}</div><div class="ms">${topProd?brl(topProd.valor)+' · '+Math.round(topProd.valor/T*100)+'% do total':''}</div></div>
+    <div class="metric"><div class="ml">Total no filtro</div><div class="mv">${brl(T)}</div><div class="ms">${filtered.length} itens vencidos</div></div>
+    <div class="metric red"><div class="ml">Produto + Comprado</div><div class="mv" style="font-size:16px">${topProd?topProd.name:'—'}</div><div class="ms">${topProd?brl(topProd.valor)+' · '+Math.round(topProd.valor/(T||1)*100)+'% do filtrado':''}</div></div>
     <div class="metric amber"><div class="ml">Validade longa parada</div><div class="mv">${brl(longShelfVal)}</div><div class="ms">${longShelfStuck.length} produtos c/ 24+ meses de validade venceram</div></div>
-    <div class="metric purple"><div class="ml">Compra centralizada</div><div class="mv">${brl(multiLojaVal)}</div><div class="ms">${multiLoja.length} produtos vencidos em 2+ lojas</div></div>
-    <div class="metric"><div class="ml">Itens analisados</div><div class="mv">${prods.length}</div><div class="ms">produtos distintos</div></div>`;
+    <div class="metric purple"><div class="ml">Compra centralizada</div><div class="mv">${brl(multiLojaVal)}</div><div class="ms">${multiLoja.length} produtos vencidos em 2+ lojas</div></div>`;
 
   // Over-buying: largest single lots
-  const lots=d.records.map(r=>({...r,shelf:shelfMonths(r)})).sort((a,b)=>b.Total-a.Total).slice(0,15);
-  const maxLot=lots[0]?.Total||1;
-  document.getElementById('compra-overbuy').innerHTML=lots.map(r=>{
+  const lots=filtered.map(r=>({...r,shelf:shelfMonths(r)})).sort((a,b)=>b.Total-a.Total).slice(0,15);
+  document.getElementById('compra-overbuy').innerHTML=lots.length?lots.map(r=>{
     const big=r.Total>50000, med=r.Total>20000;
     const sinal=big?'<span class="chip red"><i class="ti ti-alert-triangle" style="font-size:11px"></i> Crítico</span>':med?'<span class="chip amber">Atenção</span>':'<span class="chip gray">Moderado</span>';
     return `<tr><td class="b" style="font-size:12px">${cleanProd(r.Nome)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r b">${num(r.Qtd)}</td><td class="r">${r.shelf!==null?r.shelf+' m':'—'}</td><td class="r b">${brl(r.Total)}</td><td class="c">${sinal}</td></tr>`;
-  }).join('');
+  }).join(''):`<tr><td colspan="7" class="dim" style="text-align:center;padding:24px">Nenhum item vencido no filtro selecionado.</td></tr>`;
 
   // Per-product table with diagnosis
-  document.getElementById('compra-prod').innerHTML=prods.map(p=>{
+  document.getElementById('compra-prod').innerHTML=prods.length?prods.map(p=>{
     let diag,dcls;
     if(p.shelf!==null&&p.shelf>=24&&p.valor>30000){diag='Excesso grave — validade longa';dcls='red';}
     else if(p.lojas>=3){diag='Compra centralizada s/ giro';dcls='red';}
@@ -2084,7 +2115,7 @@ function renderCompra(){
     else if(p.lotes>1){diag='Múltiplos lotes parados';dcls='amber';}
     else{diag='Pontual';dcls='gray';}
     return `<tr><td class="b" style="font-size:12px">${p.name}</td><td class="r">${num(Math.round(p.qtd))}</td><td class="r">${p.lotes}</td><td class="r">${p.lojas}</td><td class="r">${p.shelf!==null?p.shelf+' meses':'—'}</td><td class="r b">${brl(p.valor)}</td><td class="c"><span class="chip ${dcls}">${diag}</span></td></tr>`;
-  }).join('');
+  }).join(''):`<tr><td colspan="7" class="dim" style="text-align:center;padding:24px">Nenhum produto no filtro selecionado.</td></tr>`;
 
   // Recommendations
   document.getElementById('compra-recom').innerHTML=`
@@ -2447,6 +2478,10 @@ function populateFilters(){
   setSel('jf-reg',[...new Set(jAll.map(r=>r.Gerente).filter(Boolean))].sort(),'Todos os Regionais');
   setSel('jf-loja',[...new Set(jAll.map(r=>r.Sigla).filter(Boolean))].sort(),'Todas as Lojas');
   setSel('jf-linha',[...new Set(jAll.map(r=>r.Desc).filter(Boolean))].sort(),'Todas as Linhas');
+  const lojas=d.byFilial.map(f=>f.key);
+  setSel('ag-reg',regs,'Todos os Regionais');setSel('ag-loja',lojas,'Todas as Lojas');setSel('ag-aud',auds,'Todos os Auditores');
+  setSel('pa-reg',regs,'Todos os Regionais');setSel('pa-loja',lojas,'Todas as Lojas');setSel('pa-aud',auds,'Todos os Auditores');
+  setSel('cp-reg',regs,'Todos os Regionais');setSel('cp-loja',lojas,'Todas as Lojas');setSel('cp-aud',auds,'Todos os Auditores');
 }
 function renderLojas(){
   const d=current;
@@ -2480,22 +2515,24 @@ function renderProdutos(){
 // ─── PRIORIDADE ───
 function renderPrioridade(){
   const d=current;
-  const scored=d.records.map(r=>({...r,score:abs(r.Dias)*r.Total})).sort((a,b)=>b.score-a.score);
+  const rf=document.getElementById('pa-reg').value,ljf=document.getElementById('pa-loja').value,af=document.getElementById('pa-aud').value;
+  const filtered=d.records.filter(r=>(!rf||r.Gerente===rf)&&(!ljf||r.Sigla===ljf)&&(!af||r.Auditor===af));
+  const scored=filtered.map(r=>({...r,score:abs(r.Dias)*r.Total})).sort((a,b)=>b.score-a.score);
   const top25=scored.slice(0,25);
-  const maxS=top25[0]?.score||1;
   // summary
   const top10val=scored.slice(0,10).reduce((s,r)=>s+r.Total,0);
-  const T=d.grandTotal;
+  const T=filtered.reduce((s,r)=>s+r.Total,0);
   document.getElementById('action-summary').innerHTML=`
-    <div class="metric red"><div class="ml">Top 10 itens</div><div class="mv">${brl(top10val)}</div><div class="ms">${Math.round(top10val/T*100)}% do total em 10 itens</div></div>
+    <div class="metric"><div class="ml">Total no filtro</div><div class="mv">${brl(T)}</div><div class="ms">${filtered.length} itens vencidos</div></div>
+    <div class="metric red"><div class="ml">Top 10 itens</div><div class="mv">${brl(top10val)}</div><div class="ms">${T?Math.round(top10val/T*100):0}% do valor filtrado em 10 itens</div></div>
     <div class="metric amber"><div class="ml">Itens críticos (+180d)</div><div class="mv">${scored.filter(r=>abs(r.Dias)>180).length}</div><div class="ms">Candidatos a baixa</div></div>
     <div class="metric green"><div class="ml">Recuperáveis (≤60d)</div><div class="mv">${scored.filter(r=>abs(r.Dias)<=60).length}</div><div class="ms">Foco em negociação</div></div>`;
   document.getElementById('prio-t').innerHTML=top25.map((r,i)=>{
     const rk=i<3?`<span class="chip red">#${i+1}</span>`:i<8?`<span class="chip amber">#${i+1}</span>`:`<span class="chip gray">#${i+1}</span>`;
     const st=getReturnStrategy(r);
     const corAcao=st.cor==='red'?'var(--red)':st.cor==='amber'?'var(--amber)':'var(--text3)';
-    return `<tr><td>${rk}</td><td class="b" style="font-size:12px">${cleanProd(r.Nome)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny"><span class="chip" style="background:${audColor(r.Auditor)}22;color:${audColor(r.Auditor)}">${r.Auditor}</span></td><td class="r b">${brl(r.Total)}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${Math.round(r.score/1000)}k</td><td style="font-size:11px;color:${corAcao};max-width:200px" title="${st.detalhe}">${st.acao}</td></tr>`;
-  }).join('');
+    return `<tr><td>${rk}</td><td class="b" style="font-size:12px">${cleanProd(r.Nome)}</td><td style="font-size:12px">${r.Sigla}</td><td><span class="pill">${r.Gerente||'—'}</span></td><td class="tiny"><span class="chip" style="background:${audColor(r.Auditor)}22;color:${audColor(r.Auditor)}">${r.Auditor}</span></td><td class="r b">${brl(r.Total)}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${Math.round(r.score/1000)}k</td><td style="font-size:11px;color:${corAcao};max-width:200px" title="${st.detalhe}">${st.acao}</td></tr>`;
+  }).join('')||`<tr><td colspan="9" class="dim" style="text-align:center;padding:24px">Nenhum item vencido no filtro selecionado.</td></tr>`;
 }
 
 // Conta inconsistências para alerta na importação (versão leve do Caça-Erros)
