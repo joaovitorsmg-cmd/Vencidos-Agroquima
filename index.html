@@ -2227,16 +2227,15 @@ function renderEvo(){
   const trendCard=document.getElementById('evo-trend-card');
 
   // ── Gráfico de tendência: importações em ordem cronológica ──
-  // Linha "Vencido" usa SÓ as leituras do arquivo de vencidos; importações completas
-  // não entram na evolução (viram null e o spanGaps liga os pontos medidos).
-  // Linha "A Vencer" segue o inverso: só existe nas importações completas.
+  // Linha "Vencido" usa o grandTotal de TODA importação (completa ou só vencidos) — em
+  // ambos os casos ele já é só a parte vencida (Dias<=0), calculada em buildSnapshot.
+  // Linha "A Vencer" continua só nas importações completas (única origem desse dado).
   if(history.length>=2){
     trendCard.style.display='block';
     const ordered=[...history].sort((a,b)=>pdate(a.importDate)-pdate(b.importDate));
     const labels=ordered.map(h=>h.importDate);
-    const vencidos=ordered.map(h=>tipoEfetivo(h)==='vencidos'?Math.round(h.grandTotal):null);
+    const vencidos=ordered.map(h=>Math.round(h.grandTotal));
     const aVencer=ordered.map(h=>tipoEfetivo(h)==='completa'?Math.round(h.totalAVencer||0):null);
-    const algumaCompleta=ordered.some(h=>tipoEfetivo(h)==='completa');
     destroyChart('evo');
     charts.evo=safeChart('ch-evo',{
       type:'line',
@@ -2244,21 +2243,21 @@ function renderEvo(){
         {label:'Vencido',data:vencidos,borderColor:'#d92d20',backgroundColor:'rgba(217,45,32,.08)',borderWidth:3,fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#d92d20',spanGaps:true},
         {label:'A Vencer',data:aVencer,borderColor:'#079455',backgroundColor:'rgba(7,148,85,.05)',borderWidth:2,borderDash:[6,4],fill:false,tension:.3,pointRadius:3,pointBackgroundColor:'#079455',spanGaps:true}
       ]},
-      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw==null?(c.datasetIndex===0?'Vencido: importação completa (fora da evolução)':'A Vencer: não medido nesta data'):c.dataset.label+': '+brl(c.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'rgba(128,128,128,.08)'}}}}
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw==null?'A Vencer: não medido nesta data':c.dataset.label+': '+brl(c.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'rgba(128,128,128,.08)'}}}}
     });
-    document.getElementById('leg-evo').innerHTML=`<span><span class="dot" style="background:#d92d20"></span>Vencido (leituras do arquivo de vencidos)</span><span><span class="dot" style="background:#079455"></span>A Vencer (importações completas)</span>`+(algumaCompleta?`<span style="color:var(--text3);font-size:10px"><i class="ti ti-info-circle"></i> Importações completas não entram na evolução do vencido</span>`:'');
+    document.getElementById('leg-evo').innerHTML=`<span><span class="dot" style="background:#d92d20"></span>Vencido (toda importação)</span><span><span class="dot" style="background:#079455"></span>A Vencer (importações completas)</span>`;
   } else {
     trendCard.style.display='none';
   }
 
-  // ── Comparativo semanal: considera APENAS leituras do arquivo de vencidos ──
-  const evoHist=history.filter(h=>tipoEfetivo(h)==='vencidos'); // history já está em ordem decrescente de data
-  if(evoHist.length<2){div.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>A evolução semanal compara apenas <strong>leituras do arquivo de vencidos</strong> — importações completas (vencidos + a vencer) não entram. Há ${evoHist.length} leitura(s) de vencidos no histórico; importe pelo menos 2. Dica: a data é detectada pelo nome do arquivo (ex: Vencidos_13_05_2025.xlsx).</div></div>`;return;}
+  // ── Comparativo semanal: considera TODA importação (completa ou só vencidos) ──
+  const evoHist=history; // já está em ordem decrescente de data
+  if(evoHist.length<2){div.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>A evolução semanal compara as leituras de vencidos de duas importações. Há ${evoHist.length} importação(ões) no histórico; importe pelo menos 2.</div></div>`;return;}
   const refT=current?pdate(current.importDate):Infinity;
   let curr=evoHist.find(h=>pdate(h.importDate)<=refT)||evoHist[0];
   let prev=evoHist[evoHist.indexOf(curr)+1];
   if(!prev){curr=evoHist[0];prev=evoHist[1];}
-  const aviso=(current&&tipoEfetivo(current)!=='vencidos')?`<div class="alert brand" style="margin-bottom:16px"><i class="ti ti-info-circle"></i><div>A importação ativa (${current.importDate}) é <strong>completa</strong> e não entra na evolução. Comparando as duas leituras de vencidos mais recentes: <strong>${prev.importDate} → ${curr.importDate}</strong>.</div></div>`:'';
+  const aviso='';
   const Tc=curr.grandTotal,Tp=prev.grandTotal,diff=Tc-Tp,dp=Tp?diff/Tp*100:0,imp=diff<0;
   const all=new Set([...curr.byFilial.map(f=>f.key),...prev.byFilial.map(f=>f.key)]);
   const rows=[];
