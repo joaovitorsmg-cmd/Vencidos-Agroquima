@@ -496,6 +496,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         <option value="janela">🟢 Dentro da Janela — Priorizar Giro (FEFO)</option>
         <option value="vencido">⚫ Já Vencido — Destinar por Política da Linha</option>
       </select>
+      <select id="jf-reg" onchange="renderJanela()"><option value="">Todos os Regionais</option></select>
       <select id="jf-loja" onchange="renderJanela()"><option value="">Todas as Lojas</option></select>
       <select id="jf-linha" onchange="renderJanela()"><option value="">Todas as Linhas</option></select>
       <input type="text" id="jf-search" placeholder="🔍 Buscar produto..." oninput="renderJanela()" style="min-width:180px">
@@ -715,16 +716,19 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 
 <!-- FABRICANTES -->
 <div id="v-fabricantes" style="display:none">
-  <div class="view-head"><div><h2><i class="ti ti-building-factory-2"></i> Análise por Fabricante</h2>
-    <div class="sub">Identifica concentração de fornecedores para renegociação</div></div></div>
-  <div class="g2-1">
-    <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Top Fabricantes</div><div class="chartbox tall"><canvas id="ch-fab" role="img" aria-label="Top fabricantes"></canvas></div></div>
-    <div class="card"><div class="card-h"><i class="ti ti-bulb"></i> Leitura</div><div id="fab-insight" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
+  <div id="fab-list-view">
+    <div class="view-head"><div><h2><i class="ti ti-building-factory-2"></i> Análise por Fabricante</h2>
+      <div class="sub">Identifica concentração de fornecedores para renegociação</div></div></div>
+    <div class="g2-1">
+      <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Top Fabricantes</div><div class="chartbox tall"><canvas id="ch-fab" role="img" aria-label="Top fabricantes"></canvas></div></div>
+      <div class="card"><div class="card-h"><i class="ti ti-bulb"></i> Leitura</div><div id="fab-insight" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
+    </div>
+    <div class="tw"><table><thead><tr>
+      <th>Fabricante</th><th class="r">Itens</th>
+      <th class="r">Lojas</th><th class="r">Total (R$)</th><th class="r">% Total</th><th class="c">Ação</th>
+    </tr></thead><tbody id="ft"></tbody></table></div>
   </div>
-  <div class="tw"><table><thead><tr>
-    <th>Fabricante</th><th class="r">Itens</th>
-    <th class="r">Lojas</th><th class="r">Total (R$)</th><th class="r">% Total</th>
-  </tr></thead><tbody id="ft"></tbody></table></div>
+  <div id="fab-detail-view" style="display:none"></div>
 </div>
 
 <!-- RECORRENTES -->
@@ -1365,6 +1369,7 @@ function nav(id){
   // Reset detail views to list when (re)entering
   if(id==='regional'){const dv=document.getElementById('reg-detail-view');const lv=document.getElementById('reg-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
   if(id==='auditores'){const dv=document.getElementById('aud-detail-view');const lv=document.getElementById('aud-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
+  if(id==='fabricantes'){const dv=document.getElementById('fab-detail-view');const lv=document.getElementById('fab-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
   closeSidebar();
   window.scrollTo(0,0);
   setTimeout(()=>enableSorting(),0);
@@ -1774,8 +1779,8 @@ function renderJanela(){
     return `<div class="metric ${cat.mcls}"><div class="ml">${tit}</div><div class="mv" style="font-size:18px">${brl(v)}</div><div class="ms">${g.length} lote(s) · ${sub}</div></div>`;
   }).join('');
   // filtros
-  const cf=document.getElementById('jf-cat').value,ljf=document.getElementById('jf-loja').value,lf=document.getElementById('jf-linha').value,sr=(document.getElementById('jf-search').value||'').toLowerCase();
-  const base=allClass.filter(x=>(!ljf||x.r.Sigla===ljf)&&(!lf||x.r.Desc===lf)&&(!sr||(x.r.Nome||'').toLowerCase().includes(sr)));
+  const cf=document.getElementById('jf-cat').value,rf=document.getElementById('jf-reg').value,ljf=document.getElementById('jf-loja').value,lf=document.getElementById('jf-linha').value,sr=(document.getElementById('jf-search').value||'').toLowerCase();
+  const base=allClass.filter(x=>(!rf||x.r.Gerente===rf)&&(!ljf||x.r.Sigla===ljf)&&(!lf||x.r.Desc===lf)&&(!sr||(x.r.Nome||'').toLowerCase().includes(sr)));
   // legenda com bolinhas, acima do cabeçalho — clicável
   document.getElementById('j-leg').innerHTML=Object.entries(JCATS).map(([k,cat])=>{
     const g=base.filter(x=>x.c.cat===k),v=g.reduce((s,x)=>s+x.r.Total,0);
@@ -2439,6 +2444,7 @@ function populateFilters(){
   setSel('pf-loja',d.byFilial.map(f=>f.key),'Todas as Lojas');setSel('pf-aud',auds,'Todos os Auditores');
   setSel('pf-linha',d.byLinha.map(l=>l.key),'Todas as Linhas');
   const jAll=d.allRecords||d.records||[];
+  setSel('jf-reg',[...new Set(jAll.map(r=>r.Gerente).filter(Boolean))].sort(),'Todos os Regionais');
   setSel('jf-loja',[...new Set(jAll.map(r=>r.Sigla).filter(Boolean))].sort(),'Todas as Lojas');
   setSel('jf-linha',[...new Set(jAll.map(r=>r.Desc).filter(Boolean))].sort(),'Todas as Linhas');
 }
@@ -2667,12 +2673,50 @@ function renderFabricantes(){
   const t1=fabs[0];
   if(!t1){
     document.getElementById('fab-insight').innerHTML='<p class="muted">Nenhum produto vencido neste período.</p>';
-    document.getElementById('ft').innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Nenhum produto vencido</td></tr>';
+    document.getElementById('ft').innerHTML='<tr><td colspan="6" class="muted" style="text-align:center;padding:20px">Nenhum produto vencido</td></tr>';
     return;
   }
   document.getElementById('fab-insight').innerHTML=`<p><strong>${t1.fab}</strong> lidera com <strong>${brl(t1.total)}</strong> (${(t1.total/T*100).toFixed(1)}%).</p><br><p>Top 3 fabricantes = <strong>${(fabs.slice(0,3).reduce((s,f)=>s+f.total,0)/T*100).toFixed(0)}%</strong> do total.</p><br><p><strong>Ação por fabricante:</strong> FAP/FCB (nutrição animal) — sem devolução, destinar como descarte ou venda; FAG (pastagem) — solicitar devolução para sementes de alto giro; fornecedores externos — revisar prazos mínimos de validade na compra e tentar bonificação ou revalidação conforme a linha.</p>`;
-  document.getElementById('ft').innerHTML=fabs.map(f=>`<tr><td style="font-size:12px" class="b">${f.fab}</td><td class="r">${f.items}</td><td class="r">${f.lojas}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/T*100).toFixed(1)}%</td></tr>`).join('');
+  document.getElementById('ft').innerHTML=fabs.map(f=>`<tr><td style="font-size:12px" class="b">${f.fab}</td><td class="r">${f.items}</td><td class="r">${f.lojas}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/T*100).toFixed(1)}%</td><td class="c"><button class="btn xs" onclick="showFabricanteDetail('${f.fab.replace(/'/g,"")}')">Detalhar</button></td></tr>`).join('');
 }
+function showFabricanteDetail(fab){
+  const d=current,T=d.grandTotal;
+  const recs=d.records.filter(r=>cleanFab(r.Fab)===fab).sort((a,b)=>b.Total-a.Total);
+  const total=recs.reduce((s,r)=>s+r.Total,0);
+  // breakdown por loja/filial
+  const porLoja={};
+  recs.forEach(r=>{const k=r.Sigla||'—';if(!porLoja[k])porLoja[k]={key:k,regional:r.Gerente,total:0,items:0};porLoja[k].total+=r.Total;porLoja[k].items++;});
+  const lojas=Object.values(porLoja).sort((a,b)=>b.total-a.total);
+  // breakdown por regional
+  const porReg={};
+  recs.forEach(r=>{const k=r.Gerente||'—';if(!porReg[k])porReg[k]={key:k,total:0,items:0,lojas:new Set()};porReg[k].total+=r.Total;porReg[k].items++;porReg[k].lojas.add(r.Sigla);});
+  const regionais=Object.values(porReg).map(x=>({...x,lojas:x.lojas.size})).sort((a,b)=>b.total-a.total);
+  document.getElementById('fab-list-view').style.display='none';
+  const dv=document.getElementById('fab-detail-view');dv.style.display='block';
+  const pctTotal=T>0?(total/T*100):0;
+  dv.innerHTML=`
+    <div class="detail-bar">
+      <button class="btn ghost" onclick="closeFabricanteDetail()"><i class="ti ti-arrow-left"></i> Voltar</button>
+      <h2>${fab}</h2><span style="margin-left:auto;font-size:13px" class="dim">${lojas.length} loja(s) · ${recs.length} itens · ${brl(total)} · <strong>${pctTotal.toFixed(1)}% do total</strong></span>
+    </div>
+    <div class="g2" style="margin-bottom:18px">
+      <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Por Loja/Filial</div>
+        <div class="tw"><table><thead><tr><th>Loja</th><th>Regional</th><th class="r">Itens</th><th class="r">Valor (R$)</th><th class="r">% Fab.</th></tr></thead>
+        <tbody>${lojas.map(f=>`<tr><td class="b" style="font-size:12px">${f.key}</td><td><span class="pill">${f.regional||'—'}</span></td><td class="r">${f.items}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/total*100).toFixed(1)}%</td></tr>`).join('')}</tbody></table></div>
+      </div>
+      <div class="card"><div class="card-h"><i class="ti ti-map-pin"></i> Por Regional</div>
+        <div class="tw"><table><thead><tr><th>Regional</th><th class="r">Lojas</th><th class="r">Itens</th><th class="r">Valor (R$)</th><th class="r">% Fab.</th></tr></thead>
+        <tbody>${regionais.map(r=>`<tr><td class="b" style="font-size:12px">${r.key}</td><td class="r">${r.lojas}</td><td class="r">${r.items}</td><td class="r b">${brl(r.total)}</td><td class="r">${(r.total/total*100).toFixed(1)}%</td></tr>`).join('')}</tbody></table></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os produtos deste fabricante (${recs.length})</div>
+    <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Regional</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th></tr></thead>
+    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${cleanProd(r.Nome)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Gerente||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="6">Total ${fab}</td><td class="r">${brl(total)}</td></tr></tbody></table></div></div>`;
+  window.scrollTo(0,0);
+  setTimeout(()=>enableSorting(),0);
+}
+function closeFabricanteDetail(){document.getElementById('fab-detail-view').style.display='none';document.getElementById('fab-list-view').style.display='block';}
 
 // ─── RECORRENTES ───
 function renderRecorrentes(){
