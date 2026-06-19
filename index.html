@@ -1792,15 +1792,15 @@ function renderJanela(){
   document.getElementById('j-windows').innerHTML='Janelas consideradas: '+Object.values(SAZONALIDADE).filter(s=>{if(vistos.has(s.nome))return false;vistos.add(s.nome);return true;}).map(s=>`<strong>${s.nome}</strong> — ${s.desc}`).join(' · ')+'. A situação de cada lote é calculada pela validade frente à abertura da próxima janela.';
   // classifica tudo uma vez
   const allClass=all.map(r=>({r,c:classifyJanela(r)}));
-  // métricas gerais da aba (sempre sobre o universo completo)
+  // filtros (Regional/Loja/Linha/Busca) — aplicados ANTES dos cards, pra eles acompanharem o recorte filtrado
+  const cf=document.getElementById('jf-cat').value,rf=document.getElementById('jf-reg').value,ljf=document.getElementById('jf-loja').value,lf=document.getElementById('jf-linha').value,sr=(document.getElementById('jf-search').value||'').toLowerCase();
+  const base=allClass.filter(x=>(!rf||x.r.Gerente===rf)&&(!ljf||x.r.Sigla===ljf)&&(!lf||x.r.Desc===lf)&&(!sr||(x.r.Nome||'').toLowerCase().includes(sr)));
+  // métricas da aba — sobre o recorte filtrado (Regional/Loja/Linha/Busca), não sobre o universo inteiro
   document.getElementById('j-metrics').innerHTML=Object.entries(JCATS).map(([k,cat])=>{
-    const g=allClass.filter(x=>x.c.cat===k),v=g.reduce((s,x)=>s+x.r.Total,0);
+    const g=base.filter(x=>x.c.cat===k),v=g.reduce((s,x)=>s+x.r.Total,0);
     const [tit,sub]=cat.nome.split(' — ');
     return `<div class="metric ${cat.mcls}"><div class="ml">${tit}</div><div class="mv" style="font-size:18px">${brl(v)}</div><div class="ms">${g.length} lote(s) · ${sub}</div></div>`;
   }).join('');
-  // filtros
-  const cf=document.getElementById('jf-cat').value,rf=document.getElementById('jf-reg').value,ljf=document.getElementById('jf-loja').value,lf=document.getElementById('jf-linha').value,sr=(document.getElementById('jf-search').value||'').toLowerCase();
-  const base=allClass.filter(x=>(!rf||x.r.Gerente===rf)&&(!ljf||x.r.Sigla===ljf)&&(!lf||x.r.Desc===lf)&&(!sr||(x.r.Nome||'').toLowerCase().includes(sr)));
   // legenda com bolinhas, acima do cabeçalho — clicável
   document.getElementById('j-leg').innerHTML=Object.entries(JCATS).map(([k,cat])=>{
     const g=base.filter(x=>x.c.cat===k),v=g.reduce((s,x)=>s+x.r.Total,0);
