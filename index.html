@@ -2303,17 +2303,19 @@ function renderEvo(){
   for(const f of all){const c=curr.byFilial.find(x=>x.key===f),p=prev.byFilial.find(x=>x.key===f);const vC=c?c.total:0,vP=p?p.total:0,dd=vC-vP,ddp=vP?dd/vP*100:(vC>0?999:0);rows.push({f,reg:c?c.regional:(p?p.regional:''),prev:vP,curr:vC,diff:dd,pct:ddp,share:Tc>0?vC/Tc*100:0});}
   rows.sort((a,b)=>b.curr-a.curr);
   // Variação para a diretoria: seta + % (vermelho piorou, verde melhorou), NOVO/ZEROU nos extremos
+  // 1 casa decimal: evita que uma queda/alta real (ex: -R$494) apareça arredondada para "0%" e pareça estável
+  const pctFmt=v=>Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const fv=r=>{
     if(r.prev<=0&&r.curr>0)return '<span class="pos">NOVO</span>';
     if(r.prev>0&&r.curr<=0)return '<span class="neg">ZEROU ↓</span>';
     if(Math.abs(r.diff)<0.01)return '<span class="teq">—</span>';
-    return `<span class="${r.diff<0?'neg':'pos'}">${r.diff<0?'↓':'↑'} ${Math.abs(Math.round(r.pct))}%</span>`;
+    return `<span class="${r.diff<0?'neg':'pos'}">${r.diff<0?'↓':'↑'} ${pctFmt(r.pct)}%</span>`;
   };
   div.innerHTML=aviso+`
     <div class="g3">
       <div class="metric"><div class="ml">${prev.importDate} (semana anterior)</div><div class="mv">${brl(Tp)}</div><div class="ms">${prev.totalItems} itens vencidos</div></div>
       <div class="metric ${imp?'green':'red'}"><div class="ml">${curr.importDate} (atual)</div><div class="mv">${brl(Tc)}</div><div class="ms">${curr.totalItems} itens vencidos</div></div>
-      <div class="metric ${imp?'green':'red'}"><div class="ml">Variação da Semana</div><div class="mv">${imp?'↓':'↑'} ${Math.abs(dp).toFixed(1)}%</div><div class="ms">${imp?'Redução de ':'Aumento de '}${brl(Math.abs(diff))}</div></div>
+      <div class="metric ${imp?'green':'red'}"><div class="ml">Variação da Semana</div><div class="mv">${imp?'↓':'↑'} ${pctFmt(dp)}%</div><div class="ms">${imp?'Redução de ':'Aumento de '}${brl(Math.abs(diff))}</div></div>
     </div>
     <div class="view-head" style="margin-bottom:10px"><div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div><button class="btn ghost" onclick="exportarEvoPNG()" style="font-size:12px"><i class="ti ti-download"></i> Exportar imagem (PNG)</button></div>
     <div id="evo-export-area" style="background:var(--bg2);padding:18px;border-radius:12px">
@@ -2323,7 +2325,7 @@ function renderEvo(){
     </div>
     <div class="evotw"><table class="evot"><thead><tr><th style="text-align:left;min-width:130px">LOJA</th><th>REGIONAL</th><th>${prev.importDate}</th><th>${curr.importDate}</th><th>VARIAÇÃO</th><th>% DO TOTAL</th></tr></thead>
     <tbody>${rows.map(r=>`<tr><td class="nm">${r.f}</td><td style="text-align:left;font-size:11px" class="muted">${r.reg}</td><td>${r.prev>0?brl(r.prev):'—'}</td><td>${r.curr>0?brl(r.curr):'—'}</td><td>${fv(r)}</td><td>${r.curr>0?r.share.toFixed(1).replace('.',',')+'%':'—'}</td></tr>`).join('')}</tbody>
-    <tfoot><tr class="tr"><td colspan="2">TOTAL</td><td>${brl(Tp)}</td><td>${brl(Tc)}</td><td>${Math.abs(diff)<0.01?'—':(diff<0?'↓ ':'↑ ')+Math.abs(Math.round(dp))+'%'}</td><td>100%</td></tr></tfoot></table></div>
+    <tfoot><tr class="tr"><td colspan="2">TOTAL</td><td>${brl(Tp)}</td><td>${brl(Tc)}</td><td>${Math.abs(diff)<0.01?'—':(diff<0?'↓ ':'↑ ')+pctFmt(dp)+'%'}</td><td>100%</td></tr></tfoot></table></div>
     </div>`;
 }
 
