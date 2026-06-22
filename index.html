@@ -19,8 +19,17 @@
 })();
 </script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Agroquima — Relatório de Auditoria de Vencidos</title>
+<meta name="description" content="Painel de auditoria de produtos vencidos — Agroquima">
+<meta name="theme-color" content="#0b5cab">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agroquima">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -344,6 +353,15 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   .metric .mv{font-size:20px}
   .tw table th:first-child,.tw table td:first-child{position:sticky;left:0;background:var(--bg);z-index:1}
   .tw table thead th:first-child{background:var(--bg2);z-index:2}
+  /* alvos de toque maiores (recomendação mínima ~44px) */
+  .btn{min-height:44px}
+  .btn.sm{min-height:38px}
+  .btn.xs{min-height:32px}
+  .btn.icon-only{width:44px;height:44px}
+  .btn-hamburger{width:44px;height:44px}
+  .nav-item{min-height:44px}
+  .ws-btn{min-height:40px}
+  input,select,textarea{font-size:16px} /* evita zoom automático ao focar em iOS */
 }
 @media(max-width:600px){
   .g3,.g4,.metrics{grid-template-columns:1fr!important}
@@ -358,6 +376,27 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   .aging-label{min-width:62px;font-size:11px}
   .aging-val{min-width:84px;font-size:12px}
   .aging-items{min-width:48px;font-size:10px}
+  .filters{flex-direction:column;align-items:stretch}
+  .filters select,.filters input{width:100%;min-width:0}
+  .modal{padding:20px}
+  .login-box{padding:30px 22px}
+  #empty-panel-overlay{padding:24px}
+}
+@media(max-width:380px){
+  .login-box{padding:26px 18px}
+  .empty-panel-icon{width:64px;height:64px;font-size:28px}
+}
+/* PWA instalado: respeita áreas seguras (notch/home-indicator) sem afetar navegador comum */
+@media(display-mode:standalone){
+  .topbar{padding-top:env(safe-area-inset-top);min-height:calc(64px + env(safe-area-inset-top))}
+  .sidebar{padding-top:calc(16px + env(safe-area-inset-top))}
+  .toast{bottom:calc(26px + env(safe-area-inset-bottom))}
+  .report-footer{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+  body{overscroll-behavior-y:contain}
+}
+@media(display-mode:standalone) and (max-width:980px){
+  .topbar{padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right))}
+  .content{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
 }
 ::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:4px}
 .muted{color:var(--text3)}
@@ -3808,6 +3847,13 @@ function init(){
   syncPull();
 }
 init();
+
+// ─── PWA: registra o service worker (instalável + funciona offline) ───
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
