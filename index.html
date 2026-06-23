@@ -564,6 +564,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       <th>Produto</th>
       <th>Loja</th>
       <th>Linha</th>
+      <th class="r">Qtd</th>
       <th class="r">Vence em</th>
       <th class="r">Valor</th>
       <th>Ação Recomendada</th>
@@ -682,7 +683,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <!-- Produtos a vencer -->
     <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-package"></i> Produtos a Vencer — agrupados</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Produtos próximos do vencimento agregados. Um mesmo produto a vencer em várias lojas pode ser redistribuído entre filiais para escoar antes do prazo.</div>
-      <div class="tw"><table><thead><tr><th>Produto</th><th class="r">Qtd Total</th><th class="r">Lojas</th><th class="r">Vence em (min)</th><th class="r">Valor em Risco</th></tr></thead><tbody id="alertas-prod"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th style="width:18px"></th><th>Produto</th><th class="r">Qtd Total</th><th class="r">Lojas</th><th class="r">Vence em (min)</th><th class="r">Valor em Risco</th></tr></thead><tbody id="alertas-prod"></tbody></table></div>
     </div>
 
     <!-- Lista completa -->
@@ -716,6 +717,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Produtos com alto valor vencido espalhados em várias lojas indicam compra centralizada sem considerar o giro individual de cada filial. Produtos de validade longa (24+ meses) que mesmo assim venceram são os casos mais graves de excesso.</div>
     <div class="legend"><span><span class="dot" style="background:var(--red-dk)"></span>Excesso grave (validade 24m+) ou centralizado em 3+ lojas</span><span><span class="dot" style="background:var(--amber-dk)"></span>Disperso em 2+ lojas ou múltiplos lotes parados</span><span><span class="dot" style="background:var(--text2)"></span>Pontual — caso isolado</span></div>
     <div class="tw"><table><thead><tr>
+      <th style="width:18px"></th>
       <th>Produto</th>
       <th class="r">Qtd Total</th>
       <th class="r">Lotes</th>
@@ -1303,6 +1305,23 @@ function processXLSX(buf){
       if(v.includes('vencimento')&&!v.includes('dias')){cm.dtv=k;break;}
     }
   }
+  // Fallback Código do produto: planilhas variam o nome ("Código", "Cod Item", "SKU"...);
+  // se o match estrito "produto"+"cod" não achou nada, aceita qualquer coluna com "cod"/"cód"
+  if(!cm.cod){
+    for(const k of Object.keys(rows[0])){const v=nz(k);
+      if(v.includes('cod')||v.includes('cód')){cm.cod=k;break;}
+    }
+  }
+  // Sem estas 3 colunas não há como montar os registros — avisa o usuário em vez de
+  // importar silenciosamente um snapshot vazio (linhas filtradas por quantidade zerada)
+  const faltantes=[];
+  if(!cm.sigla)faltantes.push('Sigla/Loja');
+  if(!cm.nome)faltantes.push('Nome');
+  if(!cm.qtd)faltantes.push('Quantidade');
+  if(faltantes.length){
+    toast('Coluna(s) obrigatória(s) não encontrada(s) no arquivo: '+faltantes.join(', ')+'. Verifique o cabeçalho da planilha.','red');
+    return null;
+  }
   const fmtD=v=>{if(!v)return '';if(v instanceof Date)return v.toLocaleDateString('pt-BR');if(typeof v==='number'){const d=new Date(Math.round((v-25569)*86400*1000));return d.toLocaleDateString('pt-BR');}return v.toString().trim();};
   // Converte um valor de "Dias" de forma robusta. Se vier como Date (bug do arquivo antigo)
   // ou texto de data, recalcula a partir da data de vencimento vs hoje.
@@ -1324,7 +1343,7 @@ function processXLSX(buf){
     }
     return 0;
   };
-  const filtered=rows.filter(r=>{const q=parseFloat(r[cm.qtd])||0;if(q<=0)return false;const s=(r[cm.sigla]||'').toString().toUpperCase().trim();const l=parseFloat(r[cm.linha])||0;if((s==='CUIABÁ'||s==='CUIABA'||s==='FCB')&&l===1)return false;return true;});
+  const filtered=rows.filter(r=>{const q=parseBR(r[cm.qtd])||0;if(q<=0)return false;const s=(r[cm.sigla]||'').toString().toUpperCase().trim();const l=parseFloat(r[cm.linha])||0;if((s==='CUIABÁ'||s==='CUIABA'||s==='FCB')&&l===1)return false;return true;});
   const recs=filtered.map(r=>{
     const dtVenc=fmtD(r[cm.dtv]);
     const sigla=(r[cm.sigla]||'').toString().toUpperCase().trim();
@@ -1426,7 +1445,7 @@ function handleUploadMulti(inp){
   inp.value='';
   if(files.length===1){return handleUpload({files:[files[0]]});}
   // Vários arquivos: processa sequencialmente
-  let ok=0,erros=0,semData=[];
+  let ok=0,erros=0,semData=[],sobrescritos=[],errosMsg=[];
   const processar=(idx)=>{
     if(idx>=files.length){
       // Finaliza
@@ -1436,6 +1455,13 @@ function handleUploadMulti(inp){
       if(erros>0)msg+=` ${erros} com erro.`;
       if(semData.length>0)msg+=` ${semData.length} sem data no nome (usaram data de hoje).`;
       toast(msg,erros>0?'amber':'green');
+      if(sobrescritos.length>0){
+        setTimeout(()=>toast('⚠️ Datas repetidas entre os arquivos — a importação mais recente substituiu a anterior: '+sobrescritos.join(', ')+'.','amber'),1300);
+      }
+      if(errosMsg.length>0){
+        console.error('Erros na importação em lote:',errosMsg);
+        setTimeout(()=>toast('Detalhe dos erros: '+errosMsg.join(' | '),'red'),sobrescritos.length>0?2600:1300);
+      }
       if(getMasterKey()&&getBinId())setTimeout(()=>syncPush(),400); else atualizarStatus();
       nav('evolucao');
       return;
@@ -1452,13 +1478,13 @@ function handleUploadMulti(inp){
           const dataFinal=dataArquivo||new Date().toLocaleDateString('pt-BR');
           snap.importDate=dataFinal;
           const i=history.findIndex(h=>h.importDate===dataFinal);
-          if(i>=0)history[i]=snap;else history.push(snap);
+          if(i>=0){sobrescritos.push(dataFinal+' ('+file.name+')');history[i]=snap;}else history.push(snap);
           ok++;
-        }else erros++;
-      }catch(err){erros++;}
+        }else{erros++;errosMsg.push(file.name+': nenhum item válido encontrado');}
+      }catch(err){erros++;errosMsg.push(file.name+': '+(err.message||'erro desconhecido'));}
       processar(idx+1);
     };
-    rd.onerror=()=>{erros++;processar(idx+1);};
+    rd.onerror=()=>{erros++;errosMsg.push(file.name+': falha ao abrir o arquivo');processar(idx+1);};
     rd.readAsArrayBuffer(file);
   };
   toast(`Processando ${files.length} arquivos...`,'brand');
@@ -1903,7 +1929,7 @@ function renderJanela(){
   const allClass=all.map(r=>({r,c:classifyJanela(r)}));
   // filtros (Regional/Loja/Linha/Busca) — aplicados ANTES dos cards, pra eles acompanharem o recorte filtrado
   const cf=document.getElementById('jf-cat').value,rf=document.getElementById('jf-reg').value,ljf=document.getElementById('jf-loja').value,lf=document.getElementById('jf-linha').value,sr=(document.getElementById('jf-search').value||'').toLowerCase();
-  const base=allClass.filter(x=>(!rf||x.r.Gerente===rf)&&(!ljf||x.r.Sigla===ljf)&&(!lf||x.r.Desc===lf)&&(!sr||(x.r.Nome||'').toLowerCase().includes(sr)));
+  const base=allClass.filter(x=>(!rf||x.r.Gerente===rf)&&(!ljf||x.r.Sigla===ljf)&&(!lf||x.r.Desc===lf)&&(!sr||(x.r.Nome||'').toLowerCase().includes(sr)||(x.r.CodProduto||'').toLowerCase().includes(sr)));
   // métricas da aba — sobre o recorte filtrado (Regional/Loja/Linha/Busca), não sobre o universo inteiro
   document.getElementById('j-metrics').innerHTML=Object.entries(JCATS).map(([k,cat])=>{
     const g=base.filter(x=>x.c.cat===k),v=g.reduce((s,x)=>s+x.r.Total,0);
@@ -1919,9 +1945,9 @@ function renderJanela(){
   const tv=flt.reduce((s,x)=>s+x.r.Total,0);
   const MAXJ=400, shown=flt.slice(0,MAXJ);
   document.getElementById('jt').innerHTML=(shown.length?shown.map(({r,c})=>{const cat=JCATS[c.cat];
-    return `<tr><td><span class="dotb" style="background:${cat.cor}" title="${cat.nome}"></span></td><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,14)}</td><td class="r b">${c.dv>=0?c.dv+' dias':'há '+(-c.dv)+'d'}</td><td class="r b">${brl(r.Total)}</td><td style="font-size:12px;color:${cat.cor}">${c.rec}</td></tr>`;
-  }).join('')+`<tr class="total-row"><td colspan="5">${flt.length} lote(s)</td><td class="r">${brl(tv)}</td><td></td></tr>`
-  :'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Nenhum lote nesta situação com os filtros atuais</td></tr>');
+    return `<tr><td><span class="dotb" style="background:${cat.cor}" title="${cat.nome}"></span></td><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,14)}</td><td class="r">${num(r.Qtd)}</td><td class="r b">${c.dv>=0?c.dv+' dias':'há '+(-c.dv)+'d'}</td><td class="r b">${brl(r.Total)}</td><td style="font-size:12px;color:${cat.cor}">${c.rec}</td></tr>`;
+  }).join('')+`<tr class="total-row"><td colspan="6">${flt.length} lote(s)</td><td class="r">${brl(tv)}</td><td></td></tr>`
+  :'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Nenhum lote nesta situação com os filtros atuais</td></tr>');
   document.getElementById('j-more').textContent=flt.length>MAXJ?`Mostrando ${MAXJ} de ${flt.length} lotes — refine com os filtros acima.`:'';
   setTimeout(()=>enableSorting(),0);
 }
@@ -2190,9 +2216,13 @@ function renderCompra(){
   const pm={};
   filtered.forEach(r=>{
     const n=cleanProd(r.Nome);
-    if(!pm[n])pm[n]={name:n,qtd:0,valor:0,lotes:new Set(),lojas:new Set(),cods:new Set(),shelfSum:0,shelfN:0};
+    if(!pm[n])pm[n]={name:n,qtd:0,valor:0,lotes:new Set(),lojas:new Set(),cods:new Set(),shelfSum:0,shelfN:0,porLoja:{}};
     pm[n].qtd+=r.Qtd;pm[n].valor+=r.Total;pm[n].lotes.add(r.Lote);pm[n].lojas.add(r.Sigla);pm[n].cods.add(r.CodProduto);
     const sm=shelfMonths(r);if(sm!==null){pm[n].shelfSum+=sm;pm[n].shelfN++;}
+    // Detalhe por loja — permite ver na mesma tela onde está a quantidade agregada do produto
+    if(!pm[n].porLoja[r.Sigla])pm[n].porLoja[r.Sigla]={qtd:0,valor:0,lotes:new Set()};
+    const pl=pm[n].porLoja[r.Sigla];
+    pl.qtd+=r.Qtd;pl.valor+=r.Total;pl.lotes.add(r.Lote);
   });
   const prods=Object.values(pm).map(p=>({...p,lotes:p.lotes.size,lojas:p.lojas.size,cod:codGrupo(p.cods),shelf:p.shelfN?Math.round(p.shelfSum/p.shelfN):null})).sort((a,b)=>b.valor-a.valor);
 
@@ -2216,16 +2246,20 @@ function renderCompra(){
     return `<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r b">${num(r.Qtd)}</td><td class="r">${r.shelf!==null?r.shelf+' m':'—'}</td><td class="r b">${brl(r.Total)}</td><td class="c">${sinal}</td></tr>`;
   }).join(''):`<tr><td colspan="7" class="dim" style="text-align:center;padding:24px">Nenhum item vencido no filtro selecionado.</td></tr>`;
 
-  // Per-product table with diagnosis
-  document.getElementById('compra-prod').innerHTML=prods.length?prods.map(p=>{
+  // Per-product table with diagnosis — linha clicável que expande o detalhe por loja
+  document.getElementById('compra-prod').innerHTML=prods.length?prods.map((p,pi)=>{
     let diag,dcls;
     if(p.shelf!==null&&p.shelf>=24&&p.valor>30000){diag='Excesso grave — validade longa';dcls='red';}
     else if(p.lojas>=3){diag='Compra centralizada s/ giro';dcls='red';}
     else if(p.lojas>1){diag='Disperso em lojas';dcls='amber';}
     else if(p.lotes>1){diag='Múltiplos lotes parados';dcls='amber';}
     else{diag='Pontual';dcls='gray';}
-    return `<tr><td class="b" style="font-size:12px">${nomeGrupoCod(p.name,p.cod)}</td><td class="r">${num(Math.round(p.qtd))}</td><td class="r">${p.lotes}</td><td class="r">${p.lojas}</td><td class="r">${p.shelf!==null?p.shelf+' meses':'—'}</td><td class="r b">${brl(p.valor)}</td><td class="c"><span class="chip ${dcls}">${diag}</span></td></tr>`;
-  }).join(''):`<tr><td colspan="7" class="dim" style="text-align:center;padding:24px">Nenhum produto no filtro selecionado.</td></tr>`;
+    const det=Object.entries(p.porLoja).sort((a,b)=>b[1].valor-a[1].valor).map(([loja,o])=>
+      `<div style="display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="b">${loja}</span><span>${num(Math.round(o.qtd))} un</span><span>${o.lotes.size} lote(s)</span><span class="b">${brl(o.valor)}</span></div>`
+    ).join('');
+    return `<tr style="cursor:pointer" onclick="toggleTr('cp-det-${pi}','cp-chev-${pi}')"><td style="width:18px"><i class="ti ti-chevron-right" id="cp-chev-${pi}" style="display:inline-block;transition:transform .15s"></i></td><td class="b" style="font-size:12px">${nomeGrupoCod(p.name,p.cod)}</td><td class="r">${num(Math.round(p.qtd))}</td><td class="r">${p.lotes}</td><td class="r">${p.lojas}</td><td class="r">${p.shelf!==null?p.shelf+' meses':'—'}</td><td class="r b">${brl(p.valor)}</td><td class="c"><span class="chip ${dcls}">${diag}</span></td></tr>`+
+      `<tr id="cp-det-${pi}" class="detail-row" style="display:none;background:var(--bg2)"><td></td><td colspan="7" style="padding:6px 14px 12px">${det}</td></tr>`;
+  }).join(''):`<tr><td colspan="8" class="dim" style="text-align:center;padding:24px">Nenhum produto no filtro selecionado.</td></tr>`;
 
   // Recommendations
   document.getElementById('compra-recom').innerHTML=`
@@ -2326,8 +2360,12 @@ function renderAlertas(){
     if(!porLoja[r.Sigla])porLoja[r.Sigla]={total:0,reg:r.Gerente};
     porLoja[r.Sigla].total+=r.Total;
     const n=cleanProd(r.Nome);
-    if(!porProd[n])porProd[n]={nome:n,qtd:0,total:0,lojas:new Set(),cods:new Set(),minDias:99999};
+    if(!porProd[n])porProd[n]={nome:n,qtd:0,total:0,lojas:new Set(),cods:new Set(),minDias:99999,porLoja:{}};
     porProd[n].qtd+=r.Qtd;porProd[n].total+=r.Total;porProd[n].lojas.add(r.Sigla);porProd[n].cods.add(r.CodProduto);if(r.Dias<porProd[n].minDias)porProd[n].minDias=r.Dias;
+    // Detalhe por loja — permite ver na mesma tela onde está a quantidade agregada do produto
+    if(!porProd[n].porLoja[r.Sigla])porProd[n].porLoja[r.Sigla]={qtd:0,total:0,minDias:99999};
+    const pl=porProd[n].porLoja[r.Sigla];
+    pl.qtd+=r.Qtd;pl.total+=r.Total;if(r.Dias<pl.minDias)pl.minDias=r.Dias;
   });
   const topReg=Object.entries(porReg).sort((a,b)=>b[1]-a[1])[0];
   const prodArr=Object.values(porProd).map(p=>({...p,lojas:p.lojas.size,cod:codGrupo(p.cods)})).sort((a,b)=>b.total-a.total);
@@ -2356,10 +2394,15 @@ function renderAlertas(){
   const lojaSorted=Object.entries(porLoja).sort((a,b)=>b[1].total-a[1].total);
   document.getElementById('alertas-loja').innerHTML=lojaSorted.map(([loja,o])=>`<tr><td class="b">${loja}</td><td><span class="pill">${o.reg}</span></td><td class="r b">${brl(o.total)}</td></tr>`).join('');
 
-  // Produtos
-  document.getElementById('alertas-prod').innerHTML=prodArr.map(p=>{
+  // Produtos — linha clicável que expande o detalhe por loja (onde está a quantidade agregada)
+  document.getElementById('alertas-prod').innerHTML=prodArr.map((p,pi)=>{
     const urg=p.minDias<=30?'red':p.minDias<=60?'amber':'green';
-    return `<tr><td class="b" style="font-size:12px">${nomeGrupoCod(p.nome,p.cod)}</td><td class="r">${num(Math.round(p.qtd))}</td><td class="r">${p.lojas}</td><td class="r"><span class="chip ${urg}">${p.minDias}d</span></td><td class="r b">${brl(p.total)}</td></tr>`;
+    const det=Object.entries(p.porLoja).sort((a,b)=>b[1].total-a[1].total).map(([loja,o])=>{
+      const lurg=o.minDias<=30?'red':o.minDias<=60?'amber':'green';
+      return `<div style="display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="b">${loja}</span><span>${num(Math.round(o.qtd))} un</span><span class="chip ${lurg}">${o.minDias}d</span><span class="b">${brl(o.total)}</span></div>`;
+    }).join('');
+    return `<tr style="cursor:pointer" onclick="toggleAlertaProd(${pi})"><td style="width:18px"><i class="ti ti-chevron-right" id="ap-chev-${pi}" style="display:inline-block;transition:transform .15s"></i></td><td class="b" style="font-size:12px">${nomeGrupoCod(p.nome,p.cod)}</td><td class="r">${num(Math.round(p.qtd))}</td><td class="r">${p.lojas}</td><td class="r"><span class="chip ${urg}">${p.minDias}d</span></td><td class="r b">${brl(p.total)}</td></tr>`+
+      `<tr id="ap-det-${pi}" class="detail-row" style="display:none;background:var(--bg2)"><td></td><td colspan="5" style="padding:6px 14px 12px">${det}</td></tr>`;
   }).join('');
 
   // Lista completa
@@ -2615,6 +2658,15 @@ function showRegionalDetail(reg){
 }
 function closeRegionalDetail(){document.getElementById('reg-detail-view').style.display='none';document.getElementById('reg-list-view').style.display='block';}
 function toggleAcc(id){const e=document.getElementById(id);if(e)e.style.display=e.style.display==='none'?'block':'none';}
+// Igual ao toggleAcc, mas para linhas de tabela (<tr> precisa de display:table-row, não 'block')
+function toggleTr(id,chevId){
+  const e=document.getElementById(id);if(!e)return;
+  const abrir=e.style.display==='none'||!e.style.display;
+  e.style.display=abrir?'table-row':'none';
+  const chev=chevId?document.getElementById(chevId):null;
+  if(chev)chev.style.transform=abrir?'rotate(90deg)':'rotate(0deg)';
+}
+function toggleAlertaProd(pi){toggleTr('ap-det-'+pi,'ap-chev-'+pi);}
 
 // ─── LOJAS ───
 function populateFilters(){
@@ -2658,7 +2710,7 @@ function closeLojaDetail(){document.getElementById('loja-detail').style.display=
 function renderProdutos(){
   const d=current;
   const lf=document.getElementById('pf-linha').value,ljf=document.getElementById('pf-loja').value,af=document.getElementById('pf-aud').value,st=document.getElementById('pf-status').value,sr=(document.getElementById('pf-search').value||'').toLowerCase();
-  const recs=d.records.filter(r=>{if(lf&&r.Desc!==lf)return false;if(ljf&&r.Sigla!==ljf)return false;if(af&&r.Auditor!==af)return false;if(sr&&!r.Nome.toLowerCase().includes(sr))return false;const a=abs(r.Dias);if(st==='c'&&a<=180)return false;if(st==='a'&&(a<=60||a>180))return false;if(st==='r'&&a>60)return false;return true;}).sort((a,b)=>b.Total-a.Total);
+  const recs=d.records.filter(r=>{if(lf&&r.Desc!==lf)return false;if(ljf&&r.Sigla!==ljf)return false;if(af&&r.Auditor!==af)return false;if(sr&&!r.Nome.toLowerCase().includes(sr)&&!(r.CodProduto||'').toLowerCase().includes(sr))return false;const a=abs(r.Dias);if(st==='c'&&a<=180)return false;if(st==='a'&&(a<=60||a>180))return false;if(st==='r'&&a>60)return false;return true;}).sort((a,b)=>b.Total-a.Total);
   const tv=recs.reduce((s,r)=>s+r.Total,0);
   document.getElementById('pt').innerHTML=recs.map(r=>{const a=abs(r.Dias);const[cl,lb]=a>180?['red','Crítico']:a>60?['amber','Alerta']:['green','Recente'];return `<tr><td class="b" style="font-size:12px;max-width:200px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,12)}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r">${brl(r.Custo)}</td><td class="r b">${brl(r.Total)}</td><td class="c"><span class="chip ${cl}">${lb}</span></td></tr>`;}).join('')+`<tr class="total-row"><td colspan="7">${recs.length} produtos</td><td class="r">${brl(tv)}</td><td></td></tr>`;
   setTimeout(()=>enableSorting(),0);
@@ -3662,21 +3714,29 @@ function _sortColIsSortable(th,bodyRows,colIdx){
   return true;
 }
 // Aplica a ordenacao a uma tabela quando um cabecalho e clicado.
+// Linhas com classe "detail-row" (ex: detalhe por loja expansível em alertas/compra) não
+// são ordenadas por si — andam junto com a linha principal anterior a elas.
 function _sortApply(table,colIdx,th){
   const tbody=table.tBodies[0];if(!tbody)return;
   const allRows=Array.from(tbody.rows);
   const totalRow=allRows.find(r=>r.classList.contains('total-row'));
-  const rows=allRows.filter(r=>!r.classList.contains('total-row'));
-  if(rows.length<2)return;
+  const groups=[];
+  for(let i=0;i<allRows.length;i++){
+    const r=allRows[i];
+    if(r.classList.contains('total-row')||r.classList.contains('detail-row'))continue;
+    const next=allRows[i+1];
+    groups.push({main:r,det:(next&&next.classList.contains('detail-row'))?next:null});
+  }
+  if(groups.length<2)return;
   // Direcao: alterna; primeiro clique em coluna numerica/dias/data = desc (maior->menor)
-  const samples=rows.slice(0,12).map(r=>r.cells[colIdx]?(r.cells[colIdx].textContent||''):'');
+  const samples=groups.slice(0,12).map(g=>g.main.cells[colIdx]?(g.main.cells[colIdx].textContent||''):'');
   const type=_sortInferType(samples);
   const prev=table.__sortState||{};
   let dir;
   if(prev.col===colIdx){dir=prev.dir===1?-1:1;}        // mesma coluna: alterna
   else{dir=(type==='text')?1:-1;}                       // nova coluna: texto=A-Z, numero=maior->menor
-  rows.sort((a,b)=>_sortCmp(a.cells[colIdx]?a.cells[colIdx].textContent:'',b.cells[colIdx]?b.cells[colIdx].textContent:'',type,dir));
-  rows.forEach(r=>tbody.appendChild(r));
+  groups.sort((a,b)=>_sortCmp(a.main.cells[colIdx]?a.main.cells[colIdx].textContent:'',b.main.cells[colIdx]?b.main.cells[colIdx].textContent:'',type,dir));
+  groups.forEach(g=>{tbody.appendChild(g.main);if(g.det)tbody.appendChild(g.det);});
   if(totalRow)tbody.appendChild(totalRow);            // total sempre por ultimo
   table.__sortState={col:colIdx,dir};
   // Atualiza setas em todos os th desta tabela
@@ -3694,7 +3754,7 @@ function enableSorting(root){
     const thead=table.tHead;const tbody=table.tBodies[0];
     if(!thead||!tbody||!thead.rows.length)return;
     const headRow=thead.rows[0];
-    const bodyRows=Array.from(tbody.rows).filter(r=>!r.classList.contains('total-row'));
+    const bodyRows=Array.from(tbody.rows).filter(r=>!r.classList.contains('total-row')&&!r.classList.contains('detail-row'));
     if(bodyRows.length<2){ // sem dados suficientes: limpa marcacao para nao enganar
       Array.from(headRow.cells).forEach(th=>{const ind=th.querySelector('.sort-ind');if(ind)ind.remove();th.classList.remove('sortable');th.onclick=null;});
       return;
