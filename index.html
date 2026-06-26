@@ -455,6 +455,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <div id="sync-indicator" class="sync-indicator">
       <i class="ti ti-cloud-off" style="font-size:14px"></i> <span>Sem sync</span>
     </div>
+    <button id="btn-retry-sync" class="btn ghost sm" style="display:none" onclick="retryPublicacao()" title="Tenta publicar novamente para todos"><i class="ti ti-refresh"></i> Atualizar Painel</button>
   </div>
 </div>
 
@@ -484,7 +485,6 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="nav-item" onclick="nav('historico')"><i class="ti ti-history"></i> Histórico</div>
   <div class="nav-sec" style="margin-top:8px">Sistema</div>
   <div class="nav-item" id="nav-config-btn" onclick="openConfigGated()" style="display:none"><i class="ti ti-shield-lock"></i> Área Restrita</div>
-  <div class="nav-item" onclick="revealConfigNav()" style="font-size:11px;color:var(--text3);padding:8px 18px;cursor:pointer" id="nav-config-lock"><i class="ti ti-lock" style="font-size:14px"></i> Área Restrita</div>
 </div>
 
 <div class="content" id="content">
@@ -916,7 +916,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       <div style="margin-bottom:14px">
         <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Master Key do JSONBin</label>
         <div style="display:flex;gap:8px">
-          <input type="password" id="jbin-key-input" placeholder="Cole sua Master Key aqui ($2a$10$...)" style="flex:1;padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">
+          <input type="password" id="jbin-key-input" placeholder="Cole sua Master Key aqui ($2a$10$...)" onclick="checkCriarBinReveal()" style="flex:1;padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">
           <button class="btn ghost sm" onclick="toggleKeyVisibility()"><i class="ti ti-eye" id="eye-icon"></i></button>
         </div>
         <div style="font-size:11px;color:var(--text3);margin-top:5px">Guardada apenas no seu navegador. Nunca sai do seu computador.</div>
@@ -937,7 +937,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         <div style="font-size:11px;color:var(--text3);margin-top:5px">Configure este token <strong>somente no navegador/dispositivo de quem vai usá-lo</strong> — ele <strong>nunca</strong> é embutido no arquivo publicado nem enviado para a nuvem, porque dá acesso de escrita ao repositório. Use um <strong>fine-grained PAT</strong> restrito ao repositório <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">Vencidos-Agroquima</code>, com permissão de <strong>Contents: Read and write</strong> + <strong>Pull requests: Read and write</strong> (essa segunda é o que permite o app abrir o PR sozinho e disparar a notificação no GitHub). Quem não configurar um token aqui (ex.: a Gabriela, se ela não tiver o dela) só recebe o index.html completo pra enviar a alguém que tenha.</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn primary" onclick="handleCreateBin()"><i class="ti ti-cloud-plus"></i> Criar Bin</button>
+        <button class="btn primary" id="btn-criar-bin" onclick="handleCreateBin()" style="display:none"><i class="ti ti-cloud-plus"></i> Criar Bin</button>
         <button class="btn ghost" onclick="handleTestConnection()"><i class="ti ti-plug"></i> Testar conexão</button>
         <button class="btn ghost" onclick="handleTestGithub()"><i class="ti ti-brand-github"></i> Testar GitHub</button>
         <button class="btn ghost" onclick="handleSaveConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
@@ -961,7 +961,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         </div>
       </div>
       <div class="alert amber" style="margin-top:16px;font-size:12px"><i class="ti ti-alert-triangle"></i><div>
-        Limite do plano grátis do JSONBin: ~100KB por bin. Quando o arquivo completo (vencidos + a vencer) não cabe, o app cria uma branch e abre um Pull Request automático no GitHub (nos navegadores onde o Token está configurado, com notificação real no GitHub/celular) ou baixa o arquivo completo (nos demais navegadores) em vez de publicar na nuvem. A senha de operador protege contra bisbilhotagem, não é cofre. O Token do GitHub <strong>nunca</strong> é embutido no arquivo publicado — sempre use um token <strong>fine-grained</strong> restrito a este repositório, com permissão de conteúdo e de Pull requests.
+        Limite do plano grátis do JSONBin: ~100KB por bin. Quando o arquivo completo (vencidos + a vencer) não cabe, o app cria uma branch e abre um Pull Request automático no GitHub (nos navegadores onde o Token está configurado, com notificação real no GitHub/celular) ou baixa o arquivo completo (nos demais navegadores) em vez de publicar na nuvem. Se a publicação falhar (erro de commit/PR), use o botão <strong>Atualizar Painel</strong> que aparece ao lado do indicador de sincronização no topo para tentar de novo. O Token do GitHub <strong>nunca</strong> é embutido no arquivo publicado — sempre use um token <strong>fine-grained</strong> restrito a este repositório, com permissão de conteúdo e de Pull requests.
       </div></div>
     </div>
   </div>
@@ -979,7 +979,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       </div>
       <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
         <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">3</span>
-        <span>Cole a Master Key ao lado e clique em <strong>Criar Bin</strong> (ou use o Bin ID já embutido).</span>
+        <span>O Bin já está criado e configurado — não é necessário criar um novo. (O botão <strong>Criar Bin</strong> fica escondido por segurança; só aparece após 5 cliques seguidos no campo da Master Key, para casos raros de precisar recriar.)</span>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
         <span style="background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px">4</span>
@@ -1442,6 +1442,11 @@ function handleUpload(inp){
 function handleUploadMulti(inp){
   const files=Array.from(inp.files||[]);
   if(!files.length)return;
+  const datas=files.map(f=>extractDateFromFilename(f.name)||new Date().toLocaleDateString('pt-BR'));
+  const msg=files.length===1
+    ? `Este arquivo vai atualizar a base com data ${datas[0]}. Deseja realmente confirmar essa importação?`
+    : `Estes ${files.length} arquivos vão atualizar a base nas datas: ${datas.join(', ')}. Deseja realmente confirmar essa importação?`;
+  if(!window.confirm(msg)){inp.value='';return;}
   inp.value='';
   if(files.length===1){return handleUpload({files:[files[0]]});}
   // Vários arquivos: processa sequencialmente
@@ -1527,13 +1532,6 @@ function nav(id){
   closeSidebar();
   window.scrollTo(0,0);
   setTimeout(()=>enableSorting(),0);
-}
-function revealConfigNav(){
-  requirePwd('Área restrita','Digite a senha de operador para acessar as configurações.',function(){
-    document.getElementById('nav-config-btn').style.display='flex';
-    document.getElementById('nav-config-lock').style.display='none';
-    nav('config');
-  });
 }
 function openConfigGated(){
   nav('config');
@@ -3412,6 +3410,8 @@ function setSyncStatus(status,detail){
     offline:['#94a3b8','ti-cloud-off','Sem sync'],
     nokey:['#94a3b8','ti-cloud-off','Sem config']
   };
+  const retryBtn=document.getElementById('btn-retry-sync');
+  if(retryBtn)retryBtn.style.display=status==='error'?'inline-flex':'none';
   const[color,icon,label]=m[status]||m['offline'];
   el.title = ({
     ok:'Dados sincronizados com a nuvem (JSONBin). Todos que abrem o link veem o mais recente.',
@@ -3512,8 +3512,24 @@ async function syncPush(){
     toast('Erro ao publicar: '+e.message,'red');
   }finally{jbinSyncing=false;}
 }
+// Botão de emergência: tenta publicar de novo após uma falha (commit/PR/JSONBin)
+function retryPublicacao(){
+  if(getMasterKey()&&getBinId()){toast('Tentando publicar novamente...','brand');syncPush();}
+  else atualizarStatus();
+}
 
 // Config view handlers
+let criarBinClickCount=0,criarBinClickTimer=null;
+function checkCriarBinReveal(){
+  criarBinClickCount++;
+  clearTimeout(criarBinClickTimer);
+  criarBinClickTimer=setTimeout(()=>criarBinClickCount=0,1500);
+  if(criarBinClickCount>=5){
+    const btn=document.getElementById('btn-criar-bin');
+    if(btn)btn.style.display='inline-flex';
+    criarBinClickCount=0;
+  }
+}
 function toggleKeyVisibility(){
   const inp=document.getElementById('jbin-key-input');
   const icon=document.getElementById('eye-icon');
@@ -3639,25 +3655,17 @@ function cancelPwd(){
   const uph=document.getElementById('up-hist');if(uph)uph.value='';
 }
 
-// Gated triggers — password required before each action
 function triggerImport(){
-  requirePwd('Importar XLSX','Digite a senha de operador para importar um arquivo.',function(){
-    document.getElementById('up-top').click();
-  });
+  document.getElementById('up-top').click();
 }
 function triggerImportHist(){
-  requirePwd('Importar XLSX','Digite a senha de operador para importar um arquivo.',function(){
-    document.getElementById('up-hist').click();
-  });
+  document.getElementById('up-hist').click();
 }
 function handleDropGated(e){
   e.preventDefault();
   document.getElementById('dz').classList.remove('drag');
   const files=Array.from(e.dataTransfer.files||[]);if(!files.length)return;
-  const msg=files.length>1?('Digite a senha para importar os '+files.length+' arquivos arrastados.'):'Digite a senha de operador para importar o arquivo arrastado.';
-  requirePwd('Importar XLSX',msg,function(){
-    handleUploadMulti({files:files,value:''});
-  });
+  handleUploadMulti({files:files,value:''});
 }
 
 // ─── SORT ───
@@ -3866,6 +3874,8 @@ function aplicarPerfil(){
 
 function mostrarBadgePerfil(){
   if(!perfilAtual)return;
+  const navCfg=document.getElementById('nav-config-btn');
+  if(navCfg)navCfg.style.display=perfilAtual.tipo==='auditor'?'flex':'none';
   let el=document.getElementById('perfil-badge-top');
   const tipoNome={auditor:'Auditoria',regional:'Regional',gerente:'Gerente'};
   const txt=perfilAtual.tipo==='auditor'?'Auditoria - acesso total':tipoNome[perfilAtual.tipo]+': '+perfilAtual.nome;
