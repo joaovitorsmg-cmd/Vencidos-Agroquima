@@ -3843,7 +3843,7 @@ function tentarLogin(){
   const perfil=PERFIS_AUTH[hashSenha(senha)];
   if(!perfil){erro.textContent='Senha invalida. Verifique com a auditoria.';inp.value='';return;}
   perfilAtual=perfil;
-  try{sessionStorage.setItem('agro_perfil',JSON.stringify(perfil));}catch(e){}
+  try{localStorage.setItem('agro_perfil',JSON.stringify(perfil));}catch(e){}
   document.getElementById('login-overlay').style.display='none';
   aplicarPerfil();
 }
@@ -3893,7 +3893,7 @@ function mostrarBadgePerfil(){
   } else { el.innerHTML='<i class="ti ti-user-check"></i> '+txt; }
 }
 
-function logout(){perfilAtual=null;try{sessionStorage.removeItem('agro_perfil');}catch(e){}location.reload();}
+function logout(){perfilAtual=null;try{localStorage.removeItem('agro_perfil');}catch(e){}location.reload();}
 
 
 function init(){
@@ -3906,9 +3906,9 @@ function init(){
   }
   // Guarda cópia original completa (antes de filtrar por perfil)
   historyOriginal=history.slice();
-  // Verifica se já há perfil na sessão (recarregou a página)
+  // Verifica se já há perfil salvo (login persiste até o usuário clicar em Sair)
   let perfilSalvo=null;
-  try{const ps=sessionStorage.getItem('agro_perfil');if(ps)perfilSalvo=JSON.parse(ps);}catch(e){}
+  try{const ps=localStorage.getItem('agro_perfil');if(ps)perfilSalvo=JSON.parse(ps);}catch(e){}
   if(perfilSalvo){
     perfilAtual=perfilSalvo;
     document.getElementById('login-overlay').style.display='none';
