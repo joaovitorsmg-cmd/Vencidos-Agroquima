@@ -903,6 +903,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
         <i class="ti ti-world-upload"></i> Publicar para todos
       </button>
       <button class="btn ghost sm" onclick="nav('cacaerros')" title="Verificação de inconsistências de digitação nos dados importados"><i class="ti ti-bug"></i> Caça-Erros</button>
+      <button class="btn ghost sm" onclick="nav('relatorio')" title="Gera slides PNG no padrão apresentação para todas as filiais e por regional"><i class="ti ti-presentation"></i> Relatório PPT</button>
     </div>
   </div>
 
@@ -1005,6 +1006,23 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       <tr><td class="b">Fábio, Guilherme, Carlos...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
       <tr><td class="b">Aldo, Rafa, Luciana...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Não precisa</span></td><td>Abre o link e já vê os dados atualizados</td></tr>
     </tbody></table></div>
+  </div>
+</div>
+
+<!-- RELATÓRIO PPT -->
+<div id="v-relatorio" style="display:none">
+  <div class="view-head">
+    <div>
+      <h2><i class="ti ti-presentation"></i> Relatório para Apresentação</h2>
+      <div class="sub">Slides PNG no padrão PowerPoint — visão geral e por regional</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-download"></i> Baixar Slides</div>
+    <div id="relatorio-btns" style="display:flex;gap:10px;flex-wrap:wrap;padding-top:4px;margin-bottom:16px">
+      <span style="font-size:13px;color:var(--text2)">Carregando...</span>
+    </div>
+    <div id="relatorio-previews" style="display:flex;flex-direction:column;gap:28px"></div>
   </div>
 </div>
 
@@ -1535,6 +1553,7 @@ function nav(id){
   if(id==='alertas')renderAlertas();
   if(id==='cacaerros')renderCacaErros();
   if(id==='config'){loadConfigView();}
+  if(id==='relatorio')renderRelatorio();
   // Reset detail views to list when (re)entering
   if(id==='regional'){const dv=document.getElementById('reg-detail-view');const lv=document.getElementById('reg-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
   if(id==='auditores'){const dv=document.getElementById('aud-detail-view');const lv=document.getElementById('aud-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
@@ -3950,6 +3969,230 @@ function mostrarBadgePerfil(){
 
 function logout(){perfilAtual=null;try{localStorage.removeItem('agro_perfil');}catch(e){}location.reload();}
 
+// ─── RELATÓRIO PPT ───────────────────────────────────────────────────────────
+function _rndRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+function _statusCor(s){return s==='CRÍTICO'?'#c62828':s==='ATENÇÃO'?'#e65100':'#2e7d32';}
+function _statusDoBkg(vencido,total){const p=total>0?vencido/total:0;return p>=0.10?'CRÍTICO':p>=0.03?'ATENÇÃO':'BAIXO';}
+
+function _buildSlide(d, filtroRegional){
+  const vencidos=filtroRegional?d.records.filter(r=>r.Gerente===filtroRegional):d.records;
+  const aVencer=filtroRegional?(d.aVencer||[]).filter(r=>r.Gerente===filtroRegional):(d.aVencer||[]);
+  const filiais=filtroRegional?d.byFilial.filter(f=>f.regional===filtroRegional):d.byFilial;
+  const grandTotal=filiais.reduce((s,f)=>s+f.total,0);
+  const av120={};
+  aVencer.filter(r=>r.Dias>0&&r.Dias<=120).forEach(r=>{av120[r.Sigla]=(av120[r.Sigla]||0)+r.Total;});
+  const totalAV120=Object.values(av120).reduce((s,v)=>s+v,0);
+  const filData=filiais.map(f=>({key:f.key,vencido:f.total,av120:av120[f.key]||0,status:_statusDoBkg(f.total,grandTotal)}));
+  const prodMap={};
+  vencidos.forEach(r=>{
+    const k=r.Nome||r.Desc||'—';
+    if(!prodMap[k])prodMap[k]={nome:k,filial:r.Sigla,total:0,topV:0};
+    prodMap[k].total+=r.Total;
+    if(r.Total>prodMap[k].topV){prodMap[k].topV=r.Total;prodMap[k].filial=r.Sigla;}
+  });
+  const top5=Object.values(prodMap).sort((a,b)=>b.total-a.total).slice(0,5);
+  const nCrit=filData.filter(f=>f.status==='CRÍTICO').length;
+  const nAtenc=filData.filter(f=>f.status==='ATENÇÃO').length;
+  const nBaixo=filData.filter(f=>f.status==='BAIXO').length;
+  return {grandTotal,totalItens:vencidos.length,numFiliais:filData.length,filiais:filData,top5,totalAV120,nCrit,nAtenc,nBaixo};
+}
+
+function _drawSlideCanvas(canvas,titulo,data,slide){
+  const W=1280,H=720;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  const {grandTotal,totalItens,numFiliais,filiais,top5,totalAV120,nCrit,nAtenc,nBaixo}=slide;
+
+  // ── Fundo ──
+  ctx.fillStyle='#eceff4';ctx.fillRect(0,0,W,H);
+  // Subtle diagonal stripe texture
+  ctx.strokeStyle='rgba(200,210,225,.35)';ctx.lineWidth=1;
+  for(let i=-H;i<W+H;i+=22){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+H,H);ctx.stroke();}
+
+  // ── Header ──
+  const TH=64;
+  const hGrd=ctx.createLinearGradient(0,0,W,0);hGrd.addColorStop(0,'#0d1f3c');hGrd.addColorStop(1,'#1a3a5c');
+  ctx.fillStyle=hGrd;ctx.fillRect(0,0,W,TH);
+  // Left accent bar
+  ctx.fillStyle='#e53935';ctx.fillRect(0,0,5,TH);
+  ctx.fillStyle='#ffffff';ctx.font='bold 22px sans-serif';ctx.textBaseline='middle';
+  ctx.fillText('AGROQUIMA  ·  RELATÓRIO DE VENCIDOS',20,TH/2);
+  ctx.fillStyle='#93c5fd';ctx.font='13px sans-serif';ctx.textAlign='right';
+  ctx.fillText(titulo+'     |     Base: '+data,W-20,TH/2);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+
+  // ── KPI cards ──
+  const CY=TH+10,CH=124,CG=14,CW=(W-40-CG*2)/3;
+  const kpis=[
+    {c1:'#b71c1c',c2:'#d32f2f',lab:'Total de Produtos Vencidos',val:totalItens+' itens',icon:'■'},
+    {c1:'#3e0000',c2:'#7b1c1c',lab:'Valor Total em Perdas',val:brl(grandTotal),icon:'■'},
+    {c1:'#bf360c',c2:'#e64a19',lab:'Filiais Afetadas',val:numFiliais+' '+(numFiliais===1?'filial':'filiais'),icon:'■'},
+  ];
+  kpis.forEach((k,i)=>{
+    const kx=20+i*(CW+CG);
+    const grd=ctx.createLinearGradient(kx,CY,kx+CW,CY+CH);
+    grd.addColorStop(0,k.c1);grd.addColorStop(1,k.c2);
+    ctx.fillStyle=grd;_rndRect(ctx,kx,CY,CW,CH,12);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.07)';_rndRect(ctx,kx,CY,CW,CH,12);ctx.fill();
+    // Accent stripe at bottom
+    ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(kx,CY+CH-6,CW,6);
+    ctx.fillStyle='rgba(255,255,255,.7)';ctx.font='12px sans-serif';ctx.textBaseline='top';
+    ctx.fillText(k.lab.toUpperCase(),kx+16,CY+14);
+    const fz=brl(grandTotal).length>13?20:24;
+    ctx.fillStyle='#ffffff';ctx.font='bold '+(i===1?fz:30)+'px sans-serif';ctx.textBaseline='bottom';
+    ctx.fillText(k.val,kx+16,CY+CH-18);
+    ctx.textBaseline='alphabetic';
+  });
+
+  // ── Tabela Filiais ──
+  const TBY=CY+CH+16;
+  const RH=30,HDR=34;
+  const half=filiais.length>5?Math.ceil(filiais.length/2):filiais.length;
+  const leftF=filiais.slice(0,half),rightF=filiais.slice(half);
+  const dualCol=rightF.length>0;
+  const TBW=dualCol?(W-40-16)/2:W-40;
+  _drawFilialTable(ctx,20,TBY,TBW,leftF,RH,HDR);
+  if(dualCol)_drawFilialTable(ctx,20+TBW+16,TBY,TBW,rightF,RH,HDR);
+  const tableH=HDR+Math.max(leftF.length,rightF.length)*RH;
+
+  // ── TOP 5 Produtos ──
+  const T5Y=TBY+tableH+16;
+  const top5H=_drawTop5(ctx,20,T5Y,W-40,top5);
+
+  // ── Situação Consolidada ──
+  const SCY=T5Y+top5H+16;
+  const SCH=H-28-SCY-10;
+  if(SCH>50){
+    const sW=(W-40-28)/3,sG=14;
+    const situacao=[
+      {lab:'A Vencer em 120 dias',val:brl(totalAV120),cor:'#1565c0'},
+      {lab:'Filiais com status CRÍTICO / ATENÇÃO',val:nCrit+' crítica(s)  ·  '+nAtenc+' atenção  ·  '+nBaixo+' baixo',cor:'#6a1a1a'},
+      {lab:'Representatividade do vencido',val:totalAV120>0?Math.round(grandTotal/(grandTotal+totalAV120)*100)+'% do fluxo ativo':'—',cor:'#1b5e20'},
+    ];
+    situacao.forEach((s,i)=>{
+      const sx=20+i*(sW+sG);
+      ctx.fillStyle='#ffffff';_rndRect(ctx,sx,SCY,sW,SCH,8);ctx.fill();
+      ctx.fillStyle=s.cor;ctx.fillRect(sx,SCY,4,SCH);
+      ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textBaseline='top';
+      ctx.fillText(s.lab.toUpperCase(),sx+12,SCY+10);
+      ctx.fillStyle=s.cor;ctx.font='bold 14px sans-serif';ctx.textBaseline='middle';
+      ctx.fillText(s.val,sx+12,SCY+SCH/2+6);
+      ctx.textBaseline='alphabetic';
+    });
+  }
+
+  // ── Rodapé ──
+  const FY=H-28;
+  const fGrd=ctx.createLinearGradient(0,FY,W,FY);fGrd.addColorStop(0,'#0d1f3c');fGrd.addColorStop(1,'#1a3a5c');
+  ctx.fillStyle=fGrd;ctx.fillRect(0,FY,W,28);
+  ctx.fillStyle='rgba(147,197,253,.7)';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('Auditoria de Vencidos · Agroquima · '+data+' · Documento confidencial — uso interno',W/2,FY+14);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
+
+function _drawFilialTable(ctx,x,y,w,filiais,RH,HDR){
+  const cols=[0.18,0.26,0.28,0.28];
+  const labs=['Filial','Vencido','A Vencer 120','Status'];
+  ctx.fillStyle='#1a3a5c';ctx.fillRect(x,y,w,HDR);
+  ctx.fillStyle='#ffffff';ctx.font='bold 12px sans-serif';ctx.textBaseline='middle';
+  let cx=x;
+  cols.forEach((p,i)=>{
+    const cw=w*p;ctx.textAlign=i===0?'left':'right';
+    ctx.fillText(labs[i],i===0?cx+10:cx+cw-10,y+HDR/2);cx+=cw;
+  });
+  filiais.forEach((f,ri)=>{
+    const ry=y+HDR+ri*RH;
+    ctx.fillStyle=ri%2===0?'#ffffff':'#f1f5fb';ctx.fillRect(x,ry,w,RH);
+    ctx.strokeStyle='#cdd8e8';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(x,ry+RH);ctx.lineTo(x+w,ry+RH);ctx.stroke();
+    cx=x;
+    [f.key,brl(f.vencido),brl(f.av120)].forEach((v,i)=>{
+      const cw=w*cols[i];ctx.fillStyle='#1e293b';ctx.textAlign=i===0?'left':'right';
+      ctx.font=i===0?'bold 13px sans-serif':'13px sans-serif';
+      ctx.fillText(v,i===0?cx+10:cx+cw-10,ry+RH/2);cx+=cw;
+    });
+    const sw=w*cols[3],px=cx+8,pillW=sw-16,pillH=20,pillY=ry+(RH-pillH)/2;
+    ctx.fillStyle=_statusCor(f.status);_rndRect(ctx,px,pillY,pillW,pillH,5);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(f.status,px+pillW/2,ry+RH/2);
+  });
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
+
+function _drawTop5(ctx,x,y,w,top5){
+  if(!top5||!top5.length)return 0;
+  const barCors=['#b71c1c','#d84315','#e65100','#f57f17','#f9a825'];
+  const TH=34;
+  ctx.fillStyle='#1a3a5c';ctx.fillRect(x,y,w,TH);
+  ctx.fillStyle='#ffffff';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('TOP 5 PRODUTOS COM MAIOR IMPACTO FINANCEIRO',x+w/2,y+TH/2);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  const iy=y+TH+12;
+  const iw=(w-(top5.length-1)*12)/top5.length;
+  const maxV=top5[0]?top5[0].total:1;
+  const ITEM_H=60;
+  top5.forEach((p,i)=>{
+    const ix=x+i*(iw+12);
+    ctx.fillStyle='#ffffff';_rndRect(ctx,ix,iy,iw,ITEM_H,6);ctx.fill();
+    ctx.fillStyle=barCors[i];ctx.beginPath();ctx.arc(ix+11,iy+14,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1e293b';ctx.font='bold 11px sans-serif';ctx.textBaseline='top';
+    const nome=p.nome&&p.nome.length>26?p.nome.slice(0,24)+'…':p.nome||'—';
+    ctx.fillText(nome,ix+22,iy+6);
+    ctx.fillStyle='#475569';ctx.font='10px sans-serif';
+    ctx.fillText((p.filial||'')+'  —  '+brl(p.total),ix+22,iy+20);
+    const bY=iy+36,bH=12,bMaxW=iw-16;
+    const bFill=maxV>0?Math.max(0.04,p.total/maxV):0;
+    ctx.fillStyle='#dde3ee';_rndRect(ctx,ix+8,bY,bMaxW,bH,6);ctx.fill();
+    ctx.fillStyle=barCors[i];_rndRect(ctx,ix+8,bY,Math.round(bFill*bMaxW),bH,6);ctx.fill();
+    ctx.textBaseline='alphabetic';
+  });
+  return TH+12+ITEM_H;
+}
+
+function renderRelatorio(){
+  const d=current;
+  if(!d||!d.records||!d.records.length){
+    document.getElementById('relatorio-btns').innerHTML='<span style="color:var(--text2);font-size:13px">Importe dados primeiro para gerar os slides.</span>';
+    document.getElementById('relatorio-previews').innerHTML='';return;
+  }
+  const data=d.importDate||'—';
+  const regionais=[...new Set(d.byFilial.map(f=>f.regional).filter(Boolean))].sort();
+  const slides=[
+    {id:'geral',label:'Geral — Todas as filiais',titulo:'GERAL — TODAS AS FILIAIS',data:_buildSlide(d,null)},
+    ...regionais.map(rg=>({id:'rg-'+rg,label:'Regional: '+rg,titulo:'REGIONAL: '+rg.toUpperCase(),data:_buildSlide(d,rg)}))
+  ];
+  document.getElementById('relatorio-btns').innerHTML=slides.map(s=>
+    `<button class="btn ghost sm" onclick="baixarSlide('${s.id}')"><i class="ti ti-download"></i> ${s.label}</button>`
+  ).join('');
+  const prevEl=document.getElementById('relatorio-previews');prevEl.innerHTML='';
+  slides.forEach(s=>{
+    const wrap=document.createElement('div');
+    wrap.style.cssText='background:var(--bg2);border-radius:12px;padding:18px;box-shadow:var(--sh-md)';
+    const head=document.createElement('div');
+    head.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
+    head.innerHTML=`<span style="font-weight:700;font-size:14px;color:var(--text)">${s.label}</span><button class="btn primary sm" onclick="baixarSlide('${s.id}')"><i class="ti ti-download"></i> Baixar PNG</button>`;
+    const canvas=document.createElement('canvas');
+    canvas.id='slide-canvas-'+s.id;
+    canvas.style.cssText='width:100%;height:auto;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.18)';
+    _drawSlideCanvas(canvas,s.titulo,data,s.data);
+    wrap.appendChild(head);wrap.appendChild(canvas);prevEl.appendChild(wrap);
+  });
+  window._slidesData=slides;window._slidesDate=data;
+}
+
+function baixarSlide(id){
+  if(!window._slidesData)return;
+  const s=window._slidesData.find(x=>x.id===id);if(!s)return;
+  const canvas=document.getElementById('slide-canvas-'+id);if(!canvas)return;
+  const link=document.createElement('a');
+  link.download='agroquima-'+id+'-'+window._slidesDate.replace(/\//g,'-')+'.png';
+  link.href=canvas.toDataURL('image/png');link.click();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function init(){
   load();
