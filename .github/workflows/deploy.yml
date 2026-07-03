@@ -4,8 +4,6 @@ on:
   push:
     branches: [main]
 
-# Garante que apenas um deploy roda por vez — o mais recente cancela o anterior.
-# Como usamos git push (não a API de Pages), não há problema de lock no CDN.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -17,17 +15,34 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Deploy para branch gh-pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
-          # Não processa Jekyll — serve os arquivos estáticos diretamente
-          enable_jekyll: false
-          # Exclui arquivos desnecessários do site publicado
-          exclude_assets: '.github,.git,*.md'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Salva os arquivos do site numa pasta temporária
+          mkdir -p /tmp/site
+          cp index.html /tmp/site/
+          [ -d data ] && cp -r data /tmp/site/ || true
+          touch /tmp/site/.nojekyll
+
+          # Usa gh-pages existente ou cria branch órfã do zero
+          if git ls-remote --exit-code origin gh-pages; then
+            git fetch origin gh-pages
+            git checkout -B gh-pages origin/gh-pages
+          else
+            git checkout --orphan gh-pages
+          fi
+
+          # Remove tudo do diretório de trabalho (preserva .git)
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+
+          # Copia arquivos do site
+          cp -r /tmp/site/. .
+
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: deploy de main"
+          git push origin gh-pages
