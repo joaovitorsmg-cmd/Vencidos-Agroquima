@@ -4,34 +4,28 @@ on:
   push:
     branches: [main]
 
-# Only one Pages deployment runs at a time — new pushes queue instead of racing.
-# cancel-in-progress: false prevents the "Deployment failed, try again later" error
-# that occurs when a deployment is cancelled mid-flight and leaves an orphaned lock.
+# Garante que apenas um deploy roda por vez — o mais recente cancela o anterior.
+# Como usamos git push (não a API de Pages), não há problema de lock no CDN.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Deploy para branch gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          # Não processa Jekyll — serve os arquivos estáticos diretamente
+          enable_jekyll: false
+          # Exclui arquivos desnecessários do site publicado
+          exclude_assets: '.github,.git,*.md'
