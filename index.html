@@ -1605,6 +1605,7 @@ function renderAll(){
   }
   hideEmptyPanel();
   renderResumo();renderAuditores();renderRegional();renderLojas();renderProdutos();renderPrioridade();renderFabricantes();renderRecorrentes();populateFilters();
+  const vrEl=document.getElementById('v-relatorio');if(vrEl&&vrEl.style.display!=='none')renderRelatorio();
   setTimeout(()=>enableSorting(),0);
 }
 function showEmptyPanel(){
