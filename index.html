@@ -35,7 +35,7 @@
   --sh-md:0 6px 18px rgba(11,42,80,.12);
   --sh-lg:0 12px 32px rgba(11,42,80,.16);
 }
-@media(prefers-color-scheme:dark){:root{
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0a1322;--bg2:#101d33;--bg3:#16243d;
   --text:#e8f0fb;--text2:#8ba2c2;--text3:#54667f;
   --border:#1a2c47;--border-2:#27406a;
@@ -43,6 +43,27 @@
   --red-lt:#2a1110;--green-lt:#0c2417;--amber-lt:#2a1f08;--purple-lt:#15183a;--gray-lt:#101d33;
   --sh:0 1px 3px rgba(0,0,0,.4);--sh-md:0 6px 18px rgba(0,0,0,.5);--sh-lg:0 12px 32px rgba(0,0,0,.6);
 }}
+:root[data-theme="dark"]{
+  --bg:#0a1322;--bg2:#101d33;--bg3:#16243d;
+  --text:#e8f0fb;--text2:#8ba2c2;--text3:#54667f;
+  --border:#1a2c47;--border-2:#27406a;
+  --brand:#2b7fd4;--brand2:#4d96e0;--brand-lt:#0c2a4d;--brand-glow:rgba(43,127,212,.2);
+  --red-lt:#2a1110;--green-lt:#0c2417;--amber-lt:#2a1f08;--purple-lt:#15183a;--gray-lt:#101d33;
+  --sh:0 1px 3px rgba(0,0,0,.4);--sh-md:0 6px 18px rgba(0,0,0,.5);--sh-lg:0 12px 32px rgba(0,0,0,.6);
+}
+:root[data-theme="light"]{
+  --bg:#fff;--bg2:#f6f9fc;--bg3:#eef3f9;
+  --text:#102845;--text2:#4a5d75;--text3:#8696ab;
+  --border:#e2e8f1;--border-2:#c7d3e3;
+  --brand:#0b5cab;--brand2:#1565c0;--brand-lt:#e7f0fb;--brand-glow:rgba(11,92,171,.14);
+  --accent:#2b7fd4;--brand-dk:#08376a;
+  --red:#c0392b;--red-lt:#fdecea;--red-dk:#8c2018;
+  --green:#1e8449;--green-lt:#e9f7ef;--green-dk:#145a32;
+  --amber:#d68910;--amber-lt:#fef5e7;--amber-dk:#9c640c;
+  --purple:#3b4cb8;--purple-lt:#ebedfa;
+  --gray:#5d6d7e;--gray-lt:#f4f6f7;
+  --sh:0 1px 3px rgba(11,42,80,.08),0 1px 2px rgba(11,42,80,.05);--sh-md:0 6px 18px rgba(11,42,80,.12);--sh-lg:0 12px 32px rgba(11,42,80,.16);
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 .app{display:flex;flex-direction:column;min-height:100vh}
@@ -440,6 +461,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       <i class="ti ti-cloud-off" style="font-size:14px"></i> <span>Sem sync</span>
     </div>
     <button id="btn-retry-sync" class="btn ghost sm" style="display:none" onclick="retryPublicacao()" title="Tenta publicar novamente para todos"><i class="ti ti-refresh"></i> Atualizar Painel</button>
+    <button class="btn ghost icon-only" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro"><i class="ti ti-sun" id="theme-icon"></i></button>
   </div>
 </div>
 
@@ -593,7 +615,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-regional" style="display:none">
   <div id="reg-list-view">
     <div class="view-head"><div><h2><i class="ti ti-map-pin"></i> Análise por Regional</h2>
-      <div class="sub">Responsabilização por regional — cada regional deve conduzir a redução nas suas lojas</div></div></div>
+      <div class="sub">Responsabilização por regional — cada regional deve conduzir a redução nas suas lojas</div></div>
+      <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('regional','Regional_Agroquima')" title="Exportar painel de regionais como imagem PNG"><i class="ti ti-download"></i></button></div>
     <div class="alert brand"><i class="ti ti-info-circle"></i><div>Cada gerente regional responde pelas lojas sob sua gestão. Clique em "Ver detalhe completo" para o diagnóstico de produtos, envelhecimento e plano de ação de cada regional.</div></div>
     <div id="reg-cards" class="aud-grid"></div>
     <div class="tw" style="margin:22px 0"><table><thead><tr>
@@ -882,9 +905,9 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:4px">
       <button class="btn primary" onclick="triggerImport()"><i class="ti ti-upload"></i> Importar XLSX</button>
       <input type="file" id="up-top" accept=".xlsx,.xls" multiple style="display:none" onchange="handleUploadMulti(this)">
-      <button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir relatório</button>
-      <button class="btn ghost sm" onclick="nav('cacaerros')" title="Verificação de inconsistências de digitação nos dados importados"><i class="ti ti-bug"></i> Caça-Erros</button>
-      <button class="btn ghost sm" onclick="nav('relatorio')" title="Gera slides PNG no padrão apresentação para todas as filiais e por regional"><i class="ti ti-presentation"></i> Relatório PPT</button>
+      <button class="btn ghost icon-only" onclick="window.print()" title="Imprimir relatório"><i class="ti ti-printer"></i></button>
+      <button class="btn ghost icon-only" onclick="nav('cacaerros')" title="Caça-Erros: verificar inconsistências de digitação nos dados importados"><i class="ti ti-bug"></i></button>
+      <button class="btn ghost icon-only" onclick="nav('relatorio')" title="Relatório PPT: slides PNG no padrão apresentação por filial e regional"><i class="ti ti-presentation"></i></button>
     </div>
   </div>
 
@@ -953,16 +976,6 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 
   </div>
 
-  <div class="card" style="margin-bottom:22px">
-    <div class="card-h"><i class="ti ti-users"></i> Quem usa o quê</div>
-    <div class="tw"><table><thead><tr><th>Pessoa</th><th>Papel</th><th>Precisa configurar algo?</th><th>O que vê / faz</th></tr></thead>
-    <tbody>
-      <tr><td class="b">João Vitor</td><td><span class="chip brand">Administrador</span></td><td><span class="chip green">Sim — Token GitHub (1 vez)</span></td><td>Importa XLSX → dados publicados automaticamente para todos</td></tr>
-      <tr><td class="b">Gabriela</td><td><span class="chip brand">Importadora</span></td><td><span class="chip green">Sim — Token GitHub (1 vez)</span></td><td>Também importa XLSX → também publica automaticamente</td></tr>
-      <tr><td class="b">Fábio, Guilherme, Carlos...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip gray">Não — nada</span></td><td>Acessa o link e vê os dados atualizados (leitura pública via GitHub Pages)</td></tr>
-      <tr><td class="b">Aldo, Rafa, Luciana...</td><td><span class="chip gray">Visualizador</span></td><td><span class="chip green">Opcional — senha de operador</span></td><td>Com a senha, acessa a Área Restrita completa</td></tr>
-    </tbody></table></div>
-  </div>
 </div>
 
 <!-- RELATÓRIO PPT -->
@@ -1664,7 +1677,9 @@ function showCardDetail(tipo){
   const title=document.getElementById('card-detail-title');
   const body=document.getElementById('card-detail-body');
   const foot=document.getElementById('card-detail-foot');
-  const linha=(label,val)=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px;gap:10px"><span>${label}</span><strong style="text-align:right">${val}</strong></div>`;
+  const linha=(label,val,sub)=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--border)"><span style="color:var(--text2);font-size:12px">${label}${sub?`<br><span style='font-size:10px;color:var(--text3)'>${sub}</span>`:''}</span><strong style="text-align:right;font-size:13px">${val}</strong></div>`;
+  const fonte=(texto,icone='ti-table')=>`<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);background:var(--bg3);border-radius:6px;padding:5px 8px;margin-bottom:14px"><i class="ti ${icone}" style="font-size:12px"></i>${texto}</div>`;
+  const secao=(txt)=>`<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin:12px 0 6px">${txt}</div>`;
   let navTo='resumo';
   if(!r){
     title.innerHTML='<i class="ti ti-info-circle"></i> Sem dados';
@@ -1672,27 +1687,60 @@ function showCardDetail(tipo){
   } else if(tipo==='total'){
     title.innerHTML='<i class="ti ti-receipt" style="color:var(--red);font-size:22px"></i> Total Vencido';
     navTo='lojas';
-    body.innerHTML=linha('Valor total vencido',brl(r.T))+linha('Itens vencidos',r.itens)+linha('Lojas com saldo vencido',r.lojas)+linha('Dias vencidos (média / máximo)',r.avgD+'d / '+r.maxD+'d')+(r.pt?linha('Variação vs. importação anterior',trend(r.T,r.pt)):'')+`<div style="margin-top:10px;font-weight:600;color:var(--text)">Top 3 lojas</div>`+r.top3.map(f=>linha(f.key,brl(f.total))).join('');
+    body.innerHTML=
+      fonte('Calculado a partir de todos os registros com Dias < 0 do XLSX importado','ti-file-spreadsheet')+
+      linha('Valor total vencido',brl(r.T),'soma de todos os itens com validade expirada')+
+      linha('Itens vencidos',r.itens,'linhas únicas no arquivo com data de vencimento passada')+
+      linha('Lojas com saldo vencido',r.lojas,'filiais que possuem ao menos 1 item vencido')+
+      linha('Tempo vencido (média / máximo)',r.avgD+'d / '+r.maxD+'d','em dias corridos desde o vencimento')+
+      (r.pt?linha('Variação vs. semana anterior',trend(r.T,r.pt),'comparado à última importação registrada'):'')+
+      secao('Top 3 lojas com maior exposição')+
+      r.top3.map((f,i)=>linha(`${i+1}. ${f.key}`,brl(f.total))).join('');
   } else if(tipo==='loja'){
-    title.innerHTML=`<i class="ti ti-building-store" style="color:var(--amber);font-size:22px"></i> Loja Crítica — ${r.key}`;
+    title.innerHTML=`<i class="ti ti-building-store" style="color:var(--amber);font-size:22px"></i> Loja com Maior Vencido`;
     navTo='lojas';
-    body.innerHTML=linha('Regional',r.regional||'—')+linha('Auditor responsável',r.auditor||'—')+linha('Valor vencido na loja',brl(r.total))+linha('% do total vencido',Math.round(r.pct*100)+'%')+linha('Itens vencidos',r.items)+linha('Dias vencidos (máximo)',abs(r.maxDias)+'d')+`<div style="margin-top:10px;font-weight:600;color:var(--text)">Top 3 lojas no ranking</div>`+r.top3.map(f=>linha(f.key,brl(f.total))).join('');
+    body.innerHTML=
+      fonte(`Loja com o maior valor absoluto de vencidos — ${r.key}`,'ti-building-store')+
+      linha('Loja',r.key,'filial com maior exposição de vencidos')+
+      linha('Regional',r.regional||'—','gerência regional responsável')+
+      linha('Auditor responsável',r.auditor||'—','auditor designado para esta carteira')+
+      linha('Valor vencido na loja',brl(r.total),'soma de todos os itens vencidos desta filial')+
+      linha('Participação no total geral',Math.round(r.pct*100)+'%','% que esta loja representa no vencido total')+
+      linha('Itens vencidos',r.items,'produtos distintos com data de validade expirada')+
+      linha('Produto mais antigo',abs(r.maxDias)+'d','dias corridos do item mais antigo')+
+      secao('Ranking — Top 3 lojas')+
+      r.top3.map((f,i)=>linha(`${i+1}. ${f.key}`,brl(f.total))).join('');
   } else if(tipo==='auditor'){
-    title.innerHTML=`<i class="ti ti-user-shield" style="color:var(--brand);font-size:22px"></i> Auditor + Exposto — ${r.key}`;
+    title.innerHTML=`<i class="ti ti-user-shield" style="color:var(--brand);font-size:22px"></i> Auditor Mais Exposto`;
     navTo='auditores';
-    body.innerHTML=linha('Valor sob responsabilidade',brl(r.total))+linha('% do total vencido',Math.round(r.pct*100)+'%')+linha('Itens vencidos',r.items)+linha('Lojas sob responsabilidade',r.lojas)+`<div style="margin-top:10px;font-weight:600;color:var(--text)">Ranking de auditores</div>`+r.ranking.map(a=>linha(a.key,brl(a.total))).join('');
+    body.innerHTML=
+      fonte(`Auditor responsável pelas lojas com maior carteira de vencidos — ${r.key}`,'ti-user-shield')+
+      linha('Auditor',r.key,'responsável técnico por este conjunto de lojas')+
+      linha('Valor sob responsabilidade',brl(r.total),'soma dos vencidos nas lojas desta carteira')+
+      linha('Participação no total geral',Math.round(r.pct*100)+'%','% que esta carteira representa no vencido total')+
+      linha('Itens vencidos',r.items,'produtos vencidos em toda a carteira')+
+      linha('Lojas sob responsabilidade',r.lojas,'filiais nesta carteira com saldo vencido')+
+      secao('Ranking completo de auditores')+
+      r.ranking.map((a,i)=>linha(`${i+1}. ${a.key}`,brl(a.total))).join('');
   } else if(tipo==='avencer'){
-    title.innerHTML='<i class="ti ti-clock-pause" style="color:var(--green);font-size:22px"></i> A Vencer (recuperável)';
+    title.innerHTML='<i class="ti ti-clock-pause" style="color:var(--green);font-size:22px"></i> A Vencer — Ação Preventiva';
     navTo='alertas';
     if(!r.ehSoVencidos){
-      body.innerHTML=linha('Valor a vencer',r.av>0?brl(r.av):'—')+linha('Itens a vencer',r.avN)+linha('Vencendo em até 30 dias',r.av30n+' itens · '+(r.av30v>0?brl(r.av30v):'—'));
+      body.innerHTML=
+        fonte('Itens com validade futura (Dias > 0) presentes no arquivo XLSX importado','ti-clock')+
+        linha('Valor total a vencer',r.av>0?brl(r.av):'—','soma de itens ainda dentro da validade')+
+        linha('Itens a vencer',r.avN,'produtos que ainda estão no prazo')+
+        linha('Vencendo em até 30 dias',r.av30n+' itens · '+(r.av30v>0?brl(r.av30v):'—'),'risco imediato — demandam ação prioritária');
     } else if(r.uc){
-      body.innerHTML=`<p style="margin-bottom:8px">Esta importação trouxe apenas itens já vencidos. Os números abaixo são da última medição completa.</p>`+linha('Medido em',r.uc.importDate)+linha('Valor a vencer',brl(r.uc.totalAVencer||0));
+      body.innerHTML=
+        fonte('Esta importação trouxe apenas itens já vencidos. Valores da última medição completa','ti-history')+
+        linha('Medição anterior',r.uc.importDate)+
+        linha('Valor a vencer (última medição)',brl(r.uc.totalAVencer||0));
     } else {
-      body.innerHTML='<p>Esta importação trouxe apenas itens já vencidos e ainda não há uma medição completa anterior para referência.</p>';
+      body.innerHTML=fonte('Esta importação trouxe apenas itens já vencidos e não há medição anterior disponível','ti-alert-triangle')+'<p style="font-size:13px;color:var(--text2)">Não há referência de itens a vencer para este período.</p>';
     }
   }
-  foot.innerHTML=`<button class="btn ghost" onclick="closeCardDetail()">Fechar</button>`+(r?`<button class="btn primary" onclick="closeCardDetail();nav('${navTo}')"><i class="ti ti-arrow-right"></i> Ver detalhes completos</button>`:'');
+  foot.innerHTML=`<button class="btn ghost" onclick="closeCardDetail()">Fechar</button>`+(r?`<button class="btn primary" onclick="closeCardDetail();nav('${navTo}')"><i class="ti ti-arrow-right"></i> Ver análise completa</button>`:'');
   document.getElementById('modal-card-detail').classList.add('open');
 }
 function closeCardDetail(){document.getElementById('modal-card-detail').classList.remove('open');}
@@ -2472,7 +2520,7 @@ function renderEvo(){
       <div class="metric ${imp?'green':'red'}"><div class="ml">${curr.importDate} (atual)</div><div class="mv">${brl(Tc)}</div><div class="ms">${curr.totalItems} itens vencidos</div></div>
       <div class="metric ${imp?'green':'red'}"><div class="ml">Variação da Semana</div><div class="mv">${imp?'↓':'↑'} ${pctFmt(dp)}%</div><div class="ms">${imp?'Redução de ':'Aumento de '}${brl(Math.abs(diff))}</div></div>
     </div>
-    <div class="view-head" style="margin-bottom:10px"><div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div><button class="btn ghost" onclick="exportarEvoPNG()" style="font-size:12px"><i class="ti ti-download"></i> Exportar imagem (PNG)</button></div>
+    <div class="view-head" style="margin-bottom:10px"><div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div><button class="btn ghost icon-only view-export-btn" onclick="exportarEvoPNG()" title="Exportar comparativo por loja como imagem PNG"><i class="ti ti-download"></i></button></div>
     <div id="evo-export-area" style="background:var(--bg2);padding:18px;border-radius:12px">
     <div class="evo-export-title" style="display:none;margin-bottom:14px">
       <div style="font-size:18px;font-weight:800;color:var(--brand)">AGROQUIMA — Evolução do Vencido</div>
@@ -3846,6 +3894,26 @@ function init(){
   syncPull();
 }
 init();
+
+// ─── TEMA MANUAL (claro / escuro) ───
+(function initTheme(){
+  const saved=localStorage.getItem('agroquima_theme');
+  const prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const active=saved||(prefersDark?'dark':'light');
+  document.documentElement.setAttribute('data-theme',active);
+  const icon=document.getElementById('theme-icon');
+  if(icon)icon.className=active==='dark'?'ti ti-moon':'ti ti-sun';
+})();
+function toggleTheme(){
+  const current=document.documentElement.getAttribute('data-theme')||'light';
+  const next=current==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('agroquima_theme',next);
+  const icon=document.getElementById('theme-icon');
+  if(icon)icon.className=next==='dark'?'ti ti-moon':'ti ti-sun';
+  const btn=document.getElementById('btn-theme');
+  if(btn)btn.title=next==='dark'?'Alternar para tema claro':'Alternar para tema escuro';
+}
 
 // ─── PWA: registra o service worker (instalável + funciona offline) ───
 if('serviceWorker' in navigator){
