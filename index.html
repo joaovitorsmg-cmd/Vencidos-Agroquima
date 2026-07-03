@@ -616,7 +616,10 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div id="reg-list-view">
     <div class="view-head"><div><h2><i class="ti ti-map-pin"></i> Análise por Regional</h2>
       <div class="sub">Responsabilização por regional — cada regional deve conduzir a redução nas suas lojas</div></div>
-      <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('regional','Regional_Agroquima')" title="Exportar painel de regionais como imagem PNG"><i class="ti ti-download"></i></button></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('regional','Regional_Agroquima')" title="Exportar resumo de regionais (cards + tabela) como PNG"><i class="ti ti-download"></i></button>
+        <button class="btn ghost icon-only view-export-btn" onclick="exportarRelatorioRegional(null)" title="Exportar relatório detalhado de TODOS os regionais — produtos, lotes, lojas, valores"><i class="ti ti-file-analytics"></i></button>
+      </div></div>
     <div class="alert brand"><i class="ti ti-info-circle"></i><div>Cada gerente regional responde pelas lojas sob sua gestão. Clique em "Ver detalhe completo" para o diagnóstico de produtos, envelhecimento e plano de ação de cada regional.</div></div>
     <div id="reg-cards" class="aud-grid"></div>
     <div class="tw" style="margin:22px 0"><table><thead><tr>
@@ -2610,6 +2613,96 @@ function exportarElementoPNG(area,nomeArquivo){
   });
 }
 
+// Exporta relatório detalhado de regionais como um único PNG de alta qualidade.
+// reg=null → todos os regionais empilhados; reg='Nome' → apenas aquele regional.
+function exportarRelatorioRegional(reg){
+  if(!current){toast('Sem dados para exportar','amber');return;}
+  if(typeof html2canvas==='undefined'){toast('Carregando biblioteca, tente em 2 segundos','amber');return;}
+  const d=current,T=d.grandTotal;
+  const regColors=['#0b5cab','#7c3aed','#0891b2','#d68910','#059669','#dc2626','#db2777','#0d9488'];
+  const regColor=(key)=>{const idx=d.byRegional.findIndex(x=>x.key===key);return regColors[idx%regColors.length];};
+  const regionais=reg?d.byRegional.filter(r=>r.key===reg):d.byRegional;
+  if(!regionais.length){toast('Regional não encontrado','red');return;}
+  const arq=reg?`Relatorio_${reg.replace(/\s+/g,'_')}_Agroquima`:'Relatorio_Regionais_Completo_Agroquima';
+  const th=(txt)=>`<th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4a5d75;border-bottom:1px solid #dde4ee;white-space:nowrap">${txt}</th>`;
+  const thr=(txt)=>`<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4a5d75;border-bottom:1px solid #dde4ee;white-space:nowrap">${txt}</th>`;
+  const thc=(txt)=>`<th style="padding:7px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4a5d75;border-bottom:1px solid #dde4ee;white-space:nowrap">${txt}</th>`;
+  let html=`<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;padding:24px 28px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:14px;border-bottom:2.5px solid #0b5cab">
+    <div style="display:flex;align-items:center;gap:12px">
+      <svg viewBox="0 0 40 40" fill="none" width="38" height="38"><rect x="4" y="4" width="14" height="14" rx="2.5" fill="#0b5cab" opacity=".88"/><rect x="22" y="4" width="14" height="14" rx="2.5" fill="#0b5cab"/><rect x="4" y="22" width="14" height="14" rx="2.5" fill="#0b5cab"/><rect x="22" y="22" width="14" height="14" rx="2.5" fill="#0b5cab" opacity=".55"/></svg>
+      <div><div style="font-size:20px;font-weight:800;color:#0b5cab;letter-spacing:-.4px">AGROQUIMA</div><div style="font-size:11px;color:#4a5d75;font-weight:500;margin-top:1px">Relatório Gerencial de Vencidos por Regional${reg?' — '+reg:''}</div></div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;font-weight:700;color:#102845">Referência: ${d.importDate}</div>
+      <div style="font-size:11px;color:#8696ab;margin-top:2px">Total geral do portfólio: <strong style="color:#102845">${brl(T)}</strong></div>
+    </div>
+  </div>`;
+  regionais.forEach(rData=>{
+    const c=regColor(rData.key);
+    const recs=d.records.filter(r=>r.Gerente===rData.key).sort((a,b)=>b.Total-a.Total);
+    const pct=T>0?(rData.total/T*100).toFixed(1):'0';
+    const nLojas=d.byFilial.filter(f=>f.regional===rData.key).length;
+    html+=`<div style="margin-top:20px">
+      <div style="background:${c};color:#fff;padding:11px 16px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">${initials(rData.key)}</div>
+          <div><div style="font-size:16px;font-weight:800;letter-spacing:-.2px">${rData.key}</div><div style="font-size:11px;opacity:.82;margin-top:1px">${nLojas} loja(s) · ${recs.length} item(ns) vencido(s)</div></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:800;letter-spacing:-.4px">${brl(rData.total)}</div>
+          <div style="font-size:11px;opacity:.82;margin-top:1px">${pct}% do portfólio total</div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #dde4ee;border-top:none;margin-bottom:2px">
+        <thead><tr style="background:#f4f7fb">${th('Produto')}${th('Código / Lote')}${th('Loja')}${thc('Vencimento')}${thc('Dias')}${thr('Qtd')}${thr('Valor R$')}${thr('% Total')}</tr></thead>
+        <tbody>
+          ${recs.map((r,i)=>{
+            const dv=abs(r.Dias);
+            const dc=dv>180?'#c0392b':dv>60?'#d68910':'#1e8449';
+            const bg=i%2===0?'#fff':'#f9fbfd';
+            const cod=(r.CodProduto||'').trim();
+            const lote=(r.Lote||'').trim();
+            const pctR=T>0?(r.Total/T*100).toFixed(2):'0';
+            return `<tr style="background:${bg}">
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;font-weight:600;color:#102845;font-size:12px;max-width:240px">${cleanProd(r.Nome)}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;font-size:10px;color:#6b7f96">${cod?'#'+cod:'—'}${lote?' · L:'+lote:''}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;font-size:11px;color:#4a5d75;white-space:nowrap">${r.Sigla||'—'}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;text-align:center;font-size:11px;color:#4a5d75;white-space:nowrap">${r.DtVenc||'—'}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;text-align:center"><span style="background:${dc}18;color:${dc};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap">${dv}d</span></td>
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;text-align:right;font-size:11px;color:#4a5d75">${num(Math.round(r.Qtd))}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;text-align:right;font-weight:700;color:#102845;white-space:nowrap">${brl(r.Total)}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;text-align:right;font-size:11px;color:#4a5d75;white-space:nowrap">${pctR}%</td>
+            </tr>`;
+          }).join('')}
+          <tr style="background:#f0f4f9">
+            <td colspan="6" style="padding:8px 10px;font-weight:700;color:${c};font-size:12px">SUBTOTAL — ${rData.key}</td>
+            <td style="padding:8px 10px;text-align:right;font-weight:800;color:${c};font-size:14px;white-space:nowrap">${brl(rData.total)}</td>
+            <td style="padding:8px 10px;text-align:right;font-weight:700;color:${c};font-size:12px">${pct}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+  });
+  html+=`<div style="margin-top:18px;padding-top:10px;border-top:1px solid #dde4ee;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:10px;color:#8696ab">Gerado em ${new Date().toLocaleString('pt-BR')} · AGROQUIMA Auditoria de Vencidos</div>
+    <div style="font-size:11px;font-weight:700;color:#102845">Total geral: ${brl(T)}</div>
+  </div></div>`;
+  const wrap=document.getElementById('reg-export-wrap');
+  wrap.innerHTML=html;
+  toast('Gerando relatório detalhado...','brand');
+  const hoje=d.importDate.replace(/\//g,'_');
+  html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',logging:false,useCORS:true}).then(canvas=>{
+    canvas.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=`${arq}_${hoje}.png`;a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      toast('✓ Relatório regional salvo em Downloads','green');
+    },'image/png');
+  }).catch(e=>{toast('Erro ao gerar: '+e.message,'red');});
+}
+
 // ─── REGIONAL ───
 function renderRegional(){
   const d=current,T=d.grandTotal;
@@ -2635,7 +2728,10 @@ function renderRegional(){
         <div class="aud-stat-row"><span class="l">Ticket médio</span><span class="v">${brl(ticket)}</span></div>
         <div class="aud-stat-row"><span class="l">Mais antigo</span><span class="v">${diasChip(maxD)}</span></div>
       </div>
-      <div class="aud-card-foot"><button class="btn sm" style="flex:1" onclick="showRegionalDetail('${r.key.replace(/'/g,"")}')"><i class="ti ti-list-search"></i> Ver detalhe completo</button></div>
+      <div class="aud-card-foot">
+        <button class="btn sm" style="flex:1" onclick="showRegionalDetail('${r.key.replace(/'/g,"")}')"><i class="ti ti-list-search"></i> Ver detalhe</button>
+        <button class="btn ghost icon-only" onclick="exportarRelatorioRegional('${r.key.replace(/'/g,"")}')" title="Exportar relatório detalhado de ${r.key} — produtos, lojas, valores, % do total"><i class="ti ti-file-analytics"></i></button>
+      </div>
     </div>`;
   }).join('');
   // Tabela resumo
@@ -2666,7 +2762,9 @@ function showRegionalDetail(reg){
     <div class="detail-bar">
       <button class="btn ghost" onclick="closeRegionalDetail()"><i class="ti ti-arrow-left"></i> Voltar</button>
       <div class="aud-avatar" style="background:${cReg};width:40px;height:40px;font-size:15px">${initials(reg)}</div>
-      <h2>${reg}</h2><span style="margin-left:auto;font-size:13px" class="dim">${lojas.length} lojas · ${recs.length} itens · ${brl(total)} · <strong style="color:${cReg}">${pctTotalReg.toFixed(1)}% do total</strong></span>
+      <h2>${reg}</h2>
+      <span style="margin-left:auto;font-size:13px" class="dim">${lojas.length} lojas · ${recs.length} itens · ${brl(total)} · <strong style="color:${cReg}">${pctTotalReg.toFixed(1)}% do total</strong></span>
+      <button class="btn ghost icon-only" onclick="exportarRelatorioRegional('${reg.replace(/'/g,"")}')" title="Exportar relatório detalhado de ${reg} como PNG"><i class="ti ti-file-analytics"></i></button>
     </div>
     <div class="g3">
       <div class="metric" style="border-left:3px solid ${cReg}"><div class="ml">Participação no total geral</div><div class="mv" style="font-size:18px;color:${cReg}">${pctTotalReg.toFixed(1)}%</div><div class="ms">${brl(total)} de ${brl(d.grandTotal)}</div></div>
@@ -3922,5 +4020,7 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- Container oculto para geração de PNG do relatório regional detalhado -->
+<div id="reg-export-wrap" style="position:fixed;left:-9999px;top:0;width:1100px;background:#fff;z-index:-1;pointer-events:none"></div>
 </body>
 </html>
