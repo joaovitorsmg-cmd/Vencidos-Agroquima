@@ -80,7 +80,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .nav-item.active{background:var(--brand-lt);color:var(--brand);border-left-color:var(--brand);font-weight:700}
 .nav-item i{font-size:18px;flex-shrink:0}
 .nav-badge{margin-left:auto;font-size:10px;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-weight:700}
-.content{flex:1;padding:26px 30px;max-width:1340px;overflow-x:hidden}
+.content{flex:1;padding:26px 30px 56px;max-width:1340px;overflow-x:hidden}
 /* HEADER */
 .view-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap}
 .view-head h2{font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;letter-spacing:-.3px}
@@ -297,14 +297,14 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 .modal h3{font-size:17px;font-weight:800;margin-bottom:9px}
 .modal p{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end}
-/* FOOTER w/ LOGO */
-.report-footer{margin-top:40px;padding:30px 0 20px;border-top:2px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
-.footer-logo{display:flex;align-items:center;gap:14px;opacity:.9}
-.footer-logo-mark{width:54px;height:54px}
-.footer-logo-text{font-size:26px;font-weight:900;letter-spacing:1px;color:var(--text)}
-.footer-meta{font-size:11px;color:var(--text3);line-height:1.7}
+/* FOOTER w/ LOGO — fixed at bottom, always visible */
+.report-footer{position:fixed;bottom:0;left:236px;right:0;background:var(--bg);border-top:1px solid var(--border);padding:7px 30px;display:flex;align-items:center;gap:12px;z-index:40;box-shadow:0 -2px 8px rgba(0,0,0,.06)}
+.footer-logo{display:flex;align-items:center;gap:10px;opacity:.85;flex-shrink:0}
+.footer-logo-mark{width:22px;height:22px}
+.footer-logo-text{font-size:13px;font-weight:900;letter-spacing:.5px;color:var(--text)}
+.footer-meta{font-size:11px;color:var(--text3);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .footer-meta strong{color:var(--text2)}
-.footer-tagline{font-size:12px;color:var(--text2);font-style:italic;max-width:480px}
+.footer-tagline{font-size:11px;color:var(--text3);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 /* SR only */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 .conc{background:rgba(192,57,43,.05)}
@@ -319,7 +319,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   .btn-hamburger{display:flex}
   .sidebar{position:fixed;top:0;left:0;height:100vh;z-index:150;transform:translateX(-105%);transition:transform .24s cubic-bezier(.4,0,.2,1);padding-top:16px}
   .sidebar.open{transform:translateX(0)}
-  .content{padding:14px 12px}
+  .content{padding:14px 12px 52px}
+  .report-footer{left:0;padding:6px 14px}
   .g2,.g2-1,.insight-grid{grid-template-columns:1fr}
   .g3{grid-template-columns:1fr 1fr}
   .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
@@ -374,7 +375,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   .topbar{padding-top:env(safe-area-inset-top);min-height:calc(64px + env(safe-area-inset-top))}
   .sidebar{padding-top:calc(16px + env(safe-area-inset-top))}
   .toast{bottom:calc(26px + env(safe-area-inset-bottom))}
-  .report-footer{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+  .report-footer{padding-bottom:calc(7px + env(safe-area-inset-bottom))}
   body{overscroll-behavior-y:contain}
 }
 @media(display-mode:standalone) and (max-width:980px){
@@ -874,7 +875,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- PUBLICAÇÃO / GITHUB -->
 <div id="v-config" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-cloud-cog"></i> Área Restrita — Configurações e Operações</h2>
-    <div class="sub">Importação, publicação e sincronização via JSONBin</div></div></div>
+    <div class="sub">Importação, publicação e sincronização via GitHub</div></div></div>
 
   <div class="card" style="margin-bottom:22px">
     <div class="card-h"><i class="ti ti-tool"></i> Operações</div>
@@ -981,7 +982,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
-<!-- REPORT FOOTER WITH LOGO -->
+<!-- REPORT FOOTER WITH LOGO — fixed bar, always visible at bottom -->
 <div class="report-footer">
   <div class="footer-logo">
     <svg class="footer-logo-mark" viewBox="0 0 40 40" fill="none">
@@ -992,11 +993,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     </svg>
     <span class="footer-logo-text">AGROQUIMA</span>
   </div>
-  <div class="footer-tagline">Relatório de Auditoria de Produtos Vencidos — instrumento de gestão e tomada de decisão estratégica</div>
-  <div class="footer-meta">
-    <strong>Regras aplicadas:</strong> itens com quantidade zerada desconsiderados · Cuiabá/Nutrição excluída<br>
-    Documento gerado automaticamente · <span id="footer-date"></span> · Confidencial — uso interno
-  </div>
+  <div class="footer-tagline">Auditoria de Produtos Vencidos · <span id="footer-date"></span></div>
+  <div class="footer-meta" style="margin-left:auto"><strong>Regras:</strong> qtd zerada desconsiderada · Cuiabá/Nutrição excluída · Confidencial</div>
 </div>
 
 </div><!-- /content -->
