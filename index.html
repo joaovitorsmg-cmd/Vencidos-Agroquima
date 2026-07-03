@@ -152,6 +152,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 .tup{color:var(--red);font-weight:800;font-size:12px}
 .tdn{color:var(--green);font-weight:800;font-size:12px}
 .teq{color:var(--text3);font-size:12px;font-weight:600}
+.metric-delta{font-size:11px;margin-top:4px;font-weight:700}
+.metric-delta.up{color:var(--red)}.metric-delta.dn{color:var(--green)}.metric-delta.eq{color:var(--text3)}
 /* ALERTS */
 .alert{display:flex;align-items:flex-start;gap:11px;padding:14px 18px;border-radius:var(--r-sm);font-size:13px;margin-bottom:16px;line-height:1.55}
 .alert.red{background:var(--red-lt);border:1px solid rgba(192,57,43,.25);color:var(--red-dk)}
@@ -468,26 +470,24 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div class="main">
 <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeSidebar()"></div>
 <div id="sidebar" class="sidebar">
-  <div class="nav-sec">Painel Executivo</div>
+  <div class="nav-sec">Visão Geral</div>
   <div class="nav-item active" onclick="nav('resumo')"><i class="ti ti-layout-dashboard"></i> Resumo Executivo</div>
-  <div class="nav-item" onclick="nav('insights')"><i class="ti ti-bulb"></i> Insights & Diagnóstico</div>
   <div class="nav-item" onclick="nav('alertas')"><i class="ti ti-alarm"></i> Alertas de Vencimento</div>
   <div class="nav-item" onclick="nav('evolucao')"><i class="ti ti-arrows-diff"></i> Evolução Semanal</div>
-  <div class="nav-sec">Responsabilização</div>
+  <div class="nav-sec">Por Dimensão</div>
   <div class="nav-item" onclick="nav('regional')"><i class="ti ti-map-pin"></i> Por Regional</div>
   <div class="nav-item" onclick="nav('auditores')"><i class="ti ti-user-shield"></i> Por Auditor</div>
   <div class="nav-item" onclick="nav('lojas')"><i class="ti ti-building-store"></i> Por Loja</div>
-  <div class="nav-sec">Análise Operacional</div>
+  <div class="nav-sec">Análise</div>
   <div class="nav-item" onclick="nav('janela')"><i class="ti ti-calendar-time"></i> Janela de Venda</div>
-  <div class="nav-item" onclick="nav('aging')"><i class="ti ti-hourglass"></i> Aging (Envelhecimento)</div>
+  <div class="nav-item" onclick="nav('aging')"><i class="ti ti-hourglass"></i> Aging</div>
   <div class="nav-item" onclick="nav('prioridade')"><i class="ti ti-alert-triangle"></i> Plano de Ação</div>
   <div class="nav-item" onclick="nav('compra')"><i class="ti ti-shopping-cart-x"></i> Análise de Compra</div>
-  <div class="nav-item" onclick="nav('fabricantes')"><i class="ti ti-building-factory-2"></i> Fabricantes</div>
   <div class="nav-item" onclick="nav('produtos')"><i class="ti ti-package"></i> Produtos</div>
   <div class="nav-item" onclick="nav('recorrentes')"><i class="ti ti-repeat"></i> Recorrentes</div>
-  <div class="nav-item" onclick="nav('principio')"><i class="ti ti-flask"></i> Princípio Ativo</div>
   <div class="nav-sec">Gestão</div>
   <div class="nav-item" onclick="nav('metas')"><i class="ti ti-target"></i> Metas de Redução</div>
+  <div class="nav-item" onclick="nav('acoes')"><i class="ti ti-clipboard-check"></i> Responsabilização</div>
   <div class="nav-item" onclick="nav('historico')"><i class="ti ti-history"></i> Histórico</div>
   <div class="nav-sec" style="margin-top:8px">Sistema</div>
   <div class="nav-item" id="nav-config-btn" onclick="openConfigGated()" style="display:none"><i class="ti ti-shield-lock"></i> Área Restrita</div>
@@ -502,6 +502,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <span class="chip brand" id="resumo-date"></span>
   </div>
   <div id="conc-alert" style="display:none" class="alert red"><i class="ti ti-alert-triangle"></i><div id="conc-msg"></div></div>
+  <div id="situacao-agora" style="display:none;margin-bottom:22px"></div>
   <div class="metrics" id="resumo-metrics"></div>
   <div id="resumo-termometro" style="display:none;margin-bottom:22px"></div>
   <div class="g2">
@@ -740,6 +741,15 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="card"><div class="card-h"><i class="ti ti-clipboard-text"></i> Recomendações para a Diretoria</div>
     <div id="compra-recom"></div>
   </div>
+  <div class="card" style="margin-top:22px">
+    <div class="card-h" style="cursor:pointer" onclick="toggleSection('fab-inline')">
+      <i class="ti ti-building-factory-2"></i> Análise por Fabricante
+      <span style="margin-left:auto;font-size:11px;color:var(--text3)" id="fab-inline-toggle-label">clique para expandir</span>
+    </div>
+    <div id="fab-inline" style="display:none">
+      <div id="fi-fab-content"></div>
+    </div>
+  </div>
 </div>
 
 <!-- AGING -->
@@ -791,6 +801,11 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="view-head"><div><h2><i class="ti ti-package"></i> Produtos Vencidos</h2>
     <div class="sub">Detalhamento completo item a item</div></div>
     <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('produtos','Produtos_Vencidos')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="btn ghost sm" onclick="setProdutosMode('vencidos')" id="pm-vencidos" style="border-color:var(--brand);color:var(--brand)">Vencidos</button>
+    <button class="btn ghost sm" onclick="setProdutosMode('principio')" id="pm-principio">Por Princípio Ativo</button>
+  </div>
+  <div id="pm-vencidos-content">
   <div class="filters">
     <select id="pf-linha" onchange="renderProdutos()"><option value="">Todas as Linhas</option></select>
     <select id="pf-loja" onchange="renderProdutos()"><option value="">Todas as Lojas</option></select>
@@ -805,6 +820,10 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <th class="r">Dias</th><th class="r">Custo Un.</th>
     <th class="r">Total (R$)</th><th class="c">Status</th>
   </tr></thead><tbody id="pt"></tbody></table></div>
+  </div><!-- end pm-vencidos-content -->
+  <div id="pm-principio-content" style="display:none">
+    <div id="pm-principio-body"></div>
+  </div>
 </div>
 
 <!-- FABRICANTES -->
@@ -865,6 +884,10 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-metas" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-target"></i> Metas de Redução</h2>
     <div class="sub">Defina o alvo semanal e acompanhe a projeção</div></div></div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-trending-down"></i> Projeção de Perda — Próximos 30 Dias</div>
+    <div id="proj-perda-content"></div>
+  </div>
   <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-adjustments"></i> Configurar Meta</div>
     <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
       <div><div class="tiny muted b" style="margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Redução semanal alvo</div>
@@ -877,7 +900,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
   <div class="g2">
     <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Meta por Loja</div>
-      <div class="tw"><table><thead><tr><th>Loja</th><th class="r">Atual</th><th class="r">Meta</th><th class="r">Reduzir</th></tr></thead><tbody id="meta-lt"></tbody></table></div></div>
+      <div class="tw"><table><thead><tr><th>Loja</th><th class="r">Atual</th><th class="r">Meta</th><th class="r">Reduzir</th><th class="c">Status</th></tr></thead><tbody id="meta-lt"></tbody></table></div></div>
     <div class="card"><div class="card-h"><i class="ti ti-chart-line"></i> Projeção 4 Semanas</div><div class="chartbox"><canvas id="ch-meta" role="img" aria-label="Projeção de redução"></canvas></div></div>
   </div>
 </div>
@@ -897,6 +920,43 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div id="hist-list"></div>
 </div>
 
+
+<!-- RESPONSABILIZAÇÃO -->
+<div id="v-acoes" style="display:none">
+  <div class="view-head">
+    <div><h2><i class="ti ti-clipboard-check"></i> Responsabilização por Item</h2>
+    <div class="sub">Atribua status e responsável a cada item vencido</div></div>
+    <button class="btn primary" onclick="salvarAcoes()"><i class="ti ti-device-floppy"></i> Salvar Ações</button>
+  </div>
+  <div class="alert green"><i class="ti ti-info-circle"></i><div>Registre o status de cada item vencido: o que foi feito, quem é responsável e até quando. Os dados ficam salvos no seu navegador e podem ser usados para comprovar ações tomadas durante a auditoria.</div></div>
+  <div class="metrics" id="acoes-metrics"></div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-filter"></i> Filtros</div>
+    <div class="filters">
+      <select id="af-reg" onchange="renderAcoes()"><option value="">Todos os Regionais</option></select>
+      <select id="af-loja" onchange="renderAcoes()"><option value="">Todas as Lojas</option></select>
+      <select id="af-status" onchange="renderAcoes()">
+        <option value="">Todos os Status</option>
+        <option value="Pendente">Pendente</option>
+        <option value="Devolvido ao Fornecedor">Devolvido ao Fornecedor</option>
+        <option value="Vendido com Desconto">Vendido com Desconto</option>
+        <option value="Baixa Contábil">Baixa Contábil</option>
+        <option value="Descartado">Descartado</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h"><i class="ti ti-list-check"></i> Itens Vencidos</div>
+    <div class="tw" style="overflow-x:auto">
+      <table><thead><tr>
+        <th>Produto</th><th>Loja</th><th>Regional</th><th>Auditor</th>
+        <th class="r">Valor R$</th><th style="min-width:160px">Status</th>
+        <th style="min-width:130px">Responsável</th><th style="min-width:110px">Prazo</th>
+        <th style="min-width:160px">Observação</th>
+      </tr></thead><tbody id="acoes-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
 
 <!-- PUBLICAÇÃO / GITHUB -->
 <div id="v-config" style="display:none">
@@ -973,6 +1033,53 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       <div style="display:flex;gap:10px;align-items:flex-start">
         <span style="background:#1e8449;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">✓</span>
         <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX, os dados são publicados automaticamente em <code style="background:var(--bg3);padding:1px 6px;border-radius:4px">data/vencidos.json</code> — todos verão em ~2 minutos, sem precisar subir arquivo.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:22px">
+    <div class="card-h"><i class="ti ti-rocket"></i> Funcionalidades em Desenvolvimento</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Próximas melhorias planejadas para o painel. Estas funcionalidades estão em desenvolvimento e serão ativadas em versões futuras.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="ti ti-brand-whatsapp" style="font-size:22px;color:var(--green)"></i>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700">Alertas Automáticos (WhatsApp/E-mail)</div></div>
+          <span class="chip amber">Em Desenvolvimento</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">Notificação automática ao gerente da loja quando um produto chegar a X dias do vencimento.</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="ti ti-camera" style="font-size:22px;color:var(--brand)"></i>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700">Evidência Fotográfica</div></div>
+          <span class="chip amber">Em Desenvolvimento</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">Foto do produto vencido com data/hora para registro de auditoria.</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="ti ti-barcode" style="font-size:22px;color:var(--purple)"></i>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700">Leitura de Código de Barras</div></div>
+          <span class="chip amber">Em Desenvolvimento</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">Scanner via câmera do celular para entrada rápida de produtos em auditoria.</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="ti ti-wifi-off" style="font-size:22px;color:var(--amber)"></i>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700">Modo Offline</div></div>
+          <span class="chip amber">Em Desenvolvimento</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">Registro de auditoria sem internet, com sincronização automática quando reconectar.</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="ti ti-file-time" style="font-size:22px;color:var(--red)"></i>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700">Log de Auditoria</div></div>
+          <span class="chip amber">Em Desenvolvimento</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">Histórico completo de ações: quem importou, exportou, marcou item como resolvido e quando.</div>
       </div>
     </div>
   </div>
@@ -1489,6 +1596,7 @@ function nav(id){
   const v=document.getElementById('v-'+id);if(v)v.style.display='block';
   if(id==='historico')renderHist();
   if(id==='metas')renderMetas();
+  if(id==='acoes')renderAcoes();
   if(id==='evolucao')renderEvo();
   if(id==='insights')renderInsights();
   if(id==='janela')renderJanela();
@@ -1549,7 +1657,7 @@ function renderAll(){
     return;
   }
   hideEmptyPanel();
-  renderResumo();renderAuditores();renderRegional();renderLojas();renderProdutos();renderPrioridade();renderFabricantes();renderRecorrentes();populateFilters();
+  renderResumo();renderAuditores();renderRegional();renderLojas();renderProdutos();renderPrioridade();renderFabricantes();renderRecorrentes();renderAcoes();populateFilters();
   const vrEl=document.getElementById('v-relatorio');if(vrEl&&vrEl.style.display!=='none')renderRelatorio();
   setTimeout(()=>enableSorting(),0);
 }
@@ -1602,10 +1710,14 @@ function renderResumo(){
       avCard=`<div class="ml">A Vencer</div><div class="mv">—</div><div class="ms">importação só de vencidos</div>`;
     }
   }
+  // ── Delta (comparativo de períodos) ──
+  function mkDelta(cur,prv){if(!prv||prv<=0)return '';const pct=Math.round(Math.abs(cur-prv)/prv*100);if(cur-prv>100)return `<div class="metric-delta up">↑ +${pct}% vs anterior</div>`;if(prv-cur>100)return `<div class="metric-delta dn">↓ -${pct}% vs anterior</div>`;return `<div class="metric-delta eq">→ Estável vs anterior</div>`;}
+  const ptAud=pt&&d.byAuditor[0]&&prev?prev.byAuditor.find(a=>a.key===d.byAuditor[0].key):null;
+  const ptTop=pt&&top&&prev?prev.byFilial.find(f=>f.key===top.key):null;
   document.getElementById('resumo-metrics').innerHTML=`
-    <div class="metric red" style="cursor:pointer" onclick="showCardDetail('total')" title="Ver detalhes"><div class="ml">Total Vencido</div><div class="mv">${brl(T)}</div><div class="ms">${pt?trend(T,pt)+' vs anterior':d.totalItems+' itens · '+d.byFilial.length+' lojas'}</div></div>
-    <div class="metric amber" style="cursor:pointer" onclick="showCardDetail('loja')" title="Ver detalhes"><div class="ml">Loja Crítica</div><div class="mv" style="font-size:16px">${top?top.key:'—'}</div><div class="ms">${top?brl(top.total)+' · '+Math.round(cp*100)+'%':'—'}</div></div>
-    <div class="metric" style="cursor:pointer" onclick="showCardDetail('auditor')" title="Ver detalhes"><div class="ml">Auditor + Exposto</div><div class="mv" style="font-size:16px">${d.byAuditor[0]?d.byAuditor[0].key:'—'}</div><div class="ms">${d.byAuditor[0]?brl(d.byAuditor[0].total)+' · '+Math.round(d.byAuditor[0].total/T*100)+'%':'—'}</div></div>
+    <div class="metric red" style="cursor:pointer" onclick="showCardDetail('total')" title="Ver detalhes"><div class="ml">Total Vencido</div><div class="mv">${brl(T)}</div>${mkDelta(T,pt)}<div class="ms">${d.totalItems+' itens · '+d.byFilial.length+' lojas'}</div></div>
+    <div class="metric amber" style="cursor:pointer" onclick="showCardDetail('loja')" title="Ver detalhes"><div class="ml">Loja Crítica</div><div class="mv" style="font-size:16px">${top?top.key:'—'}</div>${ptTop?mkDelta(top.total,ptTop.total):''}<div class="ms">${top?brl(top.total)+' · '+Math.round(cp*100)+'%':'—'}</div></div>
+    <div class="metric" style="cursor:pointer" onclick="showCardDetail('auditor')" title="Ver detalhes"><div class="ml">Auditor + Exposto</div><div class="mv" style="font-size:16px">${d.byAuditor[0]?d.byAuditor[0].key:'—'}</div>${ptAud?mkDelta(d.byAuditor[0].total,ptAud.total):''}<div class="ms">${d.byAuditor[0]?brl(d.byAuditor[0].total)+' · '+Math.round(d.byAuditor[0].total/T*100)+'%':'—'}</div></div>
     <div class="metric green" style="cursor:pointer" onclick="showCardDetail('avencer')" title="Ver detalhes">${avCard}</div>`;
   // ── Dados para o modal de detalhe ao clicar nos cards ──
   resumoDetalhe={
@@ -1625,7 +1737,23 @@ function renderResumo(){
   charts.linha=safeChart('ch-linha',{type:'doughnut',data:{labels:d.byLinha.map(l=>cleanLinha(l.key)),datasets:[{data:d.byLinha.map(l=>Math.round(l.total)),backgroundColor:lc,borderWidth:3,borderColor:getComputedStyle(document.body).getPropertyValue('--bg')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+brl(c.raw)}}},cutout:'62%'}});
   document.getElementById('leg-linha').innerHTML=d.byLinha.map((l,i)=>`<span><span class="dot" style="background:${lc[i]||'#888'}"></span>${cleanLinha(l.key).slice(0,16)} ${Math.round(l.total/T*100)}%</span>`).join('');
   // table
-  document.getElementById('rt').innerHTML=d.byFilial.map(f=>{const p=f.total/T*100;return `<tr class="${p>30?'conc':''}"><td class="b">${f.key}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${brl(f.total)}</td><td class="r">${f.items}</td><td class="r">${diasChip(f.maxDias)}</td><td><div class="pbar"><div class="pbar-bg"><div class="pbar-f ${p>30?'red':''}" style="width:${Math.min(p,100)}%"></div></div><span class="pbar-t">${p.toFixed(1)}%</span></div></td></tr>`;}).join('');
+  document.getElementById('rt').innerHTML=d.byFilial.map((f,i)=>{const p=f.total/T*100;const tot=d.byFilial.length;const badge=i<5?`<span class="chip red" style="font-size:9px;margin-left:4px">Top ${i+1} pior</span>`:i>=tot-5&&i>=5?`<span class="chip green" style="font-size:9px;margin-left:4px">Top ${tot-i} melhor</span>`:'';return `<tr class="${p>30?'conc':''}"><td class="b">${f.key}${badge}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${brl(f.total)}</td><td class="r">${f.items}</td><td class="r">${diasChip(f.maxDias)}</td><td><div class="pbar"><div class="pbar-bg"><div class="pbar-f ${p>30?'red':''}" style="width:${Math.min(p,100)}%"></div></div><span class="pbar-t">${p.toFixed(1)}%</span></div></td></tr>`;}).join('');
+  // ── Situação Agora (trend card) ──
+  const sa=document.getElementById('situacao-agora');
+  if(sa){
+    if(prev&&pt){
+      const diff=T-pt,pct2=Math.round(Math.abs(diff)/pt*100);
+      const piorando=diff>100,melhorando=diff<-100;
+      const seta=piorando?'↑':melhorando?'↓':'→';
+      const cor=piorando?'var(--red)':melhorando?'var(--green)':'var(--amber)';
+      const texto=piorando?`Vencido piorou ${pct2}% vs semana anterior (${brl(pt)} → ${brl(T)})`:melhorando?`Vencido melhorou ${pct2}% vs semana anterior (${brl(pt)} → ${brl(T)})`:`Estável vs semana anterior (variação menor que 1%)`;
+      sa.style.display='block';
+      sa.innerHTML=`<div class="card" style="border-left:4px solid ${cor};padding:14px 20px;display:flex;align-items:center;gap:16px"><div style="font-size:36px;color:${cor};font-weight:800;line-height:1">${seta}</div><div><div style="font-size:13px;font-weight:700;color:${cor}">Tendência Geral</div><div style="font-size:13px;color:var(--text2);margin-top:2px">${texto}</div></div></div>`;
+    } else if(!prev){
+      sa.style.display='block';
+      sa.innerHTML=`<div class="card" style="border-left:4px solid var(--brand);padding:14px 20px;display:flex;align-items:center;gap:16px"><div style="font-size:36px;color:var(--brand);font-weight:800;line-height:1">→</div><div><div style="font-size:13px;font-weight:700;color:var(--brand)">Primeira Importação</div><div style="font-size:13px;color:var(--text2);margin-top:2px">Sem comparativo — importe uma segunda planilha para ver a tendência.</div></div></div>`;
+    }
+  }
   // ── Termômetro de Recuperação ──
   const tt=document.getElementById('resumo-termometro');
   if(tt&&d.records.length){
@@ -2710,6 +2838,7 @@ function renderRegional(){
   const regColors=['#0b5cab','#7c3aed','#0891b2','#d68910','#059669','#dc2626','#db2777','#0d9488'];
   const regColor=(key)=>{const idx=d.byRegional.findIndex(x=>x.key===key);return regColors[idx%regColors.length];};
   // Cards (mesmo layout dos auditores)
+  const prevSnap=history[history.indexOf(d)+1];
   document.getElementById('reg-cards').innerHTML=d.byRegional.map((r,i)=>{
     const c=regColor(r.key);
     const lojas=d.byFilial.filter(f=>f.regional===r.key);
@@ -2717,10 +2846,12 @@ function renderRegional(){
     const ticket=r.items>0?r.total/r.items:0;
     const maxD=Math.max(...d.records.filter(x=>x.Gerente===r.key).map(x=>abs(x.Dias)),0);
     const rank=i===0?'<span class="aud-rank" style="background:var(--red-lt);color:var(--red)">Maior exposição</span>':i===d.byRegional.length-1?'<span class="aud-rank" style="background:var(--green-lt);color:var(--green)">Menor</span>':'';
+    let trendBadge='';
+    if(prevSnap){const pr=prevSnap.byRegional.find(x=>x.key===r.key);if(pr&&pr.total>0){const dp=(r.total-pr.total)/pr.total*100;if(dp>2)trendBadge=`<span class="chip red" style="font-size:10px;margin-left:6px">↑ +${Math.round(dp)}%</span>`;else if(dp<-2)trendBadge=`<span class="chip green" style="font-size:10px;margin-left:6px">↓ ${Math.round(dp)}%</span>`;}}
     return `<div class="aud-card">
       ${rank}
       <div class="aud-card-top"><div class="aud-avatar" style="background:${c}">${initials(r.key)}</div>
-        <div><div class="aud-name">${r.key}</div><div class="aud-role">Regional · ${lojas.length} loja(s)</div></div></div>
+        <div><div class="aud-name">${r.key}${trendBadge}</div><div class="aud-role">Regional · ${lojas.length} loja(s)</div></div></div>
       <div class="aud-card-body">
         <div class="aud-stat-row"><span class="l">Valor vencido</span><span class="v" style="color:${c}">${brl(r.total)}</span></div>
         <div class="aud-stat-row"><span class="l">% do total</span><span class="v">${pct}%</span></div>
@@ -2839,7 +2970,8 @@ function renderLojas(){
   const d=current;
   const rf=document.getElementById('lf-reg').value,af=document.getElementById('lf-aud').value,sr=(document.getElementById('lf-search').value||'').toLowerCase();
   const lojas=d.byFilial.filter(f=>(!rf||f.regional===rf)&&(!af||f.auditor===af)&&(!sr||f.key.toLowerCase().includes(sr)));
-  document.getElementById('lt').innerHTML=lojas.map(f=>`<tr><td class="b">${f.key}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${f.items}</td><td class="r">${num(Math.round(f.qtd))}</td><td class="r b">${brl(f.total)}</td><td class="r">${diasChip(f.maxDias)}</td><td class="c"><button class="btn xs" onclick="showLojaDetail('${f.key.replace(/'/g,"")}')">Detalhar</button></td></tr>`).join('');
+  const prevSnapL=history[history.indexOf(d)+1];
+  document.getElementById('lt').innerHTML=lojas.map(f=>{let trendBadge='';if(prevSnapL){const pf=prevSnapL.byFilial.find(x=>x.key===f.key);if(pf&&pf.total>0){const dp=(f.total-pf.total)/pf.total*100;if(dp>2)trendBadge=`<span class="chip red" style="font-size:9px;margin-left:4px">↑ +${Math.round(dp)}%</span>`;else if(dp<-2)trendBadge=`<span class="chip green" style="font-size:9px;margin-left:4px">↓ ${Math.round(dp)}%</span>`;}}return `<tr><td class="b">${f.key}${trendBadge}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${f.items}</td><td class="r">${num(Math.round(f.qtd))}</td><td class="r b">${brl(f.total)}</td><td class="r">${diasChip(f.maxDias)}</td><td class="c"><button class="btn xs" onclick="showLojaDetail('${f.key.replace(/'/g,"")}')">Detalhar</button></td></tr>`;}).join('');
 }
 function showLojaDetail(filial){
   const d=current;
@@ -3204,7 +3336,9 @@ function renderMetas(){
   const mp=parseInt(document.getElementById('meta-pct').value)||20;
   const alvo=T*(1-mp/100),red=T-alvo;
   document.getElementById('meta-cards').innerHTML=`<div class="metric green"><div class="ml">Alvo após ${mp}%</div><div class="mv" style="font-size:18px">${brl(alvo)}</div><div class="ms">Reduzir ${brl(red)}</div></div><div class="metric"><div class="ml">Por loja (média)</div><div class="mv" style="font-size:18px">${brl(red/d.byFilial.length)}</div><div class="ms">Por semana</div></div>`;
-  document.getElementById('meta-lt').innerHTML=d.byFilial.map(f=>{const a=f.total*(1-mp/100);return `<tr><td class="b" style="font-size:12px">${f.key}</td><td class="r">${brl(f.total)}</td><td class="r" style="color:var(--green);font-weight:700">${brl(a)}</td><td class="r" style="color:var(--red)">${brl(f.total-a)}</td></tr>`;}).join('');
+  const avgFilial=T/Math.max(d.byFilial.length,1);
+  document.getElementById('meta-lt').innerHTML=d.byFilial.map(f=>{const a=f.total*(1-mp/100);const statusChip=f.total<avgFilial*0.8?`<span class="chip green">Abaixo da média</span>`:f.total>avgFilial*1.2?`<span class="chip red">Atenção</span>`:`<span class="chip amber">Na média</span>`;return `<tr><td class="b" style="font-size:12px">${f.key}</td><td class="r">${brl(f.total)}</td><td class="r" style="color:var(--green);font-weight:700">${brl(a)}</td><td class="r" style="color:var(--red)">${brl(f.total-a)}</td><td class="c">${statusChip}</td></tr>`;}).join('');
+  renderProjecaoPerda();
   destroyChart('meta');
   const wk=[0,1,2,3,4];const proj=wk.map(w=>Math.round(T*Math.pow(1-mp/100,w)));
   charts.meta=safeChart('ch-meta',{type:'line',data:{labels:wk.map(w=>w===0?'Atual':'Sem '+w),datasets:[{label:'Projeção',data:proj,borderColor:'#1e8449',backgroundColor:'rgba(30,132,73,.08)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#1e8449'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>brl(c.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}}}}}});
@@ -4002,6 +4136,149 @@ init();
   const icon=document.getElementById('theme-icon');
   if(icon)icon.className=active==='dark'?'ti ti-moon':'ti ti-sun';
 })();
+
+// ─── RESPONSABILIZAÇÃO (ITEM 1+2) ───
+const ACOES_KEY='agroquima_acoes';
+function getAcoesSalvas(){try{return JSON.parse(localStorage.getItem(ACOES_KEY)||'{}');}catch(e){return {};}}
+function saveAcoes(data){localStorage.setItem(ACOES_KEY,JSON.stringify(data));}
+function renderAcoes(){
+  if(!hasData())return;
+  const d=current;
+  const saved=getAcoesSalvas();
+  const rf=document.getElementById('af-reg')?document.getElementById('af-reg').value:'';
+  const lf=document.getElementById('af-loja')?document.getElementById('af-loja').value:'';
+  const sf=document.getElementById('af-status')?document.getElementById('af-status').value:'';
+  // populate filter options
+  const regEl=document.getElementById('af-reg');
+  const lojaEl=document.getElementById('af-loja');
+  if(regEl&&regEl.options.length<=1){const regs=[...new Set(d.records.map(r=>r.Gerente||'—'))].sort();regs.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;regEl.appendChild(o);});}
+  if(lojaEl&&lojaEl.options.length<=1){const lojas=[...new Set(d.records.map(r=>r.Sigla||'—'))].sort();lojas.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;lojaEl.appendChild(o);});}
+  const recs=d.records.filter(r=>(!rf||r.Gerente===rf)&&(!lf||r.Sigla===lf));
+  const statusCount={};
+  recs.forEach(r=>{const k=`${cleanProd(r.Nome)}|${r.Sigla}|${r.Lote||''}|${r.DtVenc||''}`;const st=(saved[k]&&saved[k].status)||'Pendente';statusCount[st]=(statusCount[st]||0)+1;});
+  const totalItens=recs.length;
+  const pendentes=statusCount['Pendente']||totalItens;
+  const resolvidos=totalItens-pendentes;
+  const valPend=recs.filter(r=>{const k=`${cleanProd(r.Nome)}|${r.Sigla}|${r.Lote||''}|${r.DtVenc||''}`;const st=(saved[k]&&saved[k].status)||'Pendente';return st==='Pendente';}).reduce((s,r)=>s+r.Total,0);
+  const mEl=document.getElementById('acoes-metrics');
+  if(mEl)mEl.innerHTML=`<div class="metric"><div class="ml">Total Itens</div><div class="mv">${totalItens}</div></div><div class="metric red"><div class="ml">Pendentes</div><div class="mv">${pendentes}</div></div><div class="metric green"><div class="ml">Resolvidos</div><div class="mv">${resolvidos}</div></div><div class="metric amber"><div class="ml">Valor Pendente</div><div class="mv" style="font-size:18px">${brl(valPend)}</div></div>`;
+  const filtered=recs.filter(r=>{if(!sf)return true;const k=`${cleanProd(r.Nome)}|${r.Sigla}|${r.Lote||''}|${r.DtVenc||''}`;return ((saved[k]&&saved[k].status)||'Pendente')===sf;});
+  const tbody=document.getElementById('acoes-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=filtered.map(r=>{
+    const k=`${cleanProd(r.Nome)}|${r.Sigla}|${r.Lote||''}|${r.DtVenc||''}`;
+    const ac=saved[k]||{};
+    const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    return `<tr data-key="${esc(k)}">
+      <td style="font-size:12px">${prodNomeCod(r)}</td>
+      <td style="font-size:12px">${r.Sigla}</td>
+      <td style="font-size:12px">${r.Gerente||'—'}</td>
+      <td style="font-size:12px">${r.Auditor||'—'}</td>
+      <td class="r">${brl(r.Total)}</td>
+      <td><select class="acao-status" style="font-size:12px;padding:4px 6px;border:1px solid var(--border-2);border-radius:4px;background:var(--bg);color:var(--text);width:100%">
+        <option${(!ac.status||ac.status==='Pendente')?' selected':''}>Pendente</option>
+        <option${ac.status==='Devolvido ao Fornecedor'?' selected':''}>Devolvido ao Fornecedor</option>
+        <option${ac.status==='Vendido com Desconto'?' selected':''}>Vendido com Desconto</option>
+        <option${ac.status==='Baixa Contábil'?' selected':''}>Baixa Contábil</option>
+        <option${ac.status==='Descartado'?' selected':''}>Descartado</option>
+      </select></td>
+      <td><input class="acao-resp" type="text" placeholder="Nome" value="${esc(ac.responsavel||'')}" style="font-size:12px;padding:4px 6px;border:1px solid var(--border-2);border-radius:4px;background:var(--bg);color:var(--text);width:100%"></td>
+      <td><input class="acao-prazo" type="date" value="${esc(ac.prazo||'')}" style="font-size:12px;padding:4px 6px;border:1px solid var(--border-2);border-radius:4px;background:var(--bg);color:var(--text);width:100%"></td>
+      <td><input class="acao-obs" type="text" placeholder="Observação" value="${esc(ac.obs||'')}" style="font-size:12px;padding:4px 6px;border:1px solid var(--border-2);border-radius:4px;background:var(--bg);color:var(--text);width:100%"></td>
+    </tr>`;
+  }).join('');
+}
+function salvarAcoes(){
+  const saved=getAcoesSalvas();
+  document.querySelectorAll('#acoes-tbody tr[data-key]').forEach(tr=>{
+    const k=tr.getAttribute('data-key');
+    if(!k)return;
+    const status=(tr.querySelector('.acao-status')||{}).value||'Pendente';
+    const responsavel=(tr.querySelector('.acao-resp')||{}).value||'';
+    const prazo=(tr.querySelector('.acao-prazo')||{}).value||'';
+    const obs=(tr.querySelector('.acao-obs')||{}).value||'';
+    saved[k]={status,responsavel,prazo,obs};
+  });
+  saveAcoes(saved);
+  toast('Ações salvas com sucesso!','brand');
+  renderAcoes();
+}
+
+// ─── PROJEÇÃO DE PERDA 30 DIAS (ITEM 4) ───
+function renderProjecaoPerda(){
+  const el=document.getElementById('proj-perda-content');
+  if(!el)return;
+  if(!hasData()){el.innerHTML='<div style="font-size:13px;color:var(--text2);padding:8px 0">Importe dados para ver a projeção.</div>';return;}
+  const T=current.grandTotal;
+  if(history.length<2){
+    el.innerHTML=`<div class="alert brand" style="margin:0"><i class="ti ti-info-circle"></i><div>Sem histórico suficiente para projetar. Importe ao menos <strong>2 planilhas</strong> em datas diferentes para calcular a tendência.</div></div>`;
+    return;
+  }
+  // calcula variação média semanal entre pares consecutivos
+  const sorted=[...history].sort((a,b)=>{const pa=a.importDate.split('/').reverse().join(''),pb=b.importDate.split('/').reverse().join('');return pa>pb?1:-1;});
+  const diffs=[];
+  for(let i=1;i<sorted.length;i++){const prev=sorted[i-1].grandTotal,cur=sorted[i].grandTotal;if(prev>0)diffs.push((cur-prev)/prev);}
+  const avgWeeklyRate=diffs.reduce((s,d)=>s+d,0)/diffs.length;
+  const proj30=T*Math.pow(1+avgWeeklyRate,30/7);
+  const diff30=proj30-T;
+  const pct30=T>0?Math.round(Math.abs(diff30)/T*100):0;
+  const piorando=diff30>0;
+  const cor=piorando?'var(--red)':'var(--green)';
+  const seta=piorando?'↑':'↓';
+  el.innerHTML=`<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:8px 0">
+    <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px">Valor Atual</div><div style="font-size:22px;font-weight:800">${brl(T)}</div></div>
+    <div style="font-size:28px;color:${cor};font-weight:800">${seta}</div>
+    <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px">Projeção em 30 dias</div><div style="font-size:22px;font-weight:800;color:${cor}">${brl(proj30)}</div></div>
+    <div style="margin-left:auto;text-align:right"><div style="font-size:11px;color:var(--text3)">Variação estimada</div><div style="font-size:18px;font-weight:800;color:${cor}">${piorando?'+':'-'}${pct30}%</div><div style="font-size:11px;color:var(--text3);margin-top:4px">baseado em ${diffs.length} período(s)</div></div>
+  </div>`;
+}
+
+// ─── FABRICANTES INLINE em v-compra (ITEM B) ───
+function toggleSection(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const label=document.getElementById(id+'-toggle-label');
+  if(el.style.display==='none'){
+    el.style.display='block';
+    if(label)label.textContent='clique para recolher';
+    if(id==='fab-inline')renderFabInline();
+  } else {
+    el.style.display='none';
+    if(label)label.textContent='clique para expandir';
+  }
+}
+function renderFabInline(){
+  const el=document.getElementById('fi-fab-content');
+  if(!el||!hasData())return;
+  const d=current,T=d.grandTotal;
+  const fabMap={};
+  d.records.forEach(r=>{const f=cleanFab(r.Fabricante);if(!fabMap[f])fabMap[f]={nome:f,total:0,items:0,lojas:new Set()};fabMap[f].total+=r.Total;fabMap[f].items++;fabMap[f].lojas.add(r.Sigla);});
+  const fabs=Object.values(fabMap).map(f=>({...f,lojas:f.lojas.size})).sort((a,b)=>b.total-a.total).slice(0,15);
+  el.innerHTML=`<div class="tw" style="margin-top:12px"><table><thead><tr><th>Fabricante</th><th class="r">Itens</th><th class="r">Lojas</th><th class="r">Total (R$)</th><th class="r">% Total</th></tr></thead><tbody>${fabs.map(f=>{const p=(f.total/T*100).toFixed(1);return `<tr><td class="b" style="font-size:12px">${f.nome}</td><td class="r">${f.items}</td><td class="r">${f.lojas}</td><td class="r">${brl(f.total)}</td><td class="r">${p}%</td></tr>`;}).join('')}</tbody></table></div>`;
+}
+
+// ─── PRINCÍPIO ATIVO TOGGLE em v-produtos (ITEM A) ───
+function setProdutosMode(mode){
+  const btnV=document.getElementById('pm-vencidos');
+  const btnP=document.getElementById('pm-principio');
+  const contV=document.getElementById('pm-vencidos-content');
+  const contP=document.getElementById('pm-principio-content');
+  if(mode==='vencidos'){
+    if(btnV){btnV.style.borderColor='var(--brand)';btnV.style.color='var(--brand)';}
+    if(btnP){btnP.style.borderColor='';btnP.style.color='';}
+    if(contV)contV.style.display='block';
+    if(contP)contP.style.display='none';
+  } else {
+    if(btnP){btnP.style.borderColor='var(--brand)';btnP.style.color='var(--brand)';}
+    if(btnV){btnV.style.borderColor='';btnV.style.color='';}
+    if(contV)contV.style.display='none';
+    if(contP)contP.style.display='block';
+    // populate principio ativo content
+    const el=document.getElementById('pm-principio-body');
+    if(el&&hasData())el.innerHTML='<div style="font-size:13px;color:var(--text2);padding:16px 0">Para análise detalhada por princípio ativo, acesse a aba completa no menu <strong>Sistema</strong>.</div>';
+  }
+}
+
 function toggleTheme(){
   const current=document.documentElement.getAttribute('data-theme')||'light';
   const next=current==='dark'?'light':'dark';
