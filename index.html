@@ -482,6 +482,417 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="metrics" id="resumo-metrics"></div>
   <div id="resumo-termometro" style="display:none;margin-bottom:22px"></div>
   <div class="g2">
+    <div class="card"><div class="card-h"><i class="ti ti-user-shield"></i> Distribuição por Auditor</div>
+      <div class="legend" id="leg-aud"></div><div class="chartbox"><canvas id="ch-aud" role="img" aria-label="Vencidos por auditor"></canvas></div></div>
+    <div class="card"><div class="card-h"><i class="ti ti-box"></i> Distribuição por Linha</div>
+      <div class="legend" id="leg-linha"></div><div class="chartbox"><canvas id="ch-linha" role="img" aria-label="Vencidos por linha"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Ranking de Lojas por Valor Vencido</div>
+    <div class="tw"><table><thead><tr>
+      <th>Loja</th><th>Regional</th><th>Auditor</th>
+      <th class="r">Valor (R$)</th><th class="r">Itens</th>
+      <th class="r">Mais Antigo</th><th style="width:150px">Participação</th>
+    </tr></thead><tbody id="rt"></tbody></table></div>
+  </div>
+</div>
+
+<!-- INSIGHTS -->
+<div id="v-insights" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-bulb"></i> Insights & Diagnóstico</h2>
+    <div class="sub">Leitura crítica dos dados — o que os números revelam e o que fazer com eles</div></div></div>
+  <div id="cambio-bar" style="display:none;margin-bottom:18px"></div>
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-chart-arcs"></i> Diagnóstico do Período</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Os quatro vetores que explicam o vencido deste período: onde se concentra, qual produto domina, quanto ainda é recuperável e de quem é a responsabilidade.</div>
+    <div id="insights-cards" class="insight-grid" style="margin-bottom:0"></div>
+  </div>
+  <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-microscope"></i> Diagnóstico Cruzado por Produto</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Cruza validade de fábrica, concentração por loja, reincidência e padrão de compra — tudo calculado dos seus próprios dados, auditável.</div>
+    <div id="prod-analise-body"></div>
+  </div>
+  <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-clipboard-text"></i> Parecer do Auditor</div>
+    <div id="parecer" style="font-size:14px;line-height:1.8;color:var(--text2)"></div>
+  </div>
+  <div class="card" id="politica-devolucao" style="margin-bottom:22px;display:none"></div>
+  <div class="alert brand" style="margin-bottom:0"><i class="ti ti-calendar-time"></i><div>A análise de <strong>sazonalidade</strong> (o que vence fora da época de venda e precisa escoar já) ganhou uma aba própria: <strong style="cursor:pointer;text-decoration:underline" onclick="nav('janela')">Janela de Venda</strong>.</div></div>
+</div>
+
+<!-- JANELA DE VENDA -->
+<div id="v-janela" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-calendar-time"></i> Janela de Venda</h2>
+    <div class="sub">Cada lote cruzado com a época de venda da sua linha — o que escoar antes que vença fora de temporada</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('janela','Janela_de_Venda')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div class="alert brand"><i class="ti ti-info-circle"></i><div>Um produto pode estar dentro da validade e ainda assim estar perdido: se a <strong>janela de venda</strong> da linha (safra, seca ou ano todo) só abrir <em>depois</em> do vencimento, não haverá comprador. Esta tela classifica <strong>todos os lotes — vencidos e a vencer</strong> — pela chance real de venda. Clique nas <strong>bolinhas da legenda</strong> ou use os filtros para focar uma situação.</div></div>
+  <div id="j-tipo-notice" style="display:none;margin-bottom:16px"></div>
+  <div class="g4" id="j-metrics" style="margin-bottom:22px"></div>
+  <div class="card">
+    <div class="card-h"><i class="ti ti-calendar-stats"></i> Tabela Única — Situação de Cada Lote</div>
+    <div id="j-windows" style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6"></div>
+    <div class="filters">
+      <select id="jf-cat" onchange="renderJanela()">
+        <option value="">Todas as Situações</option>
+        <option value="acao">🔴 Ação Imediata — Vence Fora da Janela de Venda</option>
+        <option value="monitor">🟡 Monitorar — Janela Abre Antes de Vencer</option>
+        <option value="janela">🟢 Dentro da Janela — Priorizar Giro (FEFO)</option>
+        <option value="vencido">⚫ Já Vencido — Destinar por Política da Linha</option>
+      </select>
+      <select id="jf-reg" onchange="renderJanela()"><option value="">Todos os Regionais</option></select>
+      <select id="jf-loja" onchange="renderJanela()"><option value="">Todas as Lojas</option></select>
+      <select id="jf-linha" onchange="renderJanela()"><option value="">Todas as Linhas</option></select>
+      <input type="text" id="jf-search" placeholder="🔍 Buscar produto..." oninput="renderJanela()" style="min-width:180px">
+    </div>
+    <div class="jleg" id="j-leg"></div>
+    <div class="tw"><table><thead><tr>
+      <th style="width:18px"></th>
+      <th>Produto</th>
+      <th>Loja</th>
+      <th>Linha</th>
+      <th class="r">Qtd</th>
+      <th class="r">Vence em</th>
+      <th class="r">Valor</th>
+      <th>Ação Recomendada</th>
+    </tr></thead><tbody id="jt"></tbody></table></div>
+    <div id="j-more" class="tiny muted" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- EVOLUÇÃO -->
+<div id="v-evolucao" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-arrows-diff"></i> Evolução Semanal</h2>
+    <div class="sub">Histórico de todas as importações — quanto menor o vencido, melhor</div></div></div>
+  <div id="evo-trend-card" class="card" style="margin-bottom:22px;display:none">
+    <div class="card-h"><i class="ti ti-chart-line"></i> Curva de Evolução do Vencido</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Total de vencido em cada importação registrada. A linha verde tracejada (a vencer) mostra o que estava prestes a vencer naquela data.</div>
+    <div class="chartbox" style="height:280px"><canvas id="ch-evo" role="img" aria-label="Evolução do vencido por período"></canvas></div>
+    <div class="legend" id="leg-evo" style="margin-top:14px"></div>
+  </div>
+  <div id="evo-body"></div>
+</div>
+
+<!-- AUDITORES -->
+<div id="v-auditores" style="display:none">
+  <div id="aud-list-view">
+    <div class="view-head"><div><h2><i class="ti ti-user-shield"></i> Avaliação por Auditor</h2>
+      <div class="sub">Responsabilização individual — cada auditor deve tomar ação sobre sua carteira</div></div></div>
+    <div class="alert brand"><i class="ti ti-info-circle"></i><div>Cada auditor é responsável pelas lojas sob sua carteira. As ações de redução de vencidos devem ser conduzidas e reportadas individualmente.</div></div>
+    <div class="aud-grid" id="aud-cards"></div>
+    <div class="card"><div class="card-h"><i class="ti ti-table"></i> Quadro Comparativo de Auditores</div>
+      <div class="tw"><table><thead><tr>
+        <th>Auditor</th><th class="r">Lojas</th>
+        <th class="r">Itens</th><th class="r">Valor (R$)</th>
+        <th class="r">% Total</th><th class="r">Mais Antigo</th>
+        <th class="r">Ticket Médio</th><th class="c">Ação</th>
+      </tr></thead><tbody id="at"></tbody></table></div>
+    </div>
+  </div>
+  <div id="aud-detail-view" style="display:none"></div>
+</div>
+
+<!-- REGIONAL -->
+<div id="v-regional" style="display:none">
+  <div id="reg-list-view">
+    <div class="view-head"><div><h2><i class="ti ti-map-pin"></i> Análise por Regional</h2>
+      <div class="sub">Responsabilização por regional — cada regional deve conduzir a redução nas suas lojas</div></div></div>
+    <div class="alert brand"><i class="ti ti-info-circle"></i><div>Cada gerente regional responde pelas lojas sob sua gestão. Clique em "Ver detalhe completo" para o diagnóstico de produtos, envelhecimento e plano de ação de cada regional.</div></div>
+    <div id="reg-cards" class="aud-grid"></div>
+    <div class="tw" style="margin:22px 0"><table><thead><tr>
+      <th>Gerente Regional</th><th class="r">Lojas</th>
+      <th class="r">Itens</th><th class="r">Total (R$)</th>
+      <th class="r">% Total</th><th style="width:140px">Distribuição</th>
+    </tr></thead><tbody id="regt"></tbody></table></div>
+  </div>
+  <div id="reg-detail-view" style="display:none"></div>
+</div>
+<!-- LOJAS -->
+<div id="v-lojas" style="display:none">
+  <div id="loja-list">
+    <div class="view-head"><div><h2><i class="ti ti-building-store"></i> Análise por Loja</h2>
+      <div class="sub">Detalhamento e ações por filial</div></div></div>
+    <div class="filters">
+      <select id="lf-reg" onchange="renderLojas()"><option value="">Todos os Regionais</option></select>
+      <select id="lf-aud" onchange="renderLojas()"><option value="">Todos os Auditores</option></select>
+      <input type="text" id="lf-search" placeholder="🔍 Buscar loja..." oninput="renderLojas()" style="min-width:180px">
+    </div>
+    <div class="tw"><table><thead><tr>
+      <th>Loja</th><th>Regional</th><th>Auditor</th>
+      <th class="r">Itens</th><th class="r">Qtd</th>
+      <th class="r">Valor (R$)</th><th class="r">Mais Antigo</th><th class="c">Ação</th>
+    </tr></thead><tbody id="lt"></tbody></table></div>
+  </div>
+  <div id="loja-detail" style="display:none"></div>
+</div>
+
+<!-- ALERTAS DE VENCIMENTO -->
+<div id="v-alertas" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-alarm"></i> Alertas de Vencimento</h2>
+    <div class="sub">Produtos a vencer — dinheiro ainda recuperável se houver ação agora</div></div></div>
+  <div class="alert green"><i class="ti ti-shield-check"></i><div><strong>Prevenção, não constatação.</strong> Estes produtos ainda não venceram. Cada item é uma oportunidade de ação antes da perda: <strong>pastagem (FAG)</strong> — negociar devolução à fábrica para itens de alto giro ou escoar por venda; <strong>nutrição animal (FAP/FCB)</strong> — escoar por venda imediata, sem opção de devolução futura; <strong>agrícola</strong> — verificar revalidação ou promover venda; <strong>demais</strong> — venda ou bonificação com fornecedor. Escolha a janela de antecedência abaixo.</div></div>
+
+  <div id="alertas-fonte-notice" style="display:none;margin-bottom:12px"></div>
+  <div class="window-selector">
+    <span class="ws-label">Mostrar o que vence em até:</span>
+    <div class="ws-btns">
+      <button class="ws-btn" data-dias="30" onclick="setAlertWindow(30)">30 dias</button>
+      <button class="ws-btn active" data-dias="60" onclick="setAlertWindow(60)">60 dias</button>
+      <button class="ws-btn" data-dias="90" onclick="setAlertWindow(90)">90 dias</button>
+      <button class="ws-btn" data-dias="180" onclick="setAlertWindow(180)">180 dias</button>
+      <button class="ws-btn" data-dias="9999" onclick="setAlertWindow(9999)">Tudo</button>
+    </div>
+  </div>
+
+  <div id="alertas-empty" style="display:none" class="empty-state">
+    <i class="ti ti-circle-check" style="font-size:48px;color:var(--green)"></i>
+    <h3>Nenhum produto a vencer nesta janela</h3>
+    <p>Não há produtos a vencer no prazo selecionado, ou o relatório importado contém apenas itens já vencidos.</p>
+  </div>
+
+  <div id="alertas-content">
+    <!-- Semáforo de faixas -->
+    <div class="g4" id="alertas-tiers"></div>
+
+    <!-- Destaques -->
+    <div id="alertas-highlights"></div>
+
+    <!-- Por Regional / Loja -->
+    <div class="g2" style="margin-bottom:22px">
+      <div class="card"><div class="card-h"><i class="ti ti-map-pin"></i> Risco por Regional</div>
+        <div class="tw"><table><thead><tr><th>Regional</th><th class="r">Itens</th><th class="r">Valor em Risco</th><th style="width:120px">Urgência</th></tr></thead><tbody id="alertas-reg"></tbody></table></div>
+      </div>
+      <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Risco por Loja</div>
+        <div class="tw"><table><thead><tr><th>Loja</th><th>Regional</th><th class="r">Valor em Risco</th></tr></thead><tbody id="alertas-loja"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Produtos a vencer -->
+    <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-package"></i> Produtos a Vencer — agrupados</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Produtos próximos do vencimento agregados. Um mesmo produto a vencer em várias lojas pode ser redistribuído entre filiais para escoar antes do prazo.</div>
+      <div class="tw"><table><thead><tr><th style="width:18px"></th><th>Produto</th><th class="r">Qtd Total</th><th class="r">Lojas</th><th class="r">Vence em (min)</th><th class="r">Valor em Risco</th></tr></thead><tbody id="alertas-prod"></tbody></table></div>
+    </div>
+
+    <!-- Lista completa -->
+    <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os itens a vencer (<span id="alertas-count">0</span>)</div>
+      <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Auditor</th><th>Lote</th><th class="r">Qtd</th><th class="r">Vencimento</th><th class="r">Faltam</th><th class="r">Valor (R$)</th></tr></thead><tbody id="alertas-list"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ANÁLISE DE COMPRA -->
+<div id="v-compra" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-shopping-cart-x"></i> Análise de Compra</h2>
+    <div class="sub">Diagnóstico da causa-raiz: produtos comprados em excesso ou sem giro compatível</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('compra','Analise_de_Compra')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div class="alert amber"><i class="ti ti-bulb"></i><div><strong>O vencido é o sintoma; a compra é a causa.</strong> Esta análise cruza o volume parado com o tempo de prateleira do produto para sinalizar compras desproporcionais ao giro. Quando houver dados de venda no sistema, o cruzamento com giro real torna o diagnóstico ainda mais preciso.</div></div>
+  <div class="filters">
+    <select id="cp-reg" onchange="renderCompra()"><option value="">Todos os Regionais</option></select>
+    <select id="cp-loja" onchange="renderCompra()"><option value="">Todas as Lojas</option></select>
+    <select id="cp-aud" onchange="renderCompra()"><option value="">Todos os Auditores</option></select>
+  </div>
+  <div id="compra-metrics" class="metrics"></div>
+  <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-alert-octagon"></i> Sinais de Compra Excessiva (over-buying)</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Lotes únicos de alto valor representam um único pedido grande. Quando o lote inteiro vence, é forte indício de que a quantidade comprada superou a capacidade de venda da(s) loja(s) no prazo de validade.</div>
+    <div class="legend"><span><span class="dot" style="background:var(--red-dk)"></span>Crítico — lote acima de R$ 50 mil parado</span><span><span class="dot" style="background:var(--amber-dk)"></span>Atenção — entre R$ 20 mil e R$ 50 mil</span><span><span class="dot" style="background:var(--text2)"></span>Moderado — abaixo de R$ 20 mil</span></div>
+    <div class="tw"><table><thead><tr>
+      <th>Produto</th><th>Loja</th><th>Lote</th><th class="r">Qtd no Lote</th>
+      <th class="r">Validade (meses)</th><th class="r">Valor Parado</th><th class="c">Sinal</th>
+    </tr></thead><tbody id="compra-overbuy"></tbody></table></div>
+  </div>
+  <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-package"></i> Visão por Produto — Volume vs Dispersão</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Produtos com alto valor vencido espalhados em várias lojas indicam compra centralizada sem considerar o giro individual de cada filial. Produtos de validade longa (24+ meses) que mesmo assim venceram são os casos mais graves de excesso.</div>
+    <div class="legend"><span><span class="dot" style="background:var(--red-dk)"></span>Excesso grave (validade 24m+) ou centralizado em 3+ lojas</span><span><span class="dot" style="background:var(--amber-dk)"></span>Disperso em 2+ lojas ou múltiplos lotes parados</span><span><span class="dot" style="background:var(--text2)"></span>Pontual — caso isolado</span></div>
+    <div class="tw"><table><thead><tr>
+      <th style="width:18px"></th>
+      <th>Produto</th>
+      <th class="r">Qtd Total</th>
+      <th class="r">Lotes</th>
+      <th class="r">Lojas</th>
+      <th class="r">Validade Média</th>
+      <th class="r">Valor Parado</th>
+      <th class="c">Diagnóstico</th>
+    </tr></thead><tbody id="compra-prod"></tbody></table></div>
+  </div>
+  <div class="card"><div class="card-h"><i class="ti ti-clipboard-text"></i> Recomendações para a Diretoria</div>
+    <div id="compra-recom"></div>
+  </div>
+</div>
+
+<!-- AGING -->
+<div id="v-aging" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-hourglass"></i> Aging — Envelhecimento do Vencido</h2>
+    <div class="sub">Distribuição por tempo de vencimento — define urgência e recuperabilidade</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('aging','Aging_Envelhecimento')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div class="alert brand"><i class="ti ti-info-circle"></i><div>Itens vencidos há <strong>menos de 30 dias</strong> ainda têm maior chance de ação. <strong>Atenção à política por linha:</strong> Nutrição Animal (FAP/FCB) — sem devolução, destinar como descarte ou venda imediata; Pastagem — devolução somente à FAG (não entre filiais); Agrícola — verificar revalidação de análise; demais — tentar bonificação com fornecedor. Itens há <strong>mais de 365 dias</strong> são candidatos a baixa/descarte.</div></div>
+  <div class="filters">
+    <select id="ag-reg" onchange="renderAging()"><option value="">Todos os Regionais</option></select>
+    <select id="ag-loja" onchange="renderAging()"><option value="">Todas as Lojas</option></select>
+    <select id="ag-aud" onchange="renderAging()"><option value="">Todos os Auditores</option></select>
+  </div>
+  <div id="aging-metrics" class="metrics"></div>
+  <div class="g2-1">
+    <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Valor por Faixa de Vencimento</div><div id="aging-bars"></div></div>
+    <div class="card"><div class="card-h"><i class="ti ti-chart-pie"></i> Proporção</div><div class="chartbox"><canvas id="ch-aging" role="img" aria-label="Aging do vencido"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Recomendação por Faixa</div>
+    <div class="legend"><span><span class="dot" style="background:var(--green-dk)"></span>Recuperável — ainda há chance real de retorno/bonificação</span><span><span class="dot" style="background:var(--amber-dk)"></span>Atenção — última janela antes de virar baixa</span><span><span class="dot" style="background:var(--red-dk)"></span>Crítico — avaliar baixa/descarte e formalizar perda</span></div>
+    <div class="tw"><table><thead><tr><th>Faixa</th><th class="c">Urgência</th><th class="r">Valor</th><th class="r">% do Filtrado</th><th class="r">Itens</th><th>Ação Recomendada</th></tr></thead>
+    <tbody id="aging-rec"></tbody></table></div>
+  </div>
+</div>
+
+<!-- PRIORIDADE / PLANO DE AÇÃO -->
+<div id="v-prioridade" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-alert-triangle"></i> Plano de Ação Prioritário</h2>
+    <div class="sub">Itens ordenados por criticidade — comece pelo topo</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('prioridade','Plano_de_Acao')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div class="alert amber"><i class="ti ti-calculator"></i><div><strong>Score de Criticidade = Valor × Dias Vencido.</strong> Combina impacto financeiro e tempo de exposição. A coluna <strong>Ação Prescrita</strong> aplica a política operacional da Agroquima por linha de produto.</div></div>
+  <div class="filters">
+    <select id="pa-reg" onchange="renderPrioridade()"><option value="">Todos os Regionais</option></select>
+    <select id="pa-loja" onchange="renderPrioridade()"><option value="">Todas as Lojas</option></select>
+    <select id="pa-aud" onchange="renderPrioridade()"><option value="">Todos os Auditores</option></select>
+  </div>
+  <div id="action-summary" class="metrics"></div>
+  <div class="card"><div class="card-h"><i class="ti ti-flame"></i> Top 25 — Foco Imediato</div>
+    <div class="legend"><span><span class="dot" style="background:var(--red-dk)"></span>#1–3 — ataque primeiro, maior impacto combinado</span><span><span class="dot" style="background:var(--amber-dk)"></span>#4–8 — segunda onda</span><span><span class="dot" style="background:var(--text2)"></span>#9–25 — agendar para a semana</span></div>
+    <div class="tw"><table><thead><tr>
+      <th>#</th><th>Produto</th><th>Loja</th><th>Regional</th><th>Auditor</th><th class="r">Valor (R$)</th>
+      <th class="r">Dias</th><th class="r">Score</th><th>Ação Prescrita</th>
+    </tr></thead><tbody id="prio-t"></tbody></table></div>
+  </div>
+</div>
+
+<!-- PRODUTOS -->
+<div id="v-produtos" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-package"></i> Produtos Vencidos</h2>
+    <div class="sub">Detalhamento completo item a item</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('produtos','Produtos_Vencidos')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div class="filters">
+    <select id="pf-linha" onchange="renderProdutos()"><option value="">Todas as Linhas</option></select>
+    <select id="pf-loja" onchange="renderProdutos()"><option value="">Todas as Lojas</option></select>
+    <select id="pf-aud" onchange="renderProdutos()"><option value="">Todos os Auditores</option></select>
+    <select id="pf-status" onchange="renderProdutos()"><option value="">Todos os Status</option>
+      <option value="c">Crítico (+180d)</option><option value="a">Alerta (61-180d)</option><option value="r">Recente (≤60d)</option></select>
+    <input type="text" id="pf-search" placeholder="🔍 Buscar produto..." oninput="renderProdutos()" style="min-width:180px">
+  </div>
+  <div class="tw"><table><thead><tr>
+    <th>Produto</th><th>Loja</th><th>Linha</th>
+    <th class="r">Qtd</th><th class="r">Vencimento</th>
+    <th class="r">Dias</th><th class="r">Custo Un.</th>
+    <th class="r">Total (R$)</th><th class="c">Status</th>
+  </tr></thead><tbody id="pt"></tbody></table></div>
+</div>
+
+<!-- FABRICANTES -->
+<div id="v-fabricantes" style="display:none">
+  <div id="fab-list-view">
+    <div class="view-head"><div><h2><i class="ti ti-building-factory-2"></i> Análise por Fabricante</h2>
+      <div class="sub">Identifica concentração de fornecedores para renegociação</div></div>
+      <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('fabricantes','Analise_por_Fabricante')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+    <div class="g2-1">
+      <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Top Fabricantes</div><div class="chartbox tall"><canvas id="ch-fab" role="img" aria-label="Top fabricantes"></canvas></div></div>
+      <div class="card"><div class="card-h"><i class="ti ti-bulb"></i> Leitura</div><div id="fab-insight" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
+    </div>
+    <div class="tw"><table><thead><tr>
+      <th>Fabricante</th><th class="r">Itens</th>
+      <th class="r">Lojas</th><th class="r">Total (R$)</th><th class="r">% Total</th><th class="c">Ação</th>
+    </tr></thead><tbody id="ft"></tbody></table></div>
+  </div>
+  <div id="fab-detail-view" style="display:none"></div>
+</div>
+
+<!-- RECORRENTES -->
+<div id="v-recorrentes" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-repeat"></i> Produtos Recorrentes</h2>
+    <div class="sub">Itens vencidos em múltiplas lojas — problema sistêmico de compra ou giro</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('recorrentes','Produtos_Recorrentes')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div class="alert amber"><i class="ti ti-bulb"></i><div>Produtos vencidos em <strong>2 ou mais lojas</strong> indicam falha sistêmica de planejamento de compra, prazo de validade na aquisição ou baixo giro. Exigem revisão de política comercial — não apenas ação pontual de loja.</div></div>
+  <div class="tw"><table><thead><tr>
+    <th>Produto</th><th>Linha</th><th class="r">Lojas</th><th class="r">Itens</th><th class="r">Valor (R$)</th><th>Lojas Afetadas</th>
+  </tr></thead><tbody id="rect"></tbody></table></div>
+</div>
+
+<!-- PRINCÍPIO ATIVO -->
+<div id="v-principio" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-flask"></i> Substituição por Princípio Ativo</h2>
+    <div class="sub">Base de princípios ativos da equipe de TI — venda forçada do item que vence primeiro entre produtos equivalentes</div></div>
+    <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('principio','Substituicao_Principio_Ativo')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+  <div class="alert brand"><i class="ti ti-bulb"></i><div>Quando dois ou mais produtos diferentes compartilham o <strong>mesmo princípio ativo</strong> (mesma fórmula ou equivalente), eles atendem à mesma necessidade do cliente. Se um deles está perto de vencer em pouca quantidade e outro do mesmo princípio só vence muitos meses depois, a venda deve ser <strong>forçada no item mais urgente primeiro</strong> — oferecendo-o no lugar do equivalente com mais prazo, em vez de deixá-lo vencer enquanto o outro continua em estoque.</div></div>
+  <div class="filters">
+    <select id="pq-reg" onchange="renderPrincipio()"><option value="">Todos os Regionais</option></select>
+    <select id="pq-loja" onchange="renderPrincipio()"><option value="">Todas as Lojas</option></select>
+    <select id="pq-linha" onchange="renderPrincipio()"><option value="">Todas as Linhas</option></select>
+    <input type="text" id="pq-search" placeholder="🔍 Buscar produto, princípio ativo, código ou fabricante..." oninput="renderPrincipio()" style="min-width:280px">
+  </div>
+  <div id="pq-metrics" class="metrics"></div>
+  <div id="pq-body"></div>
+</div>
+
+<!-- CAÇA-ERROS -->
+<div id="v-cacaerros" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-bug"></i> Caça-Erros — Possíveis Inconsistências de Digitação</h2>
+    <div class="sub">Detecta divergências que sugerem erro de implantação ou digitação nas filiais</div></div></div>
+  <div class="alert brand"><i class="ti ti-shield-check"></i><div>Como os dados de <strong>lote, fabricação e vencimento</strong> são digitados manualmente por cada filial, podem conter erros. Esta aba cruza os dados automaticamente após a importação e aponta divergências para você conferir — dando mais segurança ao relatório antes de levá-lo à diretoria.</div></div>
+  <div id="cacaerros-summary" class="g3" style="margin:18px 0"></div>
+  <div id="cacaerros-body"></div>
+</div>
+
+<!-- METAS -->
+<div id="v-metas" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-target"></i> Metas de Redução</h2>
+    <div class="sub">Defina o alvo semanal e acompanhe a projeção</div></div></div>
+  <div class="card" style="margin-bottom:22px"><div class="card-h"><i class="ti ti-adjustments"></i> Configurar Meta</div>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <div><div class="tiny muted b" style="margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Redução semanal alvo</div>
+        <select id="meta-pct" onchange="renderMetas()" style="padding:9px 14px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;font-family:inherit">
+          <option value="10">10% por semana</option><option value="15">15% por semana</option>
+          <option value="20" selected>20% por semana</option><option value="25">25%</option><option value="30">30%</option>
+        </select></div>
+      <div id="meta-cards" style="display:flex;gap:14px;flex-wrap:wrap"></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Meta por Loja</div>
+      <div class="tw"><table><thead><tr><th>Loja</th><th class="r">Atual</th><th class="r">Meta</th><th class="r">Reduzir</th></tr></thead><tbody id="meta-lt"></tbody></table></div></div>
+    <div class="card"><div class="card-h"><i class="ti ti-chart-line"></i> Projeção 4 Semanas</div><div class="chartbox"><canvas id="ch-meta" role="img" aria-label="Projeção de redução"></canvas></div></div>
+  </div>
+</div>
+
+<!-- HISTORICO -->
+<div id="v-historico" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-history"></i> Histórico de Importações</h2>
+    <div class="sub">Todas as bases salvas — importe novos arquivos para acompanhar a evolução</div></div></div>
+  <div class="dropzone" id="dz" onclick="triggerImportHist()"
+    ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDropGated(event)">
+    <i class="ti ti-cloud-upload dz-icon"></i>
+    <p>Arraste o arquivo XLSX aqui ou <span>clique para selecionar</span></p>
+    <small>As importações ficam salvas automaticamente. Você pode excluir qualquer uma se importar errado.</small>
+    <input type="file" id="up-hist" accept=".xlsx,.xls" multiple style="display:none" onchange="handleUploadMulti(this)">
+  </div>
+  <div id="hist-chart" style="display:none;margin:22px 0"><div class="card"><div class="card-h"><i class="ti ti-trending-down"></i> Evolução do Estoque Vencido</div><div class="chartbox"><canvas id="ch-hist" role="img" aria-label="Evolução histórica"></canvas></div></div></div>
+  <div id="hist-list"></div>
+</div>
+
+
+<!-- PUBLICAÇÃO / GITHUB -->
+<div id="v-config" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-cloud-cog"></i> Área Restrita — Configurações e Operações</h2>
+    <div class="sub">Importação, publicação e sincronização via JSONBin</div></div></div>
+
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-tool"></i> Operações</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:4px">
+      <button class="btn primary" onclick="triggerImport()"><i class="ti ti-upload"></i> Importar XLSX</button>
+      <input type="file" id="up-top" accept=".xlsx,.xls" multiple style="display:none" onchange="handleUploadMulti(this)">
+      <button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir relatório</button>
+      <button class="btn ghost sm" onclick="nav('cacaerros')" title="Verificação de inconsistências de digitação nos dados importados"><i class="ti ti-bug"></i> Caça-Erros</button>
+      <button class="btn ghost sm" onclick="nav('relatorio')" title="Gera slides PNG no padrão apresentação para todas as filiais e por regional"><i class="ti ti-presentation"></i> Relatório PPT</button>
+    </div>
+  </div>
+
+  <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
+    <strong>Sincronização automática via GitHub:</strong> ao importar um XLSX, os dados são publicados diretamente em <code>data/vencidos.json</code> no repositório — todos veem em ~2 minutos. Nenhum arquivo manual, nenhum limite de tamanho.
+  </div></div>
+
+
+  <div class="g2">
     <div class="card">
       <div class="card-h"><i class="ti ti-key"></i> Configuração do GitHub (somente você e a Gabriela)</div>
       <div style="margin-bottom:18px">
@@ -514,87 +925,6 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
           <span><i class="ti ti-cloud-off" style="color:#94a3b8"></i> <strong style="color:#94a3b8">Sem config</strong> — configure o token acima para publicar</span>
         </div>
       </div>
-    </div>
-  </div>
-  <div id="hist-chart" style="display:none;margin:22px 0"><div class="card"><div class="card-h"><i class="ti ti-trending-down"></i> Evolução do Estoque Vencido</div><div class="chartbox"><canvas id="ch-hist" role="img" aria-label="Evolução histórica"></canvas></div></div></div>
-  <div id="hist-list"></div>
-</div>
-
-
-<!-- PUBLICAÇÃO / GITHUB -->
-<div id="v-config" style="display:none">
-  <div class="view-head"><div><h2><i class="ti ti-cloud-cog"></i> Área Restrita — Configurações e Operações</h2>
-    <div class="sub">Importação, publicação e sincronização via JSONBin</div></div></div>
-
-  <div class="card" style="margin-bottom:22px">
-    <div class="card-h"><i class="ti ti-tool"></i> Operações</div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:4px">
-      <button class="btn primary" onclick="triggerImport()"><i class="ti ti-upload"></i> Importar XLSX</button>
-      <input type="file" id="up-top" accept=".xlsx,.xls" multiple style="display:none" onchange="handleUploadMulti(this)">
-      <button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir relatório</button>
-      <button class="btn ghost sm" onclick="nav('cacaerros')" title="Verificação de inconsistências de digitação nos dados importados"><i class="ti ti-bug"></i> Caça-Erros</button>
-      <button class="btn ghost sm" onclick="nav('relatorio')" title="Gera slides PNG no padrão apresentação para todas as filiais e por regional"><i class="ti ti-presentation"></i> Relatório PPT</button>
-    </div>
-  </div>
-
-  <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
-    <strong>Sincronização automática via GitHub:</strong> ao importar um XLSX, os dados são publicados diretamente em <code>data/vencidos.json</code> no repositório — todos veem em ~2 minutos. Nenhum arquivo manual, nenhum limite de tamanho.
-  </div></div>
-
-
-  <div class="g2">
-    <div class="card">
-      <div class="card-h"><i class="ti ti-key"></i> Configuração (somente você e a Gabriela)</div>
-      <div style="margin-bottom:14px">
-        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Master Key do JSONBin</label>
-        <div style="display:flex;gap:8px">
-          <input type="password" id="jbin-key-input" placeholder="Cole sua Master Key aqui ($2a$10$...)" onclick="checkCriarBinReveal()" style="flex:1;padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">
-          <button class="btn ghost sm" onclick="toggleKeyVisibility()"><i class="ti ti-eye" id="eye-icon"></i></button>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:5px">Guardada apenas no seu navegador. Nunca sai do seu computador.</div>
-      </div>
-      <div style="margin-bottom:18px">
-        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Bin ID</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" id="jbin-id-display" placeholder="Cole o Bin ID ou crie um novo" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg2);color:var(--text);font-size:12px;font-family:monospace">
-          <button class="btn xs ghost" onclick="copyBinId()" title="Copiar"><i class="ti ti-copy"></i></button>
-        </div>
-      </div>
-      <div style="margin-bottom:14px">
-        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Token do GitHub (branch automática)</label>
-        <div style="display:flex;gap:8px">
-          <input type="password" id="gh-token-input" placeholder="ghp_... ou github_pat_..." style="flex:1;padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">
-          <button class="btn ghost sm" onclick="toggleGhTokenVisibility()"><i class="ti ti-eye" id="gh-eye-icon"></i></button>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:5px">Configure este token <strong>somente no navegador/dispositivo de quem vai usá-lo</strong> — ele <strong>nunca</strong> é embutido no arquivo publicado nem enviado para a nuvem, porque dá acesso de escrita ao repositório. Use um <strong>fine-grained PAT</strong> restrito ao repositório <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">Vencidos-Agroquima</code>, com permissão de <strong>Contents: Read and write</strong> + <strong>Pull requests: Read and write</strong> (essa segunda é o que permite o app abrir o PR sozinho e disparar a notificação no GitHub). Quem não configurar um token aqui (ex.: a Gabriela, se ela não tiver o dela) só recebe o index.html completo pra enviar a alguém que tenha.</div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn primary" id="btn-criar-bin" onclick="handleCreateBin()" style="display:none"><i class="ti ti-cloud-plus"></i> Criar Bin</button>
-        <button class="btn ghost" onclick="handleTestConnection()"><i class="ti ti-plug"></i> Testar conexão</button>
-        <button class="btn ghost" onclick="handleTestGithub()"><i class="ti ti-brand-github"></i> Testar GitHub</button>
-        <button class="btn ghost" onclick="handleSaveConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
-      </div>
-      <div id="config-status" style="margin-top:14px;font-size:13px;display:none"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-h"><i class="ti ti-shield-check"></i> Estado e verificação</div>
-      <div style="margin-top:4px;padding:12px 14px;background:var(--bg2);border-radius:var(--r-sm);border:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Status atual</div>
-        <div id="config-current-status" style="font-size:13px;color:var(--text2)">Carregando...</div>
-      </div>
-      <div style="margin-top:14px;font-size:12px;line-height:1.8;color:var(--text3)">
-        O indicador no topo reflete o estado real da sincronização:
-        <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
-          <span><i class="ti ti-cloud-check" style="color:#1e8449"></i> <strong style="color:#1e8449">Sincronizado</strong> — dados na nuvem; todos veem o mais recente.</span>
-          <span><i class="ti ti-cloud" style="color:#2563eb"></i> <strong style="color:#2563eb">Conectado · nuvem vazia</strong> — online, mas ainda sem dados publicados.</span>
-          <span><i class="ti ti-cloud-x" style="color:#c0392b"></i> <strong style="color:#c0392b">Erro de sync</strong> — falha ao falar com a nuvem (os dados locais continuam).</span>
-          <span><i class="ti ti-cloud-off" style="color:#94a3b8"></i> <strong style="color:#94a3b8">Sem config</strong> — sincronização não configurada.</span>
-        </div>
-      </div>
-      <div class="alert amber" style="margin-top:16px;font-size:12px"><i class="ti ti-alert-triangle"></i><div>
-        Limite do plano grátis do JSONBin: ~100KB por bin. Quando o arquivo completo (vencidos + a vencer) não cabe, o app cria uma branch e abre um Pull Request automático no GitHub (nos navegadores onde o Token está configurado, com notificação real no GitHub/celular) ou baixa o arquivo completo (nos demais navegadores) em vez de publicar na nuvem. Se a publicação falhar (erro de commit/PR), use o botão <strong>Atualizar Painel</strong> que aparece ao lado do indicador de sincronização no topo para tentar de novo. O Token do GitHub <strong>nunca</strong> é embutido no arquivo publicado — sempre use um token <strong>fine-grained</strong> restrito a este repositório, com permissão de conteúdo e de Pull requests.
-      </div></div>
     </div>
   </div>
 
