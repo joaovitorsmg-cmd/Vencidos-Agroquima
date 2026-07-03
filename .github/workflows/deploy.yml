@@ -4,11 +4,12 @@ on:
   push:
     branches: [main]
 
-# Only one deployment runs at a time — cancels the previous if a new push arrives.
-# This prevents the "Deployment failed, try again later" race condition.
+# Only one Pages deployment runs at a time — new pushes queue instead of racing.
+# cancel-in-progress: false prevents the "Deployment failed, try again later" error
+# that occurs when a deployment is cancelled mid-flight and leaves an orphaned lock.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
