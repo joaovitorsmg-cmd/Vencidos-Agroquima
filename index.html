@@ -162,7 +162,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 .alert.brand{background:var(--brand-lt);border:1px solid var(--brand-glow);color:var(--brand)}
 .alert i{font-size:19px;flex-shrink:0;margin-top:1px}
 /* GRID */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-bottom:22px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
 @media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}}
@@ -830,8 +830,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-fabricantes" style="display:none">
   <div id="fab-list-view">
     <div class="view-head"><div><h2><i class="ti ti-building-factory-2"></i> Análise por Fabricante</h2>
-      <div class="sub">Identifica concentração de fornecedores para renegociação</div></div>
-      <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('fabricantes','Analise_por_Fabricante')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button></div>
+      <div class="sub">Identifica concentração de fornecedores para renegociação</div></div></div>
     <div class="g2-1">
       <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Top Fabricantes</div><div class="chartbox tall"><canvas id="ch-fab" role="img" aria-label="Top fabricantes"></canvas></div></div>
       <div class="card"><div class="card-h"><i class="ti ti-bulb"></i> Leitura</div><div id="fab-insight" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
@@ -965,12 +964,12 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 
   <div class="card" style="margin-bottom:22px">
     <div class="card-h"><i class="ti ti-tool"></i> Operações</div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:4px">
-      <button class="btn primary" onclick="triggerImport()"><i class="ti ti-upload"></i> Importar XLSX</button>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;padding-top:4px">
+      <button class="btn primary" onclick="triggerImport()" style="justify-content:center"><i class="ti ti-upload"></i> Importar XLSX</button>
       <input type="file" id="up-top" accept=".xlsx,.xls" multiple style="display:none" onchange="handleUploadMulti(this)">
-      <button class="btn ghost icon-only" onclick="window.print()" title="Imprimir relatório"><i class="ti ti-printer"></i></button>
-      <button class="btn ghost icon-only" onclick="nav('cacaerros')" title="Caça-Erros: verificar inconsistências de digitação nos dados importados"><i class="ti ti-bug"></i></button>
-      <button class="btn ghost icon-only" onclick="nav('relatorio')" title="Relatório PPT: slides PNG no padrão apresentação por filial e regional"><i class="ti ti-presentation"></i></button>
+      <button class="btn ghost" onclick="window.print()" style="justify-content:center"><i class="ti ti-printer"></i> Imprimir</button>
+      <button class="btn ghost" onclick="nav('cacaerros')" style="justify-content:center"><i class="ti ti-bug"></i> Caça-Erros</button>
+      <button class="btn ghost" onclick="nav('relatorio')" style="justify-content:center"><i class="ti ti-presentation"></i> Relatório PPT</button>
     </div>
   </div>
 
@@ -1037,7 +1036,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     </div>
   </div>
 
-  <div class="card" style="margin-top:22px">
+  <div class="card" style="margin-top:22px;margin-bottom:22px">
     <div class="card-h"><i class="ti ti-rocket"></i> Funcionalidades em Desenvolvimento</div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Próximas melhorias planejadas para o painel. Estas funcionalidades estão em desenvolvimento e serão ativadas em versões futuras.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
@@ -1737,7 +1736,7 @@ function renderResumo(){
   charts.linha=safeChart('ch-linha',{type:'doughnut',data:{labels:d.byLinha.map(l=>cleanLinha(l.key)),datasets:[{data:d.byLinha.map(l=>Math.round(l.total)),backgroundColor:lc,borderWidth:3,borderColor:getComputedStyle(document.body).getPropertyValue('--bg')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+brl(c.raw)}}},cutout:'62%'}});
   document.getElementById('leg-linha').innerHTML=d.byLinha.map((l,i)=>`<span><span class="dot" style="background:${lc[i]||'#888'}"></span>${cleanLinha(l.key).slice(0,16)} ${Math.round(l.total/T*100)}%</span>`).join('');
   // table
-  document.getElementById('rt').innerHTML=d.byFilial.map((f,i)=>{const p=f.total/T*100;const tot=d.byFilial.length;const badge=i<5?`<span class="chip red" style="font-size:9px;margin-left:4px">Top ${i+1} pior</span>`:i>=tot-5&&i>=5?`<span class="chip green" style="font-size:9px;margin-left:4px">Top ${tot-i} melhor</span>`:'';return `<tr class="${p>30?'conc':''}"><td class="b">${f.key}${badge}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${brl(f.total)}</td><td class="r">${f.items}</td><td class="r">${diasChip(f.maxDias)}</td><td><div class="pbar"><div class="pbar-bg"><div class="pbar-f ${p>30?'red':''}" style="width:${Math.min(p,100)}%"></div></div><span class="pbar-t">${p.toFixed(1)}%</span></div></td></tr>`;}).join('');
+  document.getElementById('rt').innerHTML=d.byFilial.map((f,i)=>{const p=f.total/T*100;const tot=d.byFilial.length;const badge=i<5?`<span class="chip red" style="font-size:9px;margin-left:4px">Top ${i+1} pior</span>`:i>=tot-5&&i>=5?`<span class="chip green" style="font-size:9px;margin-left:4px">Top ${tot-i} melhor</span>`:'';return `<tr class="${p>30?'conc':''}" style="cursor:pointer" onclick="nav('lojas');setTimeout(()=>showLojaDetail('${f.key.replace(/'/g,'')}'),150)"><td class="b">${f.key}${badge}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${brl(f.total)}</td><td class="r">${f.items}</td><td class="r">${diasChip(f.maxDias)}</td><td><div class="pbar"><div class="pbar-bg"><div class="pbar-f ${p>30?'red':''}" style="width:${Math.min(p,100)}%"></div></div><span class="pbar-t">${p.toFixed(1)}%</span></div></td></tr>`;}).join('');
   // ── Situação Agora (trend card) ──
   const sa=document.getElementById('situacao-agora');
   if(sa){
@@ -1884,7 +1883,7 @@ function renderAuditores(){
     const lojas=d.byFilial.filter(f=>f.auditor===a.key);
     const ticket=a.total/a.items;
     const rank=i===0?'<span class="aud-rank" style="background:var(--red-lt);color:var(--red)">Maior exposição</span>':i===d.byAuditor.length-1?'<span class="aud-rank" style="background:var(--green-lt);color:var(--green)">Menor</span>':'';
-    return `<div class="aud-card">
+    return `<div class="aud-card" style="cursor:pointer" onclick="showAudDetail('${a.key.replace(/'/g,'')}')" >
       ${rank}
       <div class="aud-card-top"><div class="aud-avatar" style="background:${c}">${initials(a.key)}</div>
         <div><div class="aud-name">${a.key}</div><div class="aud-role">Auditor · ${a.lojas} loja(s)</div></div></div>
@@ -1895,7 +1894,7 @@ function renderAuditores(){
         <div class="aud-stat-row"><span class="l">Ticket médio</span><span class="v">${brl(ticket)}</span></div>
         <div class="aud-stat-row"><span class="l">Mais antigo</span><span class="v">${diasChip(a.maxDias)}</span></div>
       </div>
-      <div class="aud-card-foot"><button class="btn sm" style="flex:1" onclick="showAudDetail('${a.key.replace(/'/g,"")}')"><i class="ti ti-list-search"></i> Ver carteira completa</button></div>
+
     </div>`;
   }).join('');
   document.getElementById('at').innerHTML=d.byAuditor.map(a=>{const ticket=a.total/a.items;return `<tr><td class="b">${a.key}</td><td class="r">${a.lojas}</td><td class="r">${a.items}</td><td class="r">${brl(a.total)}</td><td class="r">${(a.total/T*100).toFixed(1)}%</td><td class="r">${diasChip(a.maxDias)}</td><td class="r">${brl(ticket)}</td><td class="c"><button class="btn xs" onclick="showAudDetail('${a.key.replace(/'/g,"")}')">Detalhar</button></td></tr>`;}).join('');
@@ -2848,7 +2847,7 @@ function renderRegional(){
     const rank=i===0?'<span class="aud-rank" style="background:var(--red-lt);color:var(--red)">Maior exposição</span>':i===d.byRegional.length-1?'<span class="aud-rank" style="background:var(--green-lt);color:var(--green)">Menor</span>':'';
     let trendBadge='';
     if(prevSnap){const pr=prevSnap.byRegional.find(x=>x.key===r.key);if(pr&&pr.total>0){const dp=(r.total-pr.total)/pr.total*100;if(dp>2)trendBadge=`<span class="chip red" style="font-size:10px;margin-left:6px">↑ +${Math.round(dp)}%</span>`;else if(dp<-2)trendBadge=`<span class="chip green" style="font-size:10px;margin-left:6px">↓ ${Math.round(dp)}%</span>`;}}
-    return `<div class="aud-card">
+    return `<div class="aud-card" style="cursor:pointer" onclick="showRegionalDetail('${r.key.replace(/'/g,'')}')" >
       ${rank}
       <div class="aud-card-top"><div class="aud-avatar" style="background:${c}">${initials(r.key)}</div>
         <div><div class="aud-name">${r.key}${trendBadge}</div><div class="aud-role">Regional · ${lojas.length} loja(s)</div></div></div>
@@ -2860,8 +2859,7 @@ function renderRegional(){
         <div class="aud-stat-row"><span class="l">Mais antigo</span><span class="v">${diasChip(maxD)}</span></div>
       </div>
       <div class="aud-card-foot">
-        <button class="btn sm" style="flex:1" onclick="showRegionalDetail('${r.key.replace(/'/g,"")}')"><i class="ti ti-list-search"></i> Ver detalhe</button>
-        <button class="btn ghost icon-only" onclick="exportarRelatorioRegional('${r.key.replace(/'/g,"")}')" title="Exportar relatório detalhado de ${r.key} — produtos, lojas, valores, % do total"><i class="ti ti-file-analytics"></i></button>
+        <button class="btn ghost icon-only" onclick="event.stopPropagation();exportarRelatorioRegional('${r.key.replace(/'/g,"")}')" title="Exportar relatório detalhado de ${r.key} — produtos, lojas, valores, % do total"><i class="ti ti-file-analytics"></i></button>
       </div>
     </div>`;
   }).join('');
@@ -3337,7 +3335,7 @@ function renderMetas(){
   const alvo=T*(1-mp/100),red=T-alvo;
   document.getElementById('meta-cards').innerHTML=`<div class="metric green"><div class="ml">Alvo após ${mp}%</div><div class="mv" style="font-size:18px">${brl(alvo)}</div><div class="ms">Reduzir ${brl(red)}</div></div><div class="metric"><div class="ml">Por loja (média)</div><div class="mv" style="font-size:18px">${brl(red/d.byFilial.length)}</div><div class="ms">Por semana</div></div>`;
   const avgFilial=T/Math.max(d.byFilial.length,1);
-  document.getElementById('meta-lt').innerHTML=d.byFilial.map(f=>{const a=f.total*(1-mp/100);const statusChip=f.total<avgFilial*0.8?`<span class="chip green">Abaixo da média</span>`:f.total>avgFilial*1.2?`<span class="chip red">Atenção</span>`:`<span class="chip amber">Na média</span>`;return `<tr><td class="b" style="font-size:12px">${f.key}</td><td class="r">${brl(f.total)}</td><td class="r" style="color:var(--green);font-weight:700">${brl(a)}</td><td class="r" style="color:var(--red)">${brl(f.total-a)}</td><td class="c">${statusChip}</td></tr>`;}).join('');
+  document.getElementById('meta-lt').innerHTML=d.byFilial.map(f=>{const a=f.total*(1-mp/100);const statusChip=f.total<avgFilial*0.8?`<span class="chip green">Abaixo da média</span>`:f.total>avgFilial*1.2?`<span class="chip red">Atenção</span>`:`<span class="chip amber">Na média</span>`;return `<tr style="cursor:pointer" onclick="nav('lojas');setTimeout(()=>showLojaDetail('${f.key.replace(/'/g,'')}'),150)"><td class="b" style="font-size:12px">${f.key}</td><td class="r">${brl(f.total)}</td><td class="r" style="color:var(--green);font-weight:700">${brl(a)}</td><td class="r" style="color:var(--red)">${brl(f.total-a)}</td><td class="c">${statusChip}</td></tr>`;}).join('');
   renderProjecaoPerda();
   destroyChart('meta');
   const wk=[0,1,2,3,4];const proj=wk.map(w=>Math.round(T*Math.pow(1-mp/100,w)));
