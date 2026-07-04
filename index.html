@@ -89,6 +89,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .btn.xs{padding:3px 8px;font-size:11px}
 .btn.icon-only{padding:0;width:36px;height:36px;justify-content:center;flex-shrink:0}
 .btn.icon-only i{font-size:16px}
+.btn-theme-pill{padding:5px 11px;border-radius:20px;gap:5px;height:34px;flex-shrink:0;color:var(--text2)}
+.btn-theme-pill i{font-size:15px}
+.btn-theme-pill .theme-lbl{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.btn-theme-pill:hover{color:var(--text);border-color:var(--brand2)}
 .btn.publish{background:linear-gradient(135deg,#1e8449,#27ae60);color:#fff;border:none;font-weight:700}
 .btn.publish:hover{filter:brightness(1.1)}
 .btn.publish i{font-size:15px}
@@ -462,8 +466,11 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <div id="sync-indicator" class="sync-indicator">
       <i class="ti ti-cloud-off" style="font-size:14px"></i> <span>Sem sync</span>
     </div>
-    <button id="btn-retry-sync" class="btn ghost sm" style="display:none" onclick="retryPublicacao()" title="Tenta publicar novamente para todos"><i class="ti ti-refresh"></i> Atualizar Painel</button>
-    <button class="btn ghost icon-only" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro"><i class="ti ti-sun" id="theme-icon"></i></button>
+    <button id="btn-retry-sync" class="btn ghost icon-only" style="display:none" onclick="retryPublicacao()" title="Atualizar Painel — publicar novamente para todos"><i class="ti ti-refresh"></i></button>
+    <button class="btn ghost btn-theme-pill" id="btn-theme" onclick="toggleTheme()" aria-label="Alternar tema" title="Seguindo o sistema — clique para alternar">
+      <i class="ti ti-device-desktop" id="theme-icon"></i>
+      <span class="theme-lbl" id="theme-label">Auto</span>
+    </button>
   </div>
 </div>
 
@@ -1897,7 +1904,7 @@ function renderAuditores(){
 
     </div>`;
   }).join('');
-  document.getElementById('at').innerHTML=d.byAuditor.map(a=>{const ticket=a.total/a.items;return `<tr><td class="b">${a.key}</td><td class="r">${a.lojas}</td><td class="r">${a.items}</td><td class="r">${brl(a.total)}</td><td class="r">${(a.total/T*100).toFixed(1)}%</td><td class="r">${diasChip(a.maxDias)}</td><td class="r">${brl(ticket)}</td><td class="c"><button class="btn xs" onclick="showAudDetail('${a.key.replace(/'/g,"")}')">Detalhar</button></td></tr>`;}).join('');
+  document.getElementById('at').innerHTML=d.byAuditor.map(a=>{const ticket=a.total/a.items;return `<tr><td class="b">${a.key}</td><td class="r">${a.lojas}</td><td class="r">${a.items}</td><td class="r">${brl(a.total)}</td><td class="r">${(a.total/T*100).toFixed(1)}%</td><td class="r">${diasChip(a.maxDias)}</td><td class="r">${brl(ticket)}</td><td class="c"><button class="btn xs" onclick="showAudDetail('${a.key.replace(/'/g,"")}')"><i class="ti ti-search" style="font-size:11px"></i> Detalhar</button></td></tr>`;}).join('');
 }
 
 function showAudDetail(aud){
@@ -2969,7 +2976,7 @@ function renderLojas(){
   const rf=document.getElementById('lf-reg').value,af=document.getElementById('lf-aud').value,sr=(document.getElementById('lf-search').value||'').toLowerCase();
   const lojas=d.byFilial.filter(f=>(!rf||f.regional===rf)&&(!af||f.auditor===af)&&(!sr||f.key.toLowerCase().includes(sr)));
   const prevSnapL=history[history.indexOf(d)+1];
-  document.getElementById('lt').innerHTML=lojas.map(f=>{let trendBadge='';if(prevSnapL){const pf=prevSnapL.byFilial.find(x=>x.key===f.key);if(pf&&pf.total>0){const dp=(f.total-pf.total)/pf.total*100;if(dp>2)trendBadge=`<span class="chip red" style="font-size:9px;margin-left:4px">↑ +${Math.round(dp)}%</span>`;else if(dp<-2)trendBadge=`<span class="chip green" style="font-size:9px;margin-left:4px">↓ ${Math.round(dp)}%</span>`;}}return `<tr><td class="b">${f.key}${trendBadge}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${f.items}</td><td class="r">${num(Math.round(f.qtd))}</td><td class="r b">${brl(f.total)}</td><td class="r">${diasChip(f.maxDias)}</td><td class="c"><button class="btn xs" onclick="showLojaDetail('${f.key.replace(/'/g,"")}')">Detalhar</button></td></tr>`;}).join('');
+  document.getElementById('lt').innerHTML=lojas.map(f=>{let trendBadge='';if(prevSnapL){const pf=prevSnapL.byFilial.find(x=>x.key===f.key);if(pf&&pf.total>0){const dp=(f.total-pf.total)/pf.total*100;if(dp>2)trendBadge=`<span class="chip red" style="font-size:9px;margin-left:4px">↑ +${Math.round(dp)}%</span>`;else if(dp<-2)trendBadge=`<span class="chip green" style="font-size:9px;margin-left:4px">↓ ${Math.round(dp)}%</span>`;}}return `<tr><td class="b">${f.key}${trendBadge}</td><td><span class="pill">${f.regional}</span></td><td><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${f.items}</td><td class="r">${num(Math.round(f.qtd))}</td><td class="r b">${brl(f.total)}</td><td class="r">${diasChip(f.maxDias)}</td><td class="c"><button class="btn xs" onclick="showLojaDetail('${f.key.replace(/'/g,"")}')"><i class="ti ti-search" style="font-size:11px"></i> Detalhar</button></td></tr>`;}).join('');
 }
 function showLojaDetail(filial){
   const d=current;
@@ -3199,7 +3206,7 @@ function renderFabricantes(){
     return;
   }
   document.getElementById('fab-insight').innerHTML=`<p><strong>${t1.fab}</strong> lidera com <strong>${brl(t1.total)}</strong> (${(t1.total/T*100).toFixed(1)}%).</p><br><p>Top 3 fabricantes = <strong>${(fabs.slice(0,3).reduce((s,f)=>s+f.total,0)/T*100).toFixed(0)}%</strong> do total.</p><br><p><strong>Ação por fabricante:</strong> FAP/FCB (nutrição animal) — sem devolução, destinar como descarte ou venda; FAG (pastagem) — solicitar devolução para sementes de alto giro; fornecedores externos — revisar prazos mínimos de validade na compra e tentar bonificação ou revalidação conforme a linha.</p>`;
-  document.getElementById('ft').innerHTML=fabs.map(f=>`<tr><td style="font-size:12px" class="b">${f.fab}</td><td class="r">${f.items}</td><td class="r">${f.lojas}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/T*100).toFixed(1)}%</td><td class="c"><button class="btn xs" onclick="showFabricanteDetail('${f.fab.replace(/'/g,"")}')">Detalhar</button></td></tr>`).join('');
+  document.getElementById('ft').innerHTML=fabs.map(f=>`<tr><td style="font-size:12px" class="b">${f.fab}</td><td class="r">${f.items}</td><td class="r">${f.lojas}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/T*100).toFixed(1)}%</td><td class="c"><button class="btn xs" onclick="showFabricanteDetail('${f.fab.replace(/'/g,"")}')"><i class="ti ti-search" style="font-size:11px"></i> Detalhar</button></td></tr>`).join('');
 }
 function showFabricanteDetail(fab){
   const d=current,T=d.grandTotal;
@@ -4125,14 +4132,27 @@ function init(){
 }
 init();
 
-// ─── TEMA MANUAL (claro / escuro) ───
-(function initTheme(){
-  const saved=localStorage.getItem('agroquima_theme');
-  const prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
-  const active=saved||(prefersDark?'dark':'light');
-  document.documentElement.setAttribute('data-theme',active);
+// ─── TEMA (auto / claro / escuro) ───
+// Ciclo: auto (segue sistema) → claro → escuro → auto
+function applyTheme(state){
+  if(state==='light') document.documentElement.setAttribute('data-theme','light');
+  else if(state==='dark') document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme'); // media query assume o controle
   const icon=document.getElementById('theme-icon');
-  if(icon)icon.className=active==='dark'?'ti ti-moon':'ti ti-sun';
+  const label=document.getElementById('theme-label');
+  const btn=document.getElementById('btn-theme');
+  const titles={auto:'Seguindo o sistema — clique para forçar Claro',light:'Tema Claro — clique para Escuro',dark:'Tema Escuro — clique para seguir o sistema'};
+  if(icon)icon.className=state==='dark'?'ti ti-moon':(state==='light'?'ti ti-sun':'ti ti-device-desktop');
+  if(label)label.textContent=state==='dark'?'Escuro':(state==='light'?'Claro':'Auto');
+  if(btn)btn.title=titles[state]||titles.auto;
+}
+(function initTheme(){
+  const saved=localStorage.getItem('agroquima_theme')||'auto';
+  applyTheme(saved);
+  // atualiza ícone em tempo real quando o sistema muda (somente no modo auto)
+  window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(){
+    if((localStorage.getItem('agroquima_theme')||'auto')==='auto') applyTheme('auto');
+  });
 })();
 
 // ─── RESPONSABILIZAÇÃO (ITEM 1+2) ───
@@ -4278,14 +4298,11 @@ function setProdutosMode(mode){
 }
 
 function toggleTheme(){
-  const current=document.documentElement.getAttribute('data-theme')||'light';
-  const next=current==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  localStorage.setItem('agroquima_theme',next);
-  const icon=document.getElementById('theme-icon');
-  if(icon)icon.className=next==='dark'?'ti ti-moon':'ti ti-sun';
-  const btn=document.getElementById('btn-theme');
-  if(btn)btn.title=next==='dark'?'Alternar para tema claro':'Alternar para tema escuro';
+  const saved=localStorage.getItem('agroquima_theme')||'auto';
+  const next=saved==='auto'?'light':(saved==='light'?'dark':'auto');
+  if(next==='auto') localStorage.removeItem('agroquima_theme');
+  else localStorage.setItem('agroquima_theme',next);
+  applyTheme(next);
 }
 
 // ─── PWA: registra o service worker (instalável + funciona offline) ───
