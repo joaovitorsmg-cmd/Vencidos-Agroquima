@@ -492,6 +492,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="nav-item" onclick="nav('compra')"><i class="ti ti-shopping-cart-x"></i> Análise de Compra</div>
   <div class="nav-item" onclick="nav('produtos')"><i class="ti ti-package"></i> Produtos</div>
   <div class="nav-item" onclick="nav('recorrentes')"><i class="ti ti-repeat"></i> Recorrentes</div>
+  <div class="nav-item" onclick="nav('principio')"><i class="ti ti-flask"></i> Princípio Ativo</div>
   <div class="nav-sec">Gestão</div>
   <div class="nav-item" onclick="nav('metas')"><i class="ti ti-target"></i> Metas de Redução</div>
   <div class="nav-item" onclick="nav('acoes')"><i class="ti ti-clipboard-check"></i> Responsabilização</div>
@@ -4291,9 +4292,8 @@ function setProdutosMode(mode){
     if(btnV){btnV.style.borderColor='';btnV.style.color='';}
     if(contV)contV.style.display='none';
     if(contP)contP.style.display='block';
-    // populate principio ativo content
-    const el=document.getElementById('pm-principio-body');
-    if(el&&hasData())el.innerHTML='<div style="font-size:13px;color:var(--text2);padding:16px 0">Para análise detalhada por princípio ativo, acesse a aba completa no menu <strong>Sistema</strong>.</div>';
+    // navigate to the dedicated principio ativo view
+    nav('principio');
   }
 }
 
