@@ -324,6 +324,27 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 .modal h3{font-size:17px;font-weight:800;margin-bottom:9px}
 .modal p{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end}
+/* CARD DETAIL ENHANCED */
+.cd-hero{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.cd-hero-val{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.cd-chip-sev{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.cd-chip-sev.crit{background:rgba(192,57,43,.12);color:var(--red)}
+.cd-chip-sev.alta{background:rgba(245,158,11,.12);color:var(--amber)}
+.cd-chip-sev.mod{background:rgba(39,174,96,.1);color:var(--green)}
+.cd-pbar{margin:10px 0 14px}
+.cd-pbar-track{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin:4px 0}
+.cd-pbar-fill{height:100%;border-radius:4px}
+.cd-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.cd-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 8px;text-align:center}
+.cd-stat-v{font-size:14px;font-weight:800}
+.cd-stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;line-height:1.3}
+.cd-bars{margin-top:4px;display:flex;flex-direction:column;gap:6px}
+.cd-bar-row{display:flex;align-items:center;gap:8px}
+.cd-bar-info{flex:1;min-width:0}
+.cd-bar-label{font-size:11px;color:var(--text2);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cd-bar-track{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.cd-bar-fill{height:100%;border-radius:3px}
+.cd-bar-val{font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap;min-width:65px;text-align:right}
 /* FOOTER w/ LOGO — fixed at bottom, always visible */
 .report-footer{position:fixed;bottom:0;left:236px;right:0;background:var(--bg);border-top:1px solid var(--border);padding:7px 30px;display:flex;align-items:center;gap:12px;z-index:40;box-shadow:0 -2px 8px rgba(0,0,0,.06)}
 .footer-logo{display:flex;align-items:center;gap:10px;opacity:.85;flex-shrink:0}
@@ -1091,6 +1112,17 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     </div>
   </div>
 
+  <div class="card" style="margin-top:22px;margin-bottom:22px;border-top:3px solid var(--brand)">
+    <div class="card-h" style="display:flex;justify-content:space-between;align-items:center">
+      <span><i class="ti ti-presentation-analytics"></i> Análise Pré-Reunião</span>
+      <button class="btn primary sm" onclick="renderPreReuniao()" style="margin:0"><i class="ti ti-refresh"></i> Gerar Briefing</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7">Leitura executiva gerada automaticamente — abra esta aba minutos antes da reunião com a diretoria para uma leitura totalmente resumida com os pontos-chave.</div>
+    <div id="pre-reuniao-body">
+      <div style="text-align:center;padding:28px 16px;color:var(--text3)"><i class="ti ti-presentation-analytics" style="font-size:36px;opacity:.4"></i><div style="margin-top:10px;font-size:12px">Clique em <strong style="color:var(--text2)">Gerar Briefing</strong> para criar o resumo executivo a partir dos dados atuais</div></div>
+    </div>
+  </div>
+
   </div>
 
 </div>
@@ -1729,8 +1761,8 @@ function renderResumo(){
   // ── Dados para o modal de detalhe ao clicar nos cards ──
   resumoDetalhe={
     total:{T,itens:d.totalItems,lojas:d.byFilial.length,avgD,maxD,pt,top3:d.byFilial.slice(0,3)},
-    loja:top?{...top,pct:cp,top3:d.byFilial.slice(0,3),T}:null,
-    auditor:d.byAuditor[0]?{...d.byAuditor[0],pct:d.byAuditor[0].total/T,ranking:d.byAuditor.slice(0,3),T}:null,
+    loja:top?{...top,pct:cp,top3:d.byFilial.slice(0,3),T,ptTop:ptTop?ptTop.total:null}:null,
+    auditor:d.byAuditor[0]?{...d.byAuditor[0],pct:d.byAuditor[0].total/T,ranking:d.byAuditor.slice(0,3),T,ptAud:ptAud?ptAud.total:null,top3Lojas:d.byFilial.filter(f=>f.auditor===d.byAuditor[0].key).slice(0,3)}:null,
     avencer:{ehSoVencidos,av,avN,av30v,av30n:av30.length,uc:ucRef}
   };
   // chart auditor
@@ -1837,29 +1869,34 @@ function showCardDetail(tipo){
   } else if(tipo==='loja'){
     title.innerHTML=`<i class="ti ti-building-store" style="color:var(--amber);font-size:22px"></i> Loja com Maior Vencido`;
     navTo='lojas';
+    const pct=Math.round(r.pct*100);
+    const sev=r.pct>0.30?['crit','CRÍTICA','ti-alert-triangle']:r.pct>0.15?['alta','ALTA','ti-alert-circle']:['mod','MODERADA','ti-circle-check'];
+    const barColor=r.pct>0.30?'var(--red)':r.pct>0.15?'var(--amber)':'var(--green)';
+    const top3=r.top3,maxT=top3[0]?top3[0].total:1;
     body.innerHTML=
-      fonte(`Loja com o maior valor absoluto de vencidos — ${r.key}`,'ti-building-store')+
-      linha('Loja',r.key,'filial com maior exposição de vencidos')+
-      linha('Regional',r.regional||'—','gerência regional responsável')+
-      linha('Auditor responsável',r.auditor||'—','auditor designado para esta carteira')+
-      linha('Valor vencido na loja',brl(r.total),'soma de todos os itens vencidos desta filial')+
-      linha('Participação no total geral',Math.round(r.pct*100)+'%','% que esta loja representa no vencido total')+
-      linha('Itens vencidos',r.items,'produtos distintos com data de validade expirada')+
-      linha('Produto mais antigo',abs(r.maxDias)+'d','dias corridos do item mais antigo')+
-      secao('Ranking — Top 3 lojas')+
-      r.top3.map((f,i)=>linha(`${i+1}. ${f.key}`,brl(f.total))).join('');
+      fonte(`Filial com maior valor absoluto de vencidos — ${r.key}`,'ti-building-store')+
+      `<div class="cd-hero"><div class="cd-hero-val">${brl(r.total)}</div><span class="cd-chip-sev ${sev[0]}"><i class="ti ${sev[2]}" style="font-size:10px"></i> ${sev[1]}</span></div>`+
+      `<div class="cd-pbar"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)"><span>${r.key}</span><span>${pct}% do total</span></div><div class="cd-pbar-track"><div class="cd-pbar-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div></div>`+
+      (r.ptTop?`<div style="margin-bottom:12px">${trend(r.total,r.ptTop)} <span style="font-size:10px;color:var(--text3)">vs semana anterior</span></div>`:'')+
+      `<div class="cd-stats"><div class="cd-stat"><div class="cd-stat-v">${r.items}</div><div class="cd-stat-l">Itens<br>Vencidos</div></div><div class="cd-stat"><div class="cd-stat-v">${abs(r.maxDias)}d</div><div class="cd-stat-l">Mais<br>Antigo</div></div><div class="cd-stat"><div class="cd-stat-v" style="font-size:${(r.regional||'').length>6?'11px':'14px'}">${r.regional||'—'}</div><div class="cd-stat-l">Regional</div></div></div>`+
+      `<div style="font-size:11px;color:var(--text3);margin-bottom:14px">Auditor: <strong style="color:var(--text2)">${r.auditor||'—'}</strong></div>`+
+      secao('Top 3 Lojas com Maior Vencido')+
+      `<div class="cd-bars">${top3.map((f,i)=>{const w=Math.round(f.total/maxT*100);const isMe=f.key===r.key;return `<div class="cd-bar-row"><div class="cd-bar-info"><div class="cd-bar-label" style="${isMe?'font-weight:700;color:var(--text)':''}">${i+1}. ${f.key}</div><div class="cd-bar-track"><div class="cd-bar-fill" style="width:${w}%;background:${isMe?barColor:'var(--brand)'}"></div></div></div><div class="cd-bar-val">${brl(f.total)}</div></div>`;}).join('')}</div>`;
   } else if(tipo==='auditor'){
     title.innerHTML=`<i class="ti ti-user-shield" style="color:var(--brand);font-size:22px"></i> Auditor Mais Exposto`;
     navTo='auditores';
+    const pctA=Math.round(r.pct*100);
+    const sevA=r.pct>0.30?['crit','CRÍTICA','ti-alert-triangle']:r.pct>0.15?['alta','ALTA','ti-alert-circle']:['mod','MODERADA','ti-circle-check'];
+    const barColorA=r.pct>0.30?'var(--red)':r.pct>0.15?'var(--amber)':'var(--brand)';
+    const top3L=r.top3Lojas||[],maxT2=top3L[0]?top3L[0].total:1;
     body.innerHTML=
-      fonte(`Auditor responsável pelas lojas com maior carteira de vencidos — ${r.key}`,'ti-user-shield')+
-      linha('Auditor',r.key,'responsável técnico por este conjunto de lojas')+
-      linha('Valor sob responsabilidade',brl(r.total),'soma dos vencidos nas lojas desta carteira')+
-      linha('Participação no total geral',Math.round(r.pct*100)+'%','% que esta carteira representa no vencido total')+
-      linha('Itens vencidos',r.items,'produtos vencidos em toda a carteira')+
-      linha('Lojas sob responsabilidade',r.lojas,'filiais nesta carteira com saldo vencido')+
-      secao('Ranking completo de auditores')+
-      r.ranking.map((a,i)=>linha(`${i+1}. ${a.key}`,brl(a.total))).join('');
+      fonte(`Auditor com maior carteira de vencidos — ${r.key}`,'ti-user-shield')+
+      `<div class="cd-hero"><div class="cd-hero-val">${brl(r.total)}</div><span class="cd-chip-sev ${sevA[0]}"><i class="ti ${sevA[2]}" style="font-size:10px"></i> ${sevA[1]}</span></div>`+
+      `<div class="cd-pbar"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)"><span>${r.key}</span><span>${pctA}% do total</span></div><div class="cd-pbar-track"><div class="cd-pbar-fill" style="width:${Math.min(pctA,100)}%;background:${barColorA}"></div></div></div>`+
+      (r.ptAud?`<div style="margin-bottom:12px">${trend(r.total,r.ptAud)} <span style="font-size:10px;color:var(--text3)">vs semana anterior</span></div>`:'')+
+      `<div class="cd-stats"><div class="cd-stat"><div class="cd-stat-v">${r.items}</div><div class="cd-stat-l">Itens<br>Vencidos</div></div><div class="cd-stat"><div class="cd-stat-v">${r.lojas}</div><div class="cd-stat-l">Lojas na<br>Carteira</div></div><div class="cd-stat"><div class="cd-stat-v">${abs(r.maxDias)}d</div><div class="cd-stat-l">Mais<br>Antigo</div></div></div>`+
+      secao('Lojas desta Carteira — Top 3')+
+      (top3L.length?`<div class="cd-bars">${top3L.map((f,i)=>{const w=Math.round(f.total/maxT2*100);return `<div class="cd-bar-row"><div class="cd-bar-info"><div class="cd-bar-label">${i+1}. ${f.key}</div><div class="cd-bar-track"><div class="cd-bar-fill" style="width:${w}%;background:${barColorA}"></div></div></div><div class="cd-bar-val">${brl(f.total)}</div></div>`;}).join('')}</div>`:`<div style="font-size:12px;color:var(--text3)">Nenhuma loja encontrada.</div>`);
   } else if(tipo==='avencer'){
     title.innerHTML='<i class="ti ti-clock-pause" style="color:var(--green);font-size:22px"></i> A Vencer — Ação Preventiva';
     navTo='alertas';
@@ -4295,6 +4332,58 @@ function setProdutosMode(mode){
     // navigate to the dedicated principio ativo view
     nav('principio');
   }
+}
+
+// ─── ANÁLISE PRÉ-REUNIÃO ───
+function renderPreReuniao(){
+  const el=document.getElementById('pre-reuniao-body');
+  if(!el)return;
+  if(!hasData()){el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Importe dados primeiro para gerar a análise.</div>';return;}
+  const d=current,T=d.grandTotal;
+  const prev=history[history.indexOf(d)+1];
+  const pt=prev?prev.grandTotal:null;
+  const top=d.byFilial[0],topAud=d.byAuditor[0];
+  const diff=pt!=null?T-pt:null;
+  const pctChg=pt&&pt>0?Math.round(Math.abs(T-pt)/pt*100):null;
+  const conc=top?Math.round(top.total/T*100):0;
+  const oldest=d.records.slice().sort((a,b)=>a.Dias-b.Dias).slice(0,3);
+  const sec=(icon,title,content)=>`<div style="margin-bottom:20px"><div style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--brand);margin-bottom:8px"><i class="ti ${icon}" style="font-size:14px"></i>${title}</div>${content}</div>`;
+  const bullet=(text,sub)=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px"><span style="color:var(--brand);font-weight:800;flex-shrink:0;line-height:1.5">›</span><div style="font-size:13px;color:var(--text2);line-height:1.5">${text}${sub?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${sub}</div>`:''}</div></div>`;
+  const warn=(text)=>`<div style="background:rgba(192,57,43,.08);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:8px 12px;font-size:12px;color:var(--red);font-weight:600;margin-bottom:8px"><i class="ti ti-alert-triangle"></i> ${text}</div>`;
+  const good=(text)=>`<div style="background:rgba(39,174,96,.08);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:8px 12px;font-size:12px;color:var(--green);font-weight:600;margin-bottom:8px"><i class="ti ti-circle-check"></i> ${text}</div>`;
+  let trendHtml='';
+  if(diff==null)trendHtml=`<div style="font-size:12px;color:var(--text3)">Primeira importação — sem período anterior para comparar.</div>`;
+  else if(diff>100)trendHtml=warn(`Piora de ${pctChg}% em relação ao período anterior — de ${brl(pt)} para ${brl(T)}`);
+  else if(diff<-100)trendHtml=good(`Melhora de ${pctChg}% em relação ao período anterior — de ${brl(pt)} para ${brl(T)}`);
+  else trendHtml=`<div style="font-size:12px;color:var(--text3)">→ Estável em relação ao período anterior (variação menor que 1%).</div>`;
+  const oldestHtml=oldest.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:6px 0;font-size:12px"><div style="color:var(--text2)">${cleanProd(r.Nome)}<div style="font-size:10px;color:var(--text3)">${r.Sigla||'—'} · ${r.Gerente||'—'}</div></div><span style="color:var(--red);font-weight:700;background:rgba(192,57,43,.08);padding:2px 8px;border-radius:10px;flex-shrink:0">${abs(r.Dias)}d</span></div>`).join('');
+  el.innerHTML=
+    `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:20px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:4px">Resumo Executivo · ${d.importDate}</div>
+      <div style="font-size:26px;font-weight:900;letter-spacing:-.5px;color:var(--red)">${brl(T)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:3px">${d.totalItems} itens vencidos · ${d.byFilial.length} lojas · ${d.byAuditor.length} auditores</div>
+    </div>`+
+    sec('ti-trending-up','Tendência do Período',trendHtml)+
+    sec('ti-building-store','Loja Crítica',
+      (conc>30?warn(`Concentração crítica: ${top?top.key:'—'} representa ${conc}% do vencido total`):'')+
+      bullet(`<strong>${top?top.key:'—'}</strong> — ${top?brl(top.total):'—'} <span style="color:var(--text3)">(${conc}% do total)</span>`,`Regional: ${top?top.regional:'—'} · Auditor: ${top?top.auditor:'—'}`)+
+      (d.byFilial[1]?bullet(`2ª: <strong>${d.byFilial[1].key}</strong> — ${brl(d.byFilial[1].total)} (${Math.round(d.byFilial[1].total/T*100)}%)`,''):'')
+    )+
+    sec('ti-user-shield','Auditor Mais Exposto',
+      bullet(`<strong>${topAud?topAud.key:'—'}</strong> — ${topAud?brl(topAud.total):'—'} <span style="color:var(--text3)">(${topAud?Math.round(topAud.total/T*100)+'%':'—'})</span>`,`${topAud?topAud.lojas:'—'} loja(s) · ${topAud?topAud.items:'—'} itens`)+
+      (d.byAuditor[1]?bullet(`2º: <strong>${d.byAuditor[1].key}</strong> — ${brl(d.byAuditor[1].total)} (${Math.round(d.byAuditor[1].total/T*100)}%)`,''):'')
+    )+
+    sec('ti-clock-x','Produtos Mais Críticos — mais antigos',
+      oldest.length?oldestHtml:`<div style="font-size:12px;color:var(--text3)">Sem registros disponíveis.</div>`
+    )+
+    sec('ti-checklist','Pontos-Chave para Discussão',
+      bullet(`Exposto total de <strong>${brl(T)}</strong> em produtos vencidos — definir plano imediato de descarte, negociação ou bonificação com fornecedores`)+
+      (conc>25?bullet(`Concentração excessiva em <strong>${top?top.key:'—'}</strong> (${conc}%) — risco sistêmico; filial merece atenção especial da diretoria`):'')+
+      (diff!=null&&diff>100?bullet(`Tendência negativa de ${pctChg}% — identificar causa raiz e estabelecer meta de redução para o próximo período`):'')+
+      (oldest[0]&&abs(oldest[0].Dias)>90?bullet(`Produto com ${abs(oldest[0].Dias)} dias vencido em <strong>${oldest[0].Sigla||'—'}</strong> — risco regulatório e de imagem`):'')+
+      bullet(`Definir responsável e prazo para as ações de recuperação — próxima importação deve demonstrar redução`)
+    )+
+    `<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px"><button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir esta análise</button></div>`;
 }
 
 function toggleTheme(){
