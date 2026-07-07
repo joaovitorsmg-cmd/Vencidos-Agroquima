@@ -404,16 +404,41 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   .nav-item{min-height:44px}
   .ws-btn{min-height:40px}
   input,select,textarea{font-size:16px} /* evita zoom automático ao focar em iOS */
+  /* Evolução Semanal — scroll horizontal interno, coluna Loja sticky */
+  .evotw{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
+  /* sombra direita indica que há mais conteúdo para scrollar */
+  .evotw::after{content:'';position:absolute;right:0;top:0;bottom:0;width:28px;background:linear-gradient(90deg,transparent,var(--bg2) 85%);pointer-events:none;z-index:3;border-radius:0 var(--r) var(--r) 0}
+  .evot{min-width:480px}
+  .evot td.nm{position:sticky;left:0;z-index:1;background:var(--bg);box-shadow:2px 0 5px rgba(0,0,0,.1)}
+  .evot tr:nth-child(even) td.nm{background:var(--bg2)}
+  .evot thead th:first-child{position:sticky;left:0;z-index:2}
+  .evot tfoot td:first-child{position:sticky;left:0;background:#f7d117;z-index:1}
+  /* desativa sticky no modo de exportação PNG */
+  .evo-export-mode .evot td.nm,.evo-export-mode .evot thead th:first-child,.evo-export-mode .evot tfoot td:first-child{position:static;box-shadow:none}
 }
 @media(max-width:600px){
   .g3,.g4,.metrics{grid-template-columns:1fr!important}
   .brand-txt h1{font-size:14px}
-  .topbar{height:auto;min-height:52px}
+  .brand-logo{width:34px;height:34px}
+  /* Topbar: forçar linha única, compactar ações e perfil */
+  .topbar{flex-wrap:nowrap;overflow:hidden;min-height:52px;padding:0 8px;gap:4px}
+  .btn-hamburger{flex-shrink:0}
+  .brand{flex:1;min-width:0;overflow:hidden}
+  .brand-txt{min-width:0;overflow:hidden}
+  .brand-txt h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar-actions{gap:4px;flex-shrink:0}
+  /* Ocultar sync e label do tema — liberando espaço */
+  .sync-indicator{display:none!important}
+  .theme-lbl{display:none}
+  .btn-theme-pill{padding:0 7px;min-width:36px}
+  /* Perfil: exibir apenas ícone */
+  .perfil-wrap{flex-shrink:0;gap:2px}
+  .perfil-badge{font-size:0;padding:5px 8px;max-width:none;white-space:nowrap;line-height:1;border-radius:50%}
+  .perfil-badge i{font-size:15px}
+  /* Botão Sair: apenas ícone (clip por overflow) */
+  .perfil-wrap .btn.xs{overflow:hidden;max-width:34px;padding:0 7px;white-space:nowrap;min-height:34px}
   table{font-size:12px}
   .aud-card{padding:14px}
-  .sync-indicator span{display:none}
-  .sync-indicator{padding:5px 7px}
-  .perfil-badge{max-width:150px;white-space:normal;line-height:1.3}
   .aging-row{gap:8px}
   .aging-label{min-width:62px;font-size:11px}
   .aging-val{min-width:84px;font-size:12px}
@@ -423,6 +448,13 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   .modal{padding:20px}
   .login-box{padding:30px 22px}
   #empty-panel-overlay{padding:24px}
+  /* Tabela evolução — células menores no mobile */
+  .evot th,.evot td{padding:7px 9px}
+  .evot{font-size:12px}
+  /* Cards de modal: 2 colunas no lugar de 3 no mobile pequeno */
+  .cd-stats{grid-template-columns:repeat(2,1fr)}
+  /* Botões de ação da view-head: alinhar à direita quando empilhados */
+  .view-head>.view-head-actions{align-self:flex-end;margin-top:-4px}
 }
 @media(max-width:380px){
   .login-box{padding:26px 18px}
@@ -2708,7 +2740,7 @@ function renderEvo(){
     </div>
     <div class="view-head" style="margin-bottom:10px">
       <div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div>
-      <div style="display:flex;gap:6px;align-items:center">
+      <div class="view-head-actions" style="display:flex;gap:6px;align-items:center">
         <div class="col-picker-wrap">
           <button class="btn ghost icon-only view-export-btn" id="evo-col-btn" onclick="toggleEvoColPicker(event)" title="Selecionar colunas visíveis"><i class="ti ti-columns"></i></button>
           <div class="col-picker-drop" id="evo-col-drop">
