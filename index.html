@@ -3935,7 +3935,7 @@ function _buildSlide(d, filtroRegional){
   const av120={};
   aVencer.filter(r=>r.Dias>0&&r.Dias<=120).forEach(r=>{av120[r.Sigla]=(av120[r.Sigla]||0)+r.Total;});
   const totalAV120=Object.values(av120).reduce((s,v)=>s+v,0);
-  const filData=filiais.map(f=>({key:f.key,vencido:f.total,av120:av120[f.key]||0,status:_statusDoBkg(f.total,grandTotal)}));
+  const filData=filiais.map(f=>({key:f.key,vencido:f.total,av120:av120[f.key]||0,status:_statusDoBkg(f.total,grandTotal),itens:f.items||0}));
   const prodMap={};
   vencidos.forEach(r=>{
     const k=r.Nome||r.Desc||'—';
@@ -3955,118 +3955,138 @@ function _drawSlideCanvas(canvas,titulo,data,slide){
   canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext('2d');
   const {grandTotal,totalItens,numFiliais,filiais,top5,totalAV120,nCrit,nAtenc,nBaixo}=slide;
+  // Paleta oficial Agroquima (manual de marca)
+  const C={dark:'#002B5B',royal:'#0D47A1',light:'#64B5F6',bg:'#EEF3FA',bgRow2:'#F0F6FF',border:'#C8D9EF',textPri:'#0A1628',textSec:'#4B5E7A',crit:'#C62828',atenc:'#E65100',baixo:'#2E7D32'};
 
-  // ── Fundo ──
-  ctx.fillStyle='#eceff4';ctx.fillRect(0,0,W,H);
-  // Subtle diagonal stripe texture
-  ctx.strokeStyle='rgba(200,210,225,.35)';ctx.lineWidth=1;
-  for(let i=-H;i<W+H;i+=22){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+H,H);ctx.stroke();}
+  // ── Fundo com grade sutil ──
+  ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(11,92,171,.05)';ctx.lineWidth=1;
+  for(let xi=0;xi<W;xi+=40){ctx.beginPath();ctx.moveTo(xi,0);ctx.lineTo(xi,H);ctx.stroke();}
+  for(let yi=0;yi<H;yi+=40){ctx.beginPath();ctx.moveTo(0,yi);ctx.lineTo(W,yi);ctx.stroke();}
 
   // ── Header ──
-  const TH=64;
-  const hGrd=ctx.createLinearGradient(0,0,W,0);hGrd.addColorStop(0,'#0d1f3c');hGrd.addColorStop(1,'#1a3a5c');
-  ctx.fillStyle=hGrd;ctx.fillRect(0,0,W,TH);
-  // Left accent bar
-  ctx.fillStyle='#e53935';ctx.fillRect(0,0,5,TH);
-  ctx.fillStyle='#ffffff';ctx.font='bold 22px sans-serif';ctx.textBaseline='middle';
-  ctx.fillText('AGROQUIMA  ·  RELATÓRIO DE VENCIDOS',20,TH/2);
-  ctx.fillStyle='#93c5fd';ctx.font='13px sans-serif';ctx.textAlign='right';
+  const TH=68;
+  ctx.fillStyle=C.dark;ctx.fillRect(0,0,W,TH);
+  ctx.fillStyle=C.light;ctx.fillRect(0,TH-4,W,4);
+  // Marca gráfica (4 blocos estilo logo Agroquima)
+  const lx=16,ly=9,ls=14,lg=3;
+  ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(lx,ly,ls,ls);
+  ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(lx+ls+lg,ly,ls,ls);
+  ctx.fillStyle=C.light;ctx.fillRect(lx,ly+ls+lg,ls,ls);
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillRect(lx+ls+lg,ly+ls+lg,ls,ls);
+  ctx.fillStyle='#ffffff';ctx.font='bold 21px sans-serif';ctx.textBaseline='middle';
+  ctx.fillText('AGROQUIMA  ·  RELATÓRIO DE VENCIDOS',lx+ls*2+lg+12,TH/2);
+  ctx.fillStyle=C.light;ctx.font='12px sans-serif';ctx.textAlign='right';
   ctx.fillText(titulo+'     |     Base: '+data,W-20,TH/2);
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 
-  // ── KPI cards ──
-  const CY=TH+10,CH=124,CG=14,CW=(W-40-CG*2)/3;
+  // ── Cards KPI ──
+  const CY=TH+12,CH=110,CG=14,CW=(W-40-CG*2)/3;
   const kpis=[
-    {c1:'#b71c1c',c2:'#d32f2f',lab:'Total de Produtos Vencidos',val:totalItens+' itens',icon:'■'},
-    {c1:'#3e0000',c2:'#7b1c1c',lab:'Valor Total em Perdas',val:brl(grandTotal),icon:'■'},
-    {c1:'#bf360c',c2:'#e64a19',lab:'Filiais Afetadas',val:numFiliais+' '+(numFiliais===1?'filial':'filiais'),icon:'■'},
+    {label:'TOTAL DE PRODUTOS VENCIDOS',val:totalItens+' itens',sub:numFiliais+' '+(numFiliais===1?'filial':'filiais')+' afetadas',c1:'#0A2248',c2:C.royal,accent:C.light},
+    {label:'VALOR TOTAL EM PERDAS',val:brl(grandTotal),sub:'em produtos com validade expirada',c1:C.dark,c2:'#0A3470',accent:C.light},
+    {label:'STATUS CONSOLIDADO',val:nCrit>0?nCrit+' Crítica(s)':nAtenc>0?nAtenc+' Atenção':'Situação Baixa',sub:nCrit+' crítico · '+nAtenc+' atenção · '+nBaixo+' baixo',c1:nCrit>0?'#6B1111':nAtenc>0?'#5A2A00':C.dark,c2:nCrit>0?'#B71C1C':nAtenc>0?'#BF360C':C.royal,accent:nCrit>0?'#EF9A9A':nAtenc>0?'#FFB74D':C.light},
   ];
   kpis.forEach((k,i)=>{
     const kx=20+i*(CW+CG);
     const grd=ctx.createLinearGradient(kx,CY,kx+CW,CY+CH);
     grd.addColorStop(0,k.c1);grd.addColorStop(1,k.c2);
-    ctx.fillStyle=grd;_rndRect(ctx,kx,CY,CW,CH,12);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.07)';_rndRect(ctx,kx,CY,CW,CH,12);ctx.fill();
-    // Accent stripe at bottom
-    ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(kx,CY+CH-6,CW,6);
-    ctx.fillStyle='rgba(255,255,255,.7)';ctx.font='12px sans-serif';ctx.textBaseline='top';
-    ctx.fillText(k.lab.toUpperCase(),kx+16,CY+14);
-    const fz=brl(grandTotal).length>13?20:24;
-    ctx.fillStyle='#ffffff';ctx.font='bold '+(i===1?fz:30)+'px sans-serif';ctx.textBaseline='bottom';
-    ctx.fillText(k.val,kx+16,CY+CH-18);
+    ctx.fillStyle=grd;_rndRect(ctx,kx,CY,CW,CH,10);ctx.fill();
+    ctx.fillStyle=k.accent;ctx.fillRect(kx,CY,CW,4);
+    ctx.fillStyle='rgba(255,255,255,.65)';ctx.font='10px sans-serif';ctx.textBaseline='top';
+    ctx.fillText(k.label,kx+14,CY+14);
+    const fz=k.val.length>14?20:k.val.length>10?24:28;
+    ctx.fillStyle='#ffffff';ctx.font='bold '+fz+'px sans-serif';ctx.textBaseline='middle';
+    ctx.fillText(k.val,kx+14,CY+CH*0.58);
+    ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='10px sans-serif';ctx.textBaseline='bottom';
+    ctx.fillText(k.sub,kx+14,CY+CH-10);
     ctx.textBaseline='alphabetic';
   });
 
   // ── Tabela Filiais ──
-  const TBY=CY+CH+16;
-  const RH=30,HDR=34;
+  const TBY=CY+CH+14,RH=30,HDR=34;
   const half=filiais.length>5?Math.ceil(filiais.length/2):filiais.length;
   const leftF=filiais.slice(0,half),rightF=filiais.slice(half);
   const dualCol=rightF.length>0;
   const TBW=dualCol?(W-40-16)/2:W-40;
-  _drawFilialTable(ctx,20,TBY,TBW,leftF,RH,HDR);
-  if(dualCol)_drawFilialTable(ctx,20+TBW+16,TBY,TBW,rightF,RH,HDR);
+  _drawFilialTable(ctx,20,TBY,TBW,leftF,RH,HDR,grandTotal);
+  if(dualCol)_drawFilialTable(ctx,20+TBW+16,TBY,TBW,rightF,RH,HDR,grandTotal);
   const tableH=HDR+Math.max(leftF.length,rightF.length)*RH;
 
   // ── TOP 5 Produtos ──
-  const T5Y=TBY+tableH+16;
+  const T5Y=TBY+tableH+14;
   const top5H=_drawTop5(ctx,20,T5Y,W-40,top5);
 
   // ── Situação Consolidada ──
-  const SCY=T5Y+top5H+16;
+  const SCY=T5Y+top5H+14;
   const SCH=H-28-SCY-10;
   if(SCH>50){
     const sW=(W-40-28)/3,sG=14;
     const situacao=[
-      {lab:'A Vencer em 120 dias',val:brl(totalAV120),cor:'#1565c0'},
-      {lab:'Filiais com status CRÍTICO / ATENÇÃO',val:nCrit+' crítica(s)  ·  '+nAtenc+' atenção  ·  '+nBaixo+' baixo',cor:'#6a1a1a'},
-      {lab:'Representatividade do vencido',val:totalAV120>0?Math.round(grandTotal/(grandTotal+totalAV120)*100)+'% do fluxo ativo':'—',cor:'#1b5e20'},
+      {lab:'A VENCER EM 120 DIAS',val:brl(totalAV120),sub:'valor recuperável — ação preventiva',cor:C.royal},
+      {lab:'FILIAIS COM STATUS CRÍTICO / ATENÇÃO',val:nCrit+' crítica(s)  ·  '+nAtenc+' atenção  ·  '+nBaixo+' baixo',sub:'distribuição de risco por filial',cor:nCrit>0?C.crit:C.dark},
+      {lab:'REPRESENTATIVIDADE DO VENCIDO',val:totalAV120>0?Math.round(grandTotal/(grandTotal+totalAV120)*100)+'% do fluxo ativo':'—',sub:'proporção no portfólio total em risco',cor:C.dark},
     ];
     situacao.forEach((s,i)=>{
       const sx=20+i*(sW+sG);
       ctx.fillStyle='#ffffff';_rndRect(ctx,sx,SCY,sW,SCH,8);ctx.fill();
-      ctx.fillStyle=s.cor;ctx.fillRect(sx,SCY,4,SCH);
-      ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textBaseline='top';
-      ctx.fillText(s.lab.toUpperCase(),sx+12,SCY+10);
-      ctx.fillStyle=s.cor;ctx.font='bold 14px sans-serif';ctx.textBaseline='middle';
-      ctx.fillText(s.val,sx+12,SCY+SCH/2+6);
+      ctx.strokeStyle=C.border;ctx.lineWidth=1;_rndRect(ctx,sx,SCY,sW,SCH,8);ctx.stroke();
+      ctx.fillStyle=s.cor;_rndRect(ctx,sx,SCY,4,SCH,8);ctx.fill();
+      ctx.fillStyle=C.textSec;ctx.font='9px sans-serif';ctx.textBaseline='top';
+      ctx.fillText(s.lab,sx+12,SCY+9);
+      const fzV=s.val.length>20?12:s.val.length>14?13:16;
+      ctx.fillStyle=s.cor;ctx.font='bold '+fzV+'px sans-serif';ctx.textBaseline='middle';
+      ctx.fillText(s.val,sx+12,SCY+SCH*0.54);
+      ctx.fillStyle=C.textSec;ctx.font='9px sans-serif';ctx.textBaseline='bottom';
+      ctx.fillText(s.sub,sx+12,SCY+SCH-8);
       ctx.textBaseline='alphabetic';
     });
   }
 
   // ── Rodapé ──
   const FY=H-28;
-  const fGrd=ctx.createLinearGradient(0,FY,W,FY);fGrd.addColorStop(0,'#0d1f3c');fGrd.addColorStop(1,'#1a3a5c');
-  ctx.fillStyle=fGrd;ctx.fillRect(0,FY,W,28);
-  ctx.fillStyle='rgba(147,197,253,.7)';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('Auditoria de Vencidos · Agroquima · '+data+' · Documento confidencial — uso interno',W/2,FY+14);
+  ctx.fillStyle=C.dark;ctx.fillRect(0,FY,W,28);
+  ctx.fillStyle=C.light;ctx.fillRect(0,FY,W,2);
+  ctx.fillStyle='rgba(100,181,246,.7)';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('Auditoria de Vencidos  ·  Agroquima  ·  '+data+'  ·  Documento confidencial — uso interno',W/2,FY+14);
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 
-function _drawFilialTable(ctx,x,y,w,filiais,RH,HDR){
-  const cols=[0.18,0.26,0.28,0.28];
-  const labs=['Filial','Vencido','A Vencer 120','Status'];
-  ctx.fillStyle='#1a3a5c';ctx.fillRect(x,y,w,HDR);
-  ctx.fillStyle='#ffffff';ctx.font='bold 12px sans-serif';ctx.textBaseline='middle';
+function _drawFilialTable(ctx,x,y,w,filiais,RH,HDR,grandTotal){
+  const C={dark:'#002B5B',royal:'#0D47A1',light:'#64B5F6',bg:'#F0F6FF',border:'#C8D9EF',textPri:'#0A1628',textSec:'#4B5E7A'};
+  const cols=[0.22,0.21,0.08,0.22,0.27];
+  const labs=['Filial','Vencido (R$)','Itens','A Vencer 120d','Status'];
+  // Cabeçalho
+  ctx.fillStyle=C.dark;ctx.fillRect(x,y,w,HDR);
+  ctx.fillStyle=C.light;ctx.fillRect(x,y+HDR-3,w,3);
+  ctx.fillStyle='#ffffff';ctx.font='bold 11px sans-serif';ctx.textBaseline='middle';
   let cx=x;
   cols.forEach((p,i)=>{
     const cw=w*p;ctx.textAlign=i===0?'left':'right';
-    ctx.fillText(labs[i],i===0?cx+10:cx+cw-10,y+HDR/2);cx+=cw;
+    ctx.fillText(labs[i].toUpperCase(),i===0?cx+10:cx+cw-10,y+HDR/2);cx+=cw;
   });
+  // Linhas
   filiais.forEach((f,ri)=>{
     const ry=y+HDR+ri*RH;
-    ctx.fillStyle=ri%2===0?'#ffffff':'#f1f5fb';ctx.fillRect(x,ry,w,RH);
-    ctx.strokeStyle='#cdd8e8';ctx.lineWidth=0.5;
+    ctx.fillStyle=ri%2===0?'#ffffff':C.bg;ctx.fillRect(x,ry,w,RH);
+    ctx.strokeStyle=C.border;ctx.lineWidth=0.5;
     ctx.beginPath();ctx.moveTo(x,ry+RH);ctx.lineTo(x+w,ry+RH);ctx.stroke();
+    // Barra proporcional sutil (2px no fundo da célula de vencido)
+    if(grandTotal>0){
+      const bx=x+w*cols[0]+3,bw=w*cols[1]-6,pct=Math.min(f.vencido/grandTotal,1);
+      ctx.fillStyle=C.border;ctx.fillRect(bx,ry+RH-3,bw,2);
+      ctx.fillStyle=_statusCor(f.status);ctx.fillRect(bx,ry+RH-3,Math.round(bw*pct),2);
+    }
     cx=x;
-    [f.key,brl(f.vencido),brl(f.av120)].forEach((v,i)=>{
-      const cw=w*cols[i];ctx.fillStyle='#1e293b';ctx.textAlign=i===0?'left':'right';
-      ctx.font=i===0?'bold 13px sans-serif':'13px sans-serif';
+    [f.key,brl(f.vencido),String(f.itens||'—'),brl(f.av120)].forEach((v,i)=>{
+      const cw=w*cols[i];ctx.fillStyle=C.textPri;ctx.textAlign=i===0?'left':'right';
+      ctx.font=i===0?'bold 12px sans-serif':'12px sans-serif';
       ctx.fillText(v,i===0?cx+10:cx+cw-10,ry+RH/2);cx+=cw;
     });
-    const sw=w*cols[3],px=cx+8,pillW=sw-16,pillH=20,pillY=ry+(RH-pillH)/2;
+    // Status pill
+    const sw=w*cols[4],px=cx+8,pillW=sw-16,pillH=20,pillY=ry+(RH-pillH)/2;
     ctx.fillStyle=_statusCor(f.status);_rndRect(ctx,px,pillY,pillW,pillH,5);ctx.fill();
-    ctx.fillStyle='#ffffff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillStyle='#ffffff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
     ctx.fillText(f.status,px+pillW/2,ry+RH/2);
   });
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
@@ -4074,32 +4094,35 @@ function _drawFilialTable(ctx,x,y,w,filiais,RH,HDR){
 
 function _drawTop5(ctx,x,y,w,top5){
   if(!top5||!top5.length)return 0;
-  const barCors=['#b71c1c','#d84315','#e65100','#f57f17','#f9a825'];
-  const TH=34;
-  ctx.fillStyle='#1a3a5c';ctx.fillRect(x,y,w,TH);
-  ctx.fillStyle='#ffffff';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  const C={dark:'#002B5B',royal:'#0D47A1',light:'#64B5F6',border:'#C8D9EF',textPri:'#0A1628',textSec:'#4B5E7A'};
+  const barCors=['#002B5B','#0D47A1','#1565c0','#1976d2','#42a5f5'];
+  const TH=34,ITEM_H=62;
+  ctx.fillStyle=C.dark;ctx.fillRect(x,y,w,TH);
+  ctx.fillStyle=C.light;ctx.fillRect(x,y+TH-3,w,3);
+  ctx.fillStyle='#ffffff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('TOP 5 PRODUTOS COM MAIOR IMPACTO FINANCEIRO',x+w/2,y+TH/2);
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
-  const iy=y+TH+12;
+  const iy=y+TH+10;
   const iw=(w-(top5.length-1)*12)/top5.length;
   const maxV=top5[0]?top5[0].total:1;
-  const ITEM_H=60;
   top5.forEach((p,i)=>{
     const ix=x+i*(iw+12);
     ctx.fillStyle='#ffffff';_rndRect(ctx,ix,iy,iw,ITEM_H,6);ctx.fill();
-    ctx.fillStyle=barCors[i];ctx.beginPath();ctx.arc(ix+11,iy+14,5,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#1e293b';ctx.font='bold 11px sans-serif';ctx.textBaseline='top';
+    // Barra de cor lateral esquerda
+    ctx.fillStyle=barCors[i];ctx.fillRect(ix,iy,3,ITEM_H);
+    ctx.fillStyle=barCors[i];ctx.beginPath();ctx.arc(ix+14,iy+14,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=C.textPri;ctx.font='bold 11px sans-serif';ctx.textBaseline='top';
     const nome=p.nome&&p.nome.length>26?p.nome.slice(0,24)+'…':p.nome||'—';
-    ctx.fillText(nome,ix+22,iy+6);
-    ctx.fillStyle='#475569';ctx.font='10px sans-serif';
-    ctx.fillText((p.filial||'')+'  —  '+brl(p.total),ix+22,iy+20);
-    const bY=iy+36,bH=12,bMaxW=iw-16;
+    ctx.fillText(nome,ix+24,iy+6);
+    ctx.fillStyle=C.textSec;ctx.font='10px sans-serif';
+    ctx.fillText((p.filial||'')+'  —  '+brl(p.total),ix+24,iy+20);
+    const bY=iy+38,bH=10,bMaxW=iw-18;
     const bFill=maxV>0?Math.max(0.04,p.total/maxV):0;
-    ctx.fillStyle='#dde3ee';_rndRect(ctx,ix+8,bY,bMaxW,bH,6);ctx.fill();
-    ctx.fillStyle=barCors[i];_rndRect(ctx,ix+8,bY,Math.round(bFill*bMaxW),bH,6);ctx.fill();
+    ctx.fillStyle=C.border;_rndRect(ctx,ix+9,bY,bMaxW,bH,5);ctx.fill();
+    ctx.fillStyle=barCors[i];_rndRect(ctx,ix+9,bY,Math.round(bFill*bMaxW),bH,5);ctx.fill();
     ctx.textBaseline='alphabetic';
   });
-  return TH+12+ITEM_H;
+  return TH+10+ITEM_H;
 }
 
 function renderRelatorio(){
