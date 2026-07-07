@@ -111,6 +111,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .view-head h2{font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;letter-spacing:-.3px}
 .view-head h2 i{font-size:24px;color:var(--brand)}
 .view-head .sub{font-size:13px;color:var(--text2);margin-top:3px}
+/* COLUMN PICKER */
+.col-picker-wrap{position:relative;display:inline-block}
+.col-picker-drop{position:absolute;right:0;top:calc(100% + 6px);background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 4px;z-index:200;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none}
+.col-picker-drop.open{display:block}
+.col-picker-drop label{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-radius:6px;transition:background .12s}
+.col-picker-drop label:hover{background:var(--bg2)}
+.col-picker-drop label input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;cursor:pointer}
+.col-picker-drop label.locked{color:var(--text3);cursor:default;pointer-events:none}
+.col-picker-drop .divider{height:1px;background:var(--border);margin:4px 8px}
+.col-picker-drop .add-opt{color:var(--brand)}
 /* CARDS */
 .card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh)}
 .card-h{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;text-transform:uppercase;letter-spacing:.5px}
@@ -1226,6 +1236,7 @@ let current = null;
 let delTarget = null;
 let charts = {};
 let resumoDetalhe = {};
+let evoColsVisiveis={regional:true,semAnterior:true,variacao:true,pctTotal:true,auditor:false};
 
 const AUD_COLORS = {'JOÃO VITOR':'#0b5cab','FÁBIO':'#c0392b','CARLOS POGGIAN':'#d68910','GUILHERME':'#1e8449','OUTROS':'#3b4cb8'};
 const PALETTE = ['#0b5cab','#1565c0','#2b7fd4','#4d96e0','#08376a','#3b4cb8','#1e8449','#d68910','#c0392b','#5a7fa8'];
@@ -2678,7 +2689,7 @@ function renderEvo(){
   const Tc=curr.grandTotal,Tp=prev.grandTotal,diff=Tc-Tp,dp=Tp?diff/Tp*100:0,imp=diff<0;
   const all=new Set([...curr.byFilial.map(f=>f.key),...prev.byFilial.map(f=>f.key)]);
   const rows=[];
-  for(const f of all){const c=curr.byFilial.find(x=>x.key===f),p=prev.byFilial.find(x=>x.key===f);const vC=c?c.total:0,vP=p?p.total:0,dd=vC-vP,ddp=vP?dd/vP*100:(vC>0?999:0);rows.push({f,reg:c?c.regional:(p?p.regional:''),prev:vP,curr:vC,diff:dd,pct:ddp,share:Tc>0?vC/Tc*100:0});}
+  for(const f of all){const c=curr.byFilial.find(x=>x.key===f),p=prev.byFilial.find(x=>x.key===f);const vC=c?c.total:0,vP=p?p.total:0,dd=vC-vP,ddp=vP?dd/vP*100:(vC>0?999:0);rows.push({f,reg:c?c.regional:(p?p.regional:''),aud:c?c.auditor:(p?p.auditor:''),prev:vP,curr:vC,diff:dd,pct:ddp,share:Tc>0?vC/Tc*100:0});}
   rows.sort((a,b)=>b.curr-a.curr);
   // Variação para a diretoria: seta + % (vermelho piorou, verde melhorou), NOVO/ZEROU nos extremos
   // 1 casa decimal: evita que uma queda/alta real (ex: -R$494) apareça arredondada para "0%" e pareça estável
@@ -2695,17 +2706,80 @@ function renderEvo(){
       <div class="metric ${imp?'green':'red'}"><div class="ml">${curr.importDate} (atual)</div><div class="mv">${brl(Tc)}</div><div class="ms">${curr.totalItems} itens vencidos</div></div>
       <div class="metric ${imp?'green':'red'}"><div class="ml">Variação da Semana</div><div class="mv">${imp?'↓':'↑'} ${pctFmt(dp)}%</div><div class="ms">${imp?'Redução de ':'Aumento de '}${brl(Math.abs(diff))}</div></div>
     </div>
-    <div class="view-head" style="margin-bottom:10px"><div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div><button class="btn ghost icon-only view-export-btn" onclick="exportarEvoPNG()" title="Exportar comparativo por loja como imagem PNG"><i class="ti ti-download"></i></button></div>
+    <div class="view-head" style="margin-bottom:10px">
+      <div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="col-picker-wrap">
+          <button class="btn ghost icon-only view-export-btn" id="evo-col-btn" onclick="toggleEvoColPicker(event)" title="Selecionar colunas visíveis"><i class="ti ti-columns"></i></button>
+          <div class="col-picker-drop" id="evo-col-drop">
+            <label class="locked"><input type="checkbox" checked disabled> <i class="ti ti-lock" style="font-size:11px;color:var(--text3)"></i> Loja</label>
+            <label><input type="checkbox" id="evc-regional" onchange="toggleEvoCol('regional',this.checked)" ${evoColsVisiveis.regional?'checked':''}> Regional</label>
+            <label><input type="checkbox" id="evc-semAnterior" onchange="toggleEvoCol('semAnterior',this.checked)" ${evoColsVisiveis.semAnterior?'checked':''}> Semana Anterior</label>
+            <label class="locked"><input type="checkbox" checked disabled> <i class="ti ti-lock" style="font-size:11px;color:var(--text3)"></i> Semana Atual</label>
+            <label><input type="checkbox" id="evc-variacao" onchange="toggleEvoCol('variacao',this.checked)" ${evoColsVisiveis.variacao?'checked':''}> Variação</label>
+            <label><input type="checkbox" id="evc-pctTotal" onchange="toggleEvoCol('pctTotal',this.checked)" ${evoColsVisiveis.pctTotal?'checked':''}> % do Total</label>
+            <div class="divider"></div>
+            <label class="add-opt"><input type="checkbox" id="evc-auditor" onchange="toggleEvoCol('auditor',this.checked)" ${evoColsVisiveis.auditor?'checked':''}> <i class="ti ti-user" style="font-size:11px"></i> Auditor</label>
+          </div>
+        </div>
+        <button class="btn ghost icon-only view-export-btn" onclick="exportarEvoPNG()" title="Exportar comparativo por loja como imagem PNG"><i class="ti ti-download"></i></button>
+      </div>
+    </div>
     <div id="evo-export-area" style="background:var(--bg2);padding:18px;border-radius:12px">
     <div class="evo-export-title" style="display:none;margin-bottom:14px">
       <div style="font-size:18px;font-weight:800;color:var(--brand)">AGROQUIMA — Evolução do Vencido</div>
       <div style="font-size:13px;color:var(--text2);margin-top:2px">Comparativo por Loja · ${prev.importDate} → ${curr.importDate} · leituras do arquivo de vencidos</div>
     </div>
-    <div class="evotw"><table class="evot"><thead><tr><th style="text-align:left;min-width:130px">LOJA</th><th>REGIONAL</th><th>${prev.importDate}</th><th>${curr.importDate}</th><th>VARIAÇÃO</th><th>% DO TOTAL</th></tr></thead>
-    <tbody>${rows.map(r=>`<tr><td class="nm">${r.f}</td><td style="text-align:left;font-size:11px" class="muted">${r.reg}</td><td>${r.prev>0?brl(r.prev):'—'}</td><td>${r.curr>0?brl(r.curr):'—'}</td><td>${fv(r)}</td><td>${r.curr>0?r.share.toFixed(1).replace('.',',')+'%':'—'}</td></tr>`).join('')}</tbody>
-    <tfoot><tr class="tr"><td colspan="2">TOTAL</td><td>${brl(Tp)}</td><td>${brl(Tc)}</td><td>${Math.abs(diff)<0.01?'—':(diff<0?'↓ ':'↑ ')+pctFmt(dp)+'%'}</td><td>100%</td></tr></tfoot></table></div>
+    <div class="evotw"><table class="evot"><thead><tr>
+      <th style="text-align:left;min-width:130px">LOJA</th>
+      ${evoColsVisiveis.regional?'<th>REGIONAL</th>':''}
+      ${evoColsVisiveis.semAnterior?`<th>${prev.importDate}</th>`:''}
+      <th>${curr.importDate}</th>
+      ${evoColsVisiveis.variacao?'<th>VARIAÇÃO</th>':''}
+      ${evoColsVisiveis.pctTotal?'<th>% DO TOTAL</th>':''}
+      ${evoColsVisiveis.auditor?'<th>AUDITOR</th>':''}
+    </tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="nm">${r.f}</td>
+      ${evoColsVisiveis.regional?`<td style="text-align:left;font-size:11px" class="muted">${r.reg}</td>`:''}
+      ${evoColsVisiveis.semAnterior?`<td>${r.prev>0?brl(r.prev):'—'}</td>`:''}
+      <td>${r.curr>0?brl(r.curr):'—'}</td>
+      ${evoColsVisiveis.variacao?`<td>${fv(r)}</td>`:''}
+      ${evoColsVisiveis.pctTotal?`<td>${r.curr>0?r.share.toFixed(1).replace('.',',')+'%':'—'}</td>`:''}
+      ${evoColsVisiveis.auditor?`<td style="font-size:11px;color:var(--text2)">${r.aud||'—'}</td>`:''}
+    </tr>`).join('')}</tbody>
+    <tfoot><tr class="tr">
+      ${evoColsVisiveis.regional?'<td colspan="2">TOTAL</td>':'<td>TOTAL</td>'}
+      ${evoColsVisiveis.semAnterior?`<td>${brl(Tp)}</td>`:''}
+      <td>${brl(Tc)}</td>
+      ${evoColsVisiveis.variacao?`<td>${Math.abs(diff)<0.01?'—':(diff<0?'↓ ':'↑ ')+pctFmt(dp)+'%'}</td>`:''}
+      ${evoColsVisiveis.pctTotal?'<td>100%</td>':''}
+      ${evoColsVisiveis.auditor?'<td></td>':''}
+    </tr></tfoot></table></div>
     </div>`;
 }
+
+function toggleEvoColPicker(e){
+  e.stopPropagation();
+  const drop=document.getElementById('evo-col-drop');
+  if(!drop)return;
+  drop.classList.toggle('open');
+}
+function toggleEvoCol(col,val){
+  evoColsVisiveis[col]=val;
+  renderEvo();
+  // Re-open picker since renderEvo re-renders the whole section
+  const drop=document.getElementById('evo-col-drop');
+  if(drop)drop.classList.add('open');
+}
+// Close picker when clicking outside
+document.addEventListener('click',function(e){
+  const drop=document.getElementById('evo-col-drop');
+  if(drop&&drop.classList.contains('open')){
+    const wrap=document.getElementById('evo-col-btn');
+    if(!drop.contains(e.target)&&e.target!==wrap&&!wrap.contains(e.target)){drop.classList.remove('open');}
+  }
+});
 
 // Exporta a tabela de evolução como imagem PNG em alta resolução
 function exportarEvoPNG(){
