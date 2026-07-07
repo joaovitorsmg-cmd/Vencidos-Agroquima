@@ -1272,6 +1272,9 @@ let resumoDetalhe = {};
 let evoColsVisiveis={regional:true,semAnterior:true,variacao:true,pctTotal:true,auditor:false};
 let evoSort={col:'curr',dir:'desc'};
 
+// Número oficial de cada filial — fonte: Base Regionais
+const FILIAL_NUM={'MATRIZ':1,'ARAGUAÍNA':3,'RIO VERDE':4,'UBERLÂNDIA':5,'MARABÁ':10,'JATAI':11,'CRISTALINA':12,'UBS':13,'REDENÇÃO':14,'IMPERATRIZ':16,'BARRA DO GARÇAS':17,'PALMAS':19,'MOZARLÂNDIA':21,'PARAGOMINAS':22,'SÃO FELIX DO XINGU':23,'FABRICA APARECIDA':24,'CUIABÁ':25,'URUAÇU':27,'MORRINHOS':28,'CONFRESA':29,'FORMOSA':30,'JUSSARA':31,'XINGUARA':32,'PORANGATU':34,'PONTES E LACERDA':35,'GOIANIRA':36,'CANARANA':37,'GURUPI':38,'RIALMA':40,'ALTAMIRA':41};
+const filialNum=n=>{const k=(n||'').toUpperCase().trim();return FILIAL_NUM[k]??null;};
 const AUD_COLORS = {'JOÃO VITOR':'#0b5cab','FÁBIO':'#c0392b','CARLOS POGGIAN':'#d68910','GUILHERME':'#1e8449','OUTROS':'#3b4cb8'};
 const PALETTE = ['#0b5cab','#1565c0','#2b7fd4','#4d96e0','#08376a','#3b4cb8','#1e8449','#d68910','#c0392b','#5a7fa8'];
 
@@ -2782,7 +2785,7 @@ function renderEvo(){
       ${evoColsVisiveis.auditor?`<th onclick="setEvoSort('aud')" style="${thS}">AUDITOR${sa('aud')}</th>`:''}
     </tr></thead>
     <tbody>${rows.map((r,i)=>`<tr>
-      <td class="nm"><span style="display:inline-block;min-width:16px;color:var(--text3);font-size:10px;font-weight:700;margin-right:5px;text-align:right">${i+1}</span>${r.f}</td>
+      <td class="nm">${(fn=>fn!=null?`<span style="display:inline-block;min-width:20px;color:var(--text3);font-size:10px;font-weight:700;margin-right:5px;text-align:right">${fn}</span>`:'')(filialNum(r.f))}${r.f}</td>
       ${evoColsVisiveis.regional?`<td style="text-align:left;font-size:11px" class="muted">${r.reg}</td>`:''}
       ${evoColsVisiveis.semAnterior?`<td>${r.prev>0?brl(r.prev):'—'}</td>`:''}
       <td>${r.curr>0?brl(r.curr):'—'}</td>
