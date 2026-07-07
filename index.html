@@ -284,7 +284,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 /* EVOLUTION TABLE (image style) */
 .evotw{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
 .evot{width:100%;border-collapse:collapse;font-size:13px}
-.evot th{background:#f7d117;color:#1a1a1a;padding:9px 13px;font-size:11px;font-weight:800;text-align:center;border:1px solid #dcb800;text-transform:uppercase;letter-spacing:.3px}
+.evot th{background:#f7d117;color:#1a1a1a;padding:9px 13px;font-size:11px;font-weight:800;text-align:center;border:1px solid #dcb800;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.evot th:hover{background:#e8c900}
 .evot td{padding:9px 13px;border:1px solid var(--border);text-align:right}
 .evot td.nm{text-align:left;font-weight:600}
 .evot tr:nth-child(even) td{background:var(--bg2)}
@@ -1269,6 +1270,7 @@ let delTarget = null;
 let charts = {};
 let resumoDetalhe = {};
 let evoColsVisiveis={regional:true,semAnterior:true,variacao:true,pctTotal:true,auditor:false};
+let evoSort={col:'curr',dir:'desc'};
 
 const AUD_COLORS = {'JOÃO VITOR':'#0b5cab','FÁBIO':'#c0392b','CARLOS POGGIAN':'#d68910','GUILHERME':'#1e8449','OUTROS':'#3b4cb8'};
 const PALETTE = ['#0b5cab','#1565c0','#2b7fd4','#4d96e0','#08376a','#3b4cb8','#1e8449','#d68910','#c0392b','#5a7fa8'];
@@ -2722,7 +2724,15 @@ function renderEvo(){
   const all=new Set([...curr.byFilial.map(f=>f.key),...prev.byFilial.map(f=>f.key)]);
   const rows=[];
   for(const f of all){const c=curr.byFilial.find(x=>x.key===f),p=prev.byFilial.find(x=>x.key===f);const vC=c?c.total:0,vP=p?p.total:0,dd=vC-vP,ddp=vP?dd/vP*100:(vC>0?999:0);rows.push({f,reg:c?c.regional:(p?p.regional:''),aud:c?c.auditor:(p?p.auditor:''),prev:vP,curr:vC,diff:dd,pct:ddp,share:Tc>0?vC/Tc*100:0});}
-  rows.sort((a,b)=>b.curr-a.curr);
+  // Ordenação dinâmica controlada por evoSort
+  {
+    const sk=evoSort.col,sm=evoSort.dir==='asc'?1:-1;
+    const sv=r=>sk==='f'?r.f:sk==='reg'?r.reg:sk==='aud'?(r.aud||''):sk==='prev'?r.prev:sk==='pct'?r.pct:sk==='share'?r.share:r.curr;
+    rows.sort((a,b)=>{const av=sv(a),bv=sv(b);return typeof av==='string'?sm*av.localeCompare(bv,'pt-BR'):sm*(av-bv);});
+  }
+  // Seta de ordenação ativa/inativa no cabeçalho
+  const sa=c=>evoSort.col===c?(evoSort.dir==='desc'?'<span style="font-size:9px;margin-left:3px">↓</span>':'<span style="font-size:9px;margin-left:3px">↑</span>'):'<span style="font-size:9px;opacity:.28;margin-left:3px">⇅</span>';
+  const thS='cursor:pointer;user-select:none';
   // Variação para a diretoria: seta + % (vermelho piorou, verde melhorou), NOVO/ZEROU nos extremos
   // 1 casa decimal: evita que uma queda/alta real (ex: -R$494) apareça arredondada para "0%" e pareça estável
   const pctFmt=v=>Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -2763,16 +2773,16 @@ function renderEvo(){
       <div style="font-size:13px;color:var(--text2);margin-top:2px">Comparativo por Loja · ${prev.importDate} → ${curr.importDate} · leituras do arquivo de vencidos</div>
     </div>
     <div class="evotw"><table class="evot"><thead><tr>
-      <th style="text-align:left;min-width:130px">LOJA</th>
-      ${evoColsVisiveis.regional?'<th>REGIONAL</th>':''}
-      ${evoColsVisiveis.semAnterior?`<th>${prev.importDate}</th>`:''}
-      <th>${curr.importDate}</th>
-      ${evoColsVisiveis.variacao?'<th>VARIAÇÃO</th>':''}
-      ${evoColsVisiveis.pctTotal?'<th>% DO TOTAL</th>':''}
-      ${evoColsVisiveis.auditor?'<th>AUDITOR</th>':''}
+      <th onclick="setEvoSort('f')" style="${thS};text-align:left;min-width:140px">LOJA${sa('f')}</th>
+      ${evoColsVisiveis.regional?`<th onclick="setEvoSort('reg')" style="${thS}">REGIONAL${sa('reg')}</th>`:''}
+      ${evoColsVisiveis.semAnterior?`<th onclick="setEvoSort('prev')" style="${thS}">${prev.importDate}${sa('prev')}</th>`:''}
+      <th onclick="setEvoSort('curr')" style="${thS}">${curr.importDate}${sa('curr')}</th>
+      ${evoColsVisiveis.variacao?`<th onclick="setEvoSort('pct')" style="${thS}">VARIAÇÃO${sa('pct')}</th>`:''}
+      ${evoColsVisiveis.pctTotal?`<th onclick="setEvoSort('share')" style="${thS}">% DO TOTAL${sa('share')}</th>`:''}
+      ${evoColsVisiveis.auditor?`<th onclick="setEvoSort('aud')" style="${thS}">AUDITOR${sa('aud')}</th>`:''}
     </tr></thead>
-    <tbody>${rows.map(r=>`<tr>
-      <td class="nm">${r.f}</td>
+    <tbody>${rows.map((r,i)=>`<tr>
+      <td class="nm"><span style="display:inline-block;min-width:16px;color:var(--text3);font-size:10px;font-weight:700;margin-right:5px;text-align:right">${i+1}</span>${r.f}</td>
       ${evoColsVisiveis.regional?`<td style="text-align:left;font-size:11px" class="muted">${r.reg}</td>`:''}
       ${evoColsVisiveis.semAnterior?`<td>${r.prev>0?brl(r.prev):'—'}</td>`:''}
       <td>${r.curr>0?brl(r.curr):'—'}</td>
@@ -2791,6 +2801,13 @@ function renderEvo(){
     </div>`;
 }
 
+function setEvoSort(col){
+  if(evoSort.col===col){evoSort.dir=evoSort.dir==='desc'?'asc':'desc';}
+  else{evoSort.col=col;evoSort.dir=(col==='f'||col==='reg'||col==='aud')?'asc':'desc';}
+  renderEvo();
+  const drop=document.getElementById('evo-col-drop');
+  if(drop&&drop.classList.contains('open'))drop.classList.add('open');
+}
 function toggleEvoColPicker(e){
   e.stopPropagation();
   const drop=document.getElementById('evo-col-drop');
