@@ -306,6 +306,15 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 .evo-export-mode .evot .neg{color:#0e7a35}
 .evo-export-mode .evot .teq{color:#555}
 .evo-export-mode .evot .tr td{background:#f7d117!important;color:#111}
+/* EVO FILTERS */
+.evo-filters{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:12px}
+.evo-filters-lbl{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.evo-filter-sel{font-size:12px;font-weight:600;color:var(--text);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;transition:.12s;outline:none}
+.evo-filter-sel:focus,.evo-filter-sel:hover{border-color:var(--brand)}
+.evo-filter-sel.active{border-color:var(--brand);background:var(--brand-bg,rgba(8,55,106,.08))}
+.evo-filter-clear{font-size:11px;font-weight:700;color:var(--text3);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.12s;white-space:nowrap}
+.evo-filter-clear:hover{color:var(--text);background:var(--bg2)}
+.evo-filter-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--brand);background:rgba(8,55,106,.1);border-radius:20px;padding:3px 10px;white-space:nowrap}
 /* HISTORY */
 .hist-e{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:11px;transition:.15s}
 .hist-e:hover{box-shadow:var(--sh-md)}
@@ -1271,6 +1280,7 @@ let charts = {};
 let resumoDetalhe = {};
 let evoColsVisiveis={regional:true,semAnterior:true,variacao:true,pctTotal:true,auditor:false};
 let evoSort={col:'curr',dir:'desc'};
+let evoFiltros={regional:'',auditor:''};
 
 // Número oficial de cada filial — fonte: Base Regionais
 const FILIAL_NUM={'MATRIZ':1,'ARAGUAÍNA':3,'RIO VERDE':4,'UBERLÂNDIA':5,'MARABÁ':10,'JATAI':11,'CRISTALINA':12,'UBS':13,'REDENÇÃO':14,'IMPERATRIZ':16,'BARRA DO GARÇAS':17,'PALMAS':19,'MOZARLÂNDIA':21,'PARAGOMINAS':22,'SÃO FELIX DO XINGU':23,'FABRICA APARECIDA':24,'CUIABÁ':25,'URUAÇU':27,'MORRINHOS':28,'CONFRESA':29,'FORMOSA':30,'JUSSARA':31,'XINGUARA':32,'PORANGATU':34,'PONTES E LACERDA':35,'GOIANIRA':36,'CANARANA':37,'GURUPI':38,'RIALMA':40,'ALTAMIRA':41};
@@ -2723,15 +2733,24 @@ function renderEvo(){
   let prev=evoHist[evoHist.indexOf(curr)+1];
   if(!prev){curr=evoHist[0];prev=evoHist[1];}
   const aviso='';
-  const Tc=curr.grandTotal,Tp=prev.grandTotal,diff=Tc-Tp,dp=Tp?diff/Tp*100:0,imp=diff<0;
+  const Tc=curr.grandTotal,Tp=prev.grandTotal;
   const all=new Set([...curr.byFilial.map(f=>f.key),...prev.byFilial.map(f=>f.key)]);
   const rows=[];
   for(const f of all){const c=curr.byFilial.find(x=>x.key===f),p=prev.byFilial.find(x=>x.key===f);const vC=c?c.total:0,vP=p?p.total:0,dd=vC-vP,ddp=vP?dd/vP*100:(vC>0?999:0);rows.push({f,reg:c?c.regional:(p?p.regional:''),aud:c?c.auditor:(p?p.auditor:''),prev:vP,curr:vC,diff:dd,pct:ddp,share:Tc>0?vC/Tc*100:0});}
+  // Opções únicas de filtro (antes de filtrar, para sempre listar tudo)
+  const allRegs=[...new Set(rows.map(r=>r.reg).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const allAuds=[...new Set(rows.map(r=>r.aud).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  // Aplicar filtro e recalcular totais/shares sobre o subconjunto
+  const filtAtivo=!!(evoFiltros.regional||evoFiltros.auditor);
+  let fRows=filtAtivo?rows.filter(r=>(!evoFiltros.regional||r.reg===evoFiltros.regional)&&(!evoFiltros.auditor||r.aud===evoFiltros.auditor)):rows;
+  const TcF=fRows.reduce((s,r)=>s+r.curr,0),TpF=fRows.reduce((s,r)=>s+r.prev,0);
+  const diffF=TcF-TpF,dpF=TpF?diffF/TpF*100:0,impF=diffF<0;
+  fRows=fRows.map(r=>({...r,share:TcF>0?r.curr/TcF*100:0}));
   // Ordenação dinâmica controlada por evoSort
   {
     const sk=evoSort.col,sm=evoSort.dir==='asc'?1:-1;
     const sv=r=>sk==='f'?r.f:sk==='reg'?r.reg:sk==='aud'?(r.aud||''):sk==='prev'?r.prev:sk==='pct'?r.pct:sk==='share'?r.share:r.curr;
-    rows.sort((a,b)=>{const av=sv(a),bv=sv(b);return typeof av==='string'?sm*av.localeCompare(bv,'pt-BR'):sm*(av-bv);});
+    fRows.sort((a,b)=>{const av=sv(a),bv=sv(b);return typeof av==='string'?sm*av.localeCompare(bv,'pt-BR'):sm*(av-bv);});
   }
   // Seta de ordenação ativa/inativa no cabeçalho
   const sa=c=>evoSort.col===c?(evoSort.dir==='desc'?'<span style="font-size:9px;margin-left:3px">↓</span>':'<span style="font-size:9px;margin-left:3px">↑</span>'):'<span style="font-size:9px;opacity:.28;margin-left:3px">⇅</span>';
@@ -2745,14 +2764,29 @@ function renderEvo(){
     if(Math.abs(r.diff)<0.01)return '<span class="teq">—</span>';
     return `<span class="${r.diff<0?'neg':'pos'}">${r.diff<0?'↓':'↑'} ${pctFmt(r.pct)}%</span>`;
   };
+  const filtTagReg=evoFiltros.regional?`<span class="evo-filter-tag"><i class="ti ti-map-pin" style="font-size:10px"></i>${evoFiltros.regional}</span>`:'';
+  const filtTagAud=evoFiltros.auditor?`<span class="evo-filter-tag"><i class="ti ti-user" style="font-size:10px"></i>${evoFiltros.auditor}</span>`:'';
   div.innerHTML=aviso+`
     <div class="g3">
-      <div class="metric"><div class="ml">${prev.importDate} (semana anterior)</div><div class="mv">${brl(Tp)}</div><div class="ms">${prev.totalItems} itens vencidos</div></div>
-      <div class="metric ${imp?'green':'red'}"><div class="ml">${curr.importDate} (atual)</div><div class="mv">${brl(Tc)}</div><div class="ms">${curr.totalItems} itens vencidos</div></div>
-      <div class="metric ${imp?'green':'red'}"><div class="ml">Variação da Semana</div><div class="mv">${imp?'↓':'↑'} ${pctFmt(dp)}%</div><div class="ms">${imp?'Redução de ':'Aumento de '}${brl(Math.abs(diff))}</div></div>
+      <div class="metric"><div class="ml">${prev.importDate} (semana anterior)</div><div class="mv">${brl(TpF)}</div><div class="ms">${prev.totalItems} itens vencidos</div></div>
+      <div class="metric ${impF?'green':'red'}"><div class="ml">${curr.importDate} (atual)</div><div class="mv">${brl(TcF)}</div><div class="ms">${curr.totalItems} itens vencidos</div></div>
+      <div class="metric ${impF?'green':'red'}"><div class="ml">Variação da Semana</div><div class="mv">${impF?'↓':'↑'} ${pctFmt(dpF)}%</div><div class="ms">${impF?'Redução de ':'Aumento de '}${brl(Math.abs(diffF))}</div></div>
+    </div>
+    <div class="evo-filters">
+      <span class="evo-filters-lbl"><i class="ti ti-filter" style="font-size:11px"></i> Filtros</span>
+      <select class="evo-filter-sel${evoFiltros.regional?' active':''}" onchange="setEvoFiltro('regional',this.value)">
+        <option value="">Todas as Regionais</option>
+        ${allRegs.map(r=>`<option value="${r}"${evoFiltros.regional===r?' selected':''}>${r}</option>`).join('')}
+      </select>
+      <select class="evo-filter-sel${evoFiltros.auditor?' active':''}" onchange="setEvoFiltro('auditor',this.value)">
+        <option value="">Todos os Auditores</option>
+        ${allAuds.map(a=>`<option value="${a}"${evoFiltros.auditor===a?' selected':''}>${a}</option>`).join('')}
+      </select>
+      ${(evoFiltros.regional||evoFiltros.auditor)?`<button class="evo-filter-clear" onclick="clearEvoFiltros()"><i class="ti ti-x" style="font-size:10px"></i> Limpar</button>`:''}
+      ${filtTagReg}${filtTagAud}
     </div>
     <div class="view-head" style="margin-bottom:10px">
-      <div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja</h2></div>
+      <div><h2 style="font-size:16px"><i class="ti ti-table"></i> Comparativo por Loja${filtAtivo?` <span style="font-size:12px;font-weight:600;color:var(--brand)">(${fRows.length} lojas)</span>`:''}</h2></div>
       <div class="view-head-actions" style="display:flex;gap:6px;align-items:center">
         <div class="col-picker-wrap">
           <button class="btn ghost icon-only view-export-btn" id="evo-col-btn" onclick="toggleEvoColPicker(event)" title="Selecionar colunas visíveis"><i class="ti ti-columns"></i></button>
@@ -2773,7 +2807,7 @@ function renderEvo(){
     <div id="evo-export-area" style="background:var(--bg2);padding:18px;border-radius:12px">
     <div class="evo-export-title" style="display:none;margin-bottom:14px">
       <div style="font-size:18px;font-weight:800;color:var(--brand)">AGROQUIMA — Evolução do Vencido</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:2px">Comparativo por Loja · ${prev.importDate} → ${curr.importDate} · leituras do arquivo de vencidos</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:2px">Comparativo por Loja · ${prev.importDate} → ${curr.importDate}${evoFiltros.regional?' · Regional: '+evoFiltros.regional:''}${evoFiltros.auditor?' · Auditor: '+evoFiltros.auditor:''}</div>
     </div>
     <div class="evotw"><table class="evot"><thead><tr>
       <th onclick="setEvoSort('f')" style="${thS};text-align:left;min-width:140px">LOJA${sa('f')}</th>
@@ -2784,7 +2818,7 @@ function renderEvo(){
       ${evoColsVisiveis.pctTotal?`<th onclick="setEvoSort('share')" style="${thS}">% DO TOTAL${sa('share')}</th>`:''}
       ${evoColsVisiveis.auditor?`<th onclick="setEvoSort('aud')" style="${thS}">AUDITOR${sa('aud')}</th>`:''}
     </tr></thead>
-    <tbody>${rows.map((r,i)=>`<tr>
+    <tbody>${fRows.map((r,i)=>`<tr>
       <td class="nm">${(fn=>fn!=null?`<span style="display:inline-block;min-width:20px;color:var(--text3);font-size:10px;font-weight:700;margin-right:5px;text-align:right">${fn}</span>`:'')(filialNum(r.f))}${r.f}</td>
       ${evoColsVisiveis.regional?`<td style="text-align:left;font-size:11px" class="muted">${r.reg}</td>`:''}
       ${evoColsVisiveis.semAnterior?`<td>${r.prev>0?brl(r.prev):'—'}</td>`:''}
@@ -2795,9 +2829,9 @@ function renderEvo(){
     </tr>`).join('')}</tbody>
     <tfoot><tr class="tr">
       ${evoColsVisiveis.regional?'<td colspan="2">TOTAL</td>':'<td>TOTAL</td>'}
-      ${evoColsVisiveis.semAnterior?`<td>${brl(Tp)}</td>`:''}
-      <td>${brl(Tc)}</td>
-      ${evoColsVisiveis.variacao?`<td>${Math.abs(diff)<0.01?'—':(diff<0?'↓ ':'↑ ')+pctFmt(dp)+'%'}</td>`:''}
+      ${evoColsVisiveis.semAnterior?`<td>${brl(TpF)}</td>`:''}
+      <td>${brl(TcF)}</td>
+      ${evoColsVisiveis.variacao?`<td>${Math.abs(diffF)<0.01?'—':(diffF<0?'↓ ':'↑ ')+pctFmt(dpF)+'%'}</td>`:''}
       ${evoColsVisiveis.pctTotal?'<td>100%</td>':''}
       ${evoColsVisiveis.auditor?'<td></td>':''}
     </tr></tfoot></table></div>
@@ -2823,6 +2857,14 @@ function toggleEvoCol(col,val){
   // Re-open picker since renderEvo re-renders the whole section
   const drop=document.getElementById('evo-col-drop');
   if(drop)drop.classList.add('open');
+}
+function setEvoFiltro(key,val){
+  evoFiltros[key]=val;
+  renderEvo();
+}
+function clearEvoFiltros(){
+  evoFiltros={regional:'',auditor:''};
+  renderEvo();
 }
 // Close picker when clicking outside
 document.addEventListener('click',function(e){
