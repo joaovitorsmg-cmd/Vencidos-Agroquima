@@ -558,6 +558,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div class="nav-item" onclick="nav('regional')"><i class="ti ti-map-pin"></i> Por Regional</div>
   <div class="nav-item" onclick="nav('auditores')"><i class="ti ti-user-shield"></i> Por Auditor</div>
   <div class="nav-item" onclick="nav('lojas')"><i class="ti ti-building-store"></i> Por Loja</div>
+  <div class="nav-item" onclick="nav('fabricantes')"><i class="ti ti-building-factory-2"></i> Por Fabricante</div>
   <div class="nav-sec">Análise</div>
   <div class="nav-item" onclick="nav('janela')"><i class="ti ti-calendar-time"></i> Janela de Venda</div>
   <div class="nav-item" onclick="nav('aging')"><i class="ti ti-hourglass"></i> Aging</div>
@@ -912,6 +913,19 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div id="fab-list-view">
     <div class="view-head"><div><h2><i class="ti ti-building-factory-2"></i> Análise por Fabricante</h2>
       <div class="sub">Identifica concentração de fornecedores para renegociação</div></div></div>
+    <div class="alert brand" style="margin-bottom:18px;padding:12px 16px">
+      <i class="ti ti-search" style="flex-shrink:0;font-size:18px"></i>
+      <div style="flex:1">
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px">Consulta Rápida por Fabricante</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="fab-search" type="text" placeholder="Digite o nome do fabricante... ex: Advanta, Basf, Syngenta"
+            oninput="filtrarFabricantes(this.value)"
+            style="flex:1;min-width:220px;max-width:480px;padding:7px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);font-size:13px;background:var(--bg);color:var(--text);outline:none">
+          <button class="btn ghost sm" onclick="filtrarFabricantes('');document.getElementById('fab-search').value=''"><i class="ti ti-x"></i> Limpar</button>
+        </div>
+        <div id="fab-search-status" style="font-size:11px;color:var(--brand);margin-top:5px;display:none"></div>
+      </div>
+    </div>
     <div class="g2-1">
       <div class="card"><div class="card-h"><i class="ti ti-chart-bar"></i> Top Fabricantes</div><div class="chartbox tall"><canvas id="ch-fab" role="img" aria-label="Top fabricantes"></canvas></div></div>
       <div class="card"><div class="card-h"><i class="ti ti-bulb"></i> Leitura</div><div id="fab-insight" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
@@ -1707,7 +1721,7 @@ function nav(id){
   // Reset detail views to list when (re)entering
   if(id==='regional'){const dv=document.getElementById('reg-detail-view');const lv=document.getElementById('reg-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
   if(id==='auditores'){const dv=document.getElementById('aud-detail-view');const lv=document.getElementById('aud-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
-  if(id==='fabricantes'){const dv=document.getElementById('fab-detail-view');const lv=document.getElementById('fab-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';}
+  if(id==='fabricantes'){const dv=document.getElementById('fab-detail-view');const lv=document.getElementById('fab-list-view');if(dv)dv.style.display='none';if(lv)lv.style.display='block';const inp=document.getElementById('fab-search');if(inp)inp.value='';const st=document.getElementById('fab-search-status');if(st)st.style.display='none';if(hasData())renderFabricantes();}
   closeSidebar();
   window.scrollTo(0,0);
   setTimeout(()=>enableSorting(),0);
@@ -3452,7 +3466,33 @@ function showFabricanteDetail(fab){
   window.scrollTo(0,0);
   setTimeout(()=>enableSorting(),0);
 }
-function closeFabricanteDetail(){document.getElementById('fab-detail-view').style.display='none';document.getElementById('fab-list-view').style.display='block';}
+function closeFabricanteDetail(){
+  document.getElementById('fab-detail-view').style.display='none';
+  document.getElementById('fab-list-view').style.display='block';
+  const inp=document.getElementById('fab-search');
+  if(inp&&inp.value)filtrarFabricantes(inp.value);
+}
+
+function filtrarFabricantes(q){
+  const search=(q||'').toLowerCase().trim();
+  const rows=[...document.querySelectorAll('#ft tr')];
+  const status=document.getElementById('fab-search-status');
+  let visible=0;
+  rows.forEach(tr=>{
+    const name=(tr.querySelector('td')?.textContent||'').toLowerCase();
+    const show=!search||name.includes(search);
+    tr.style.display=show?'':'none';
+    if(show)visible++;
+  });
+  if(!status)return;
+  if(!search){status.style.display='none';return;}
+  status.style.display='';
+  status.textContent=visible===0?'Nenhum fabricante encontrado':`${visible} fabricante${visible>1?'s':''} encontrado${visible>1?'s':''}`;
+  if(visible===1){
+    const tr=rows.find(r=>r.style.display!=='none');
+    if(tr){const btn=tr.querySelector('button');if(btn)btn.click();}
+  }
+}
 
 // ─── RECORRENTES ───
 function renderRecorrentes(){
@@ -4574,7 +4614,48 @@ function renderPreReuniao(){
       (oldest[0]&&abs(oldest[0].Dias)>90?bullet(`Produto com ${abs(oldest[0].Dias)} dias vencido em <strong>${oldest[0].Sigla||'—'}</strong> — risco regulatório e de imagem`):'')+
       bullet(`Definir responsável e prazo para as ações de recuperação — próxima importação deve demonstrar redução`)
     )+
-    `<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px"><button class="btn ghost sm" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir esta análise</button></div>`;
+    `<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary sm" onclick="imprimirBriefing()"><i class="ti ti-printer"></i> Imprimir Briefing</button></div>`;
+}
+
+function imprimirBriefing(){
+  const body=document.getElementById('pre-reuniao-body');
+  if(!body||!body.textContent.trim())return;
+  const dt=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const win=window.open('','_blank','width=820,height=960,left=80,top=60');
+  if(!win){toast('Permita popups para imprimir o briefing','amber');return;}
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<title>Briefing Pré-Reunião — Agroquima</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{--brand:#0b5cab;--brand2:#1565c0;--brand-lt:#e7f0fb;--brand-glow:rgba(11,92,171,.14);
+--red:#c0392b;--red-lt:#fdecea;--red-dk:#8c2018;--green:#1e8449;--green-lt:#e9f7ef;--green-dk:#145a32;
+--amber:#d68910;--amber-lt:#fef5e7;--amber-dk:#9c640c;--border:#e2e8f1;--border-2:#c7d3e3;
+--text:#102845;--text2:#4a5d75;--text3:#8696ab;--bg:#fff;--bg2:#f6f9fc;--bg3:#eef3f9;
+--r:10px;--r-sm:6px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--text);font-size:14px;line-height:1.5;padding:36px 40px;max-width:740px;margin:auto;background:#fff}
+.print-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-bottom:14px;border-bottom:2px solid var(--brand)}
+.print-header h1{font-size:18px;font-weight:900;color:var(--brand)}
+.print-header .meta{font-size:11px;color:var(--text3);text-align:right}
+.print-actions{display:flex;gap:8px;margin-bottom:22px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border-2);background:#fff;color:var(--text)}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+@media print{.no-print{display:none!important}body{padding:16px 20px}@page{margin:14mm 16mm}}
+</style>
+</head><body>
+<div class="print-header">
+  <h1><i class="ti ti-presentation-analytics"></i> Briefing Pré-Reunião — Agroquima</h1>
+  <div class="meta">Análise de Vencidos<br>${dt}</div>
+</div>
+<div class="print-actions no-print">
+  <button class="btn primary" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
+  <button class="btn" onclick="window.close()"><i class="ti ti-x"></i> Fechar</button>
+</div>
+${body.innerHTML.replace(/<button[^>]*>[\s\S]*?<\/button>/g,'')}
+</body></html>`);
+  win.document.close();
+  win.focus();
 }
 
 function toggleTheme(){
