@@ -2051,9 +2051,9 @@ function showAudDetail(aud){
       <div class="action-item"><div class="action-num amber">2</div><div class="action-content"><div class="action-title">Acionar destino correto por linha nos itens recentes</div><div class="action-desc">${brl(ag.r)} estão vencidos há menos de 60 dias — prioridade imediata. Nutrição animal (FAP/FCB): descarte ou venda no estado (sem devolução). Pastagem (FAG): solicitar retorno à fábrica. Agrícola: verificar revalidação de análise. Demais: bonificação ou preço de custo.</div></div></div>
       <div class="action-item"><div class="action-num">3</div><div class="action-content"><div class="action-title">Reportar plano de baixa dos itens críticos</div><div class="action-desc">${brl(ag.c)} em itens com mais de 180 dias devem ter destinação definida (descarte, doação ou baixa contábil) com justificativa.</div></div></div>
     </div>
-    <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Linha</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th><th class="r">% do total</th></tr></thead>
-    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,14)}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td><td class="r tiny">${d.grandTotal>0?(r.Total/d.grandTotal*100).toFixed(2):'0'}%</td></tr>`).join('')}
-    <tr class="total-row"><td colspan="7">Total ${aud}</td><td class="r">${brl(total)}</td><td class="r">${pctTotal.toFixed(1)}%</td></tr></tbody></table></div>`;
+    <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Linha</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th><th class="r">% do Auditor</th></tr></thead>
+    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,14)}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td><td class="r tiny">${total>0?(r.Total/total*100).toFixed(2):'0'}%</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="7">Total ${aud}</td><td class="r">${brl(total)}</td><td class="r">${pctTotal.toFixed(1)}% geral</td></tr></tbody></table></div>`;
   window.scrollTo(0,0);
   setTimeout(()=>enableSorting(),0);
 }
@@ -3009,7 +3009,7 @@ function exportarRelatorioRegional(reg){
         </div>
       </div>
       <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #dde4ee;border-top:none;margin-bottom:2px">
-        <thead><tr style="background:#f4f7fb">${th('Produto')}${th('Código / Lote')}${th('Loja')}${thc('Vencimento')}${thc('Dias')}${thr('Qtd')}${thr('Valor R$')}${thr('% Total')}</tr></thead>
+        <thead><tr style="background:#f4f7fb">${th('Produto')}${th('Código / Lote')}${th('Loja')}${thc('Vencimento')}${thc('Dias')}${thr('Qtd')}${thr('Valor R$')}${thr(reg?'% Regional':'% Total')}</tr></thead>
         <tbody>
           ${recs.map((r,i)=>{
             const dv=abs(r.Dias);
@@ -3017,7 +3017,7 @@ function exportarRelatorioRegional(reg){
             const bg=i%2===0?'#fff':'#f9fbfd';
             const cod=(r.CodProduto||'').trim();
             const lote=(r.Lote||'').trim();
-            const pctR=T>0?(r.Total/T*100).toFixed(2):'0';
+            const pctR=reg?(rData.total>0?(r.Total/rData.total*100).toFixed(2):'0'):(T>0?(r.Total/T*100).toFixed(2):'0');
             return `<tr style="background:${bg}">
               <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;font-weight:600;color:#102845;font-size:12px;max-width:240px">${cleanProd(r.Nome)}</td>
               <td style="padding:6px 10px;border-bottom:1px solid #eef1f6;font-size:10px;color:#6b7f96">${cod?'#'+cod:'—'}${lote?' · L:'+lote:''}</td>
@@ -3134,8 +3134,8 @@ function showRegionalDetail(reg){
     </div>
     <div class="g2" style="margin-bottom:18px">
       <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Lojas do regional</div>
-        <div class="tw"><table><thead><tr><th>Loja</th><th>Auditor</th><th class="r">Itens</th><th class="r">Total</th><th class="r">% Reg.</th><th class="r">% Geral</th><th class="r">Antigo</th></tr></thead>
-        <tbody>${lojas.sort((a,b)=>b.total-a.total).map(f=>`<tr><td class="b">${f.key}</td><td class="tiny"><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${f.items}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/total*100).toFixed(1)}%</td><td class="r tiny">${d.grandTotal>0?(f.total/d.grandTotal*100).toFixed(1):'0'}%</td><td class="r">${diasChip(f.maxDias)}</td></tr>`).join('')}</tbody></table></div>
+        <div class="tw"><table><thead><tr><th>Loja</th><th>Auditor</th><th class="r">Itens</th><th class="r">Total</th><th class="r">% Reg.</th><th class="r">% Geral</th><th class="r">Antigo</th><th class="c">Produtos</th></tr></thead>
+        <tbody>${lojas.sort((a,b)=>b.total-a.total).map(f=>`<tr><td class="b">${f.key}</td><td class="tiny"><span class="chip" style="background:${audColor(f.auditor)}22;color:${audColor(f.auditor)}">${f.auditor}</span></td><td class="r">${f.items}</td><td class="r b">${brl(f.total)}</td><td class="r">${(f.total/total*100).toFixed(1)}%</td><td class="r tiny">${d.grandTotal>0?(f.total/d.grandTotal*100).toFixed(1):'0'}%</td><td class="r">${diasChip(f.maxDias)}</td><td class="c"><button class="btn xs" onclick="showLojaNoRegional('${f.key.replace(/'/g,'')}','${reg.replace(/'/g,'')}')"><i class="ti ti-zoom-in" style="font-size:11px"></i></button></td></tr>`).join('')}</tbody></table></div>
       </div>
       <div class="card"><div class="card-h"><i class="ti ti-user-shield"></i> Auditores neste regional</div>
         <div class="tw"><table><thead><tr><th>Auditor</th><th class="r">Total</th><th class="r">% Reg.</th></tr></thead>
@@ -3154,13 +3154,52 @@ function showRegionalDetail(reg){
       <div class="action-item"><div class="action-num">3</div><div class="action-content"><div class="action-title">Alinhar com os auditores das lojas</div><div class="action-desc">Coordenar com ${auditores.map(a=>a[0]).join(', ')} as ações em cada loja e cobrar plano de baixa dos ${brl(ag.c)} em itens críticos.</div></div></div>
     </div>
     <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os itens vencidos (${recs.length})</div>
-    <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th><th class="r">% do total</th></tr></thead>
-    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td><td class="r tiny">${d.grandTotal>0?(r.Total/d.grandTotal*100).toFixed(2):'0'}%</td></tr>`).join('')}
-    <tr class="total-row"><td colspan="6">Total ${reg}</td><td class="r">${brl(total)}</td><td class="r">${pctTotalReg.toFixed(1)}%</td></tr></tbody></table></div></div>`;
+    <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th><th class="r">% do Regional</th></tr></thead>
+    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td><td class="r tiny">${total>0?(r.Total/total*100).toFixed(2):'0'}%</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="6">Total ${reg}</td><td class="r">${brl(total)}</td><td class="r">${pctTotalReg.toFixed(1)}% geral</td></tr></tbody></table></div></div>`;
   window.scrollTo(0,0);
   setTimeout(()=>enableSorting(),0);
 }
 function closeRegionalDetail(){document.getElementById('reg-detail-view').style.display='none';document.getElementById('reg-list-view').style.display='block';}
+
+// ─── LOJA DENTRO DO REGIONAL (nível 3 da escada) ───
+function showLojaNoRegional(loja, reg){
+  const d=current;
+  const recs=d.records.filter(r=>r.Sigla===loja).sort((a,b)=>b.Total-a.Total);
+  const lojaTotal=recs.reduce((s,r)=>s+r.Total,0);
+  const regRecs=d.records.filter(r=>r.Gerente===reg);
+  const regTotal=regRecs.reduce((s,r)=>s+r.Total,0);
+  const pctReg=regTotal>0?(lojaTotal/regTotal*100):0;
+  const pctGeral=d.grandTotal>0?(lojaTotal/d.grandTotal*100):0;
+  const auditor=recs[0]?.Auditor||'—';
+  const cReg=(function(){const idx=d.byRegional.findIndex(x=>x.key===reg);const cols=['#0b5cab','#7c3aed','#0891b2','#d68910','#059669','#dc2626','#db2777','#0d9488'];return cols[idx%cols.length];})();
+  const ag={r:0,a:0,c:0};
+  recs.forEach(r=>{const x=abs(r.Dias);if(x>180)ag.c+=r.Total;else if(x>60)ag.a+=r.Total;else ag.r+=r.Total;});
+  const dv=document.getElementById('reg-detail-view');
+  dv.innerHTML=`
+    <div class="detail-bar">
+      <button class="btn ghost" onclick="showRegionalDetail('${reg.replace(/'/g,'')}')"><i class="ti ti-arrow-left"></i> Voltar para ${reg}</button>
+      <h2>${loja}</h2>
+      <span style="margin-left:auto;font-size:13px" class="dim">${recs.length} itens · ${brl(lojaTotal)} · <strong style="color:${cReg}">${pctReg.toFixed(1)}% do regional</strong> · ${pctGeral.toFixed(1)}% do total</span>
+    </div>
+    <div class="g3" style="margin-bottom:18px">
+      <div class="metric" style="border-left:3px solid ${cReg}"><div class="ml">% do regional ${reg}</div><div class="mv" style="font-size:18px;color:${cReg}">${pctReg.toFixed(1)}%</div><div class="ms">${brl(lojaTotal)} de ${brl(regTotal)}</div></div>
+      <div class="metric"><div class="ml">% do total geral</div><div class="mv" style="font-size:18px">${pctGeral.toFixed(1)}%</div><div class="ms">${brl(lojaTotal)} de ${brl(d.grandTotal)}</div></div>
+      <div class="metric"><div class="ml">Auditor responsável</div><div class="mv" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${auditor}</div><div class="ms">${recs.length} itens vencidos</div></div>
+    </div>
+    <div class="g3" style="margin-bottom:18px">
+      <div class="metric green"><div class="ml">Recente (≤60d)</div><div class="mv" style="font-size:18px">${brl(ag.r)}</div><div class="ms">Maior chance de troca</div></div>
+      <div class="metric amber"><div class="ml">Alerta (61–180d)</div><div class="mv" style="font-size:18px">${brl(ag.a)}</div><div class="ms">Ação urgente</div></div>
+      <div class="metric red"><div class="ml">Crítico (+180d)</div><div class="mv" style="font-size:18px">${brl(ag.c)}</div><div class="ms">Avaliar descarte</div></div>
+    </div>
+    <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Produtos vencidos em ${loja} (${recs.length})</div>
+    <div class="tw"><table><thead><tr><th>Produto</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th><th class="r">% da Loja</th></tr></thead>
+    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td><td class="r tiny">${lojaTotal>0?(r.Total/lojaTotal*100).toFixed(1):'0'}%</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="5">Total ${loja}</td><td class="r">${brl(lojaTotal)}</td><td class="r">${pctReg.toFixed(1)}% do reg.</td></tr></tbody></table></div></div>`;
+  window.scrollTo(0,0);
+  setTimeout(()=>enableSorting(),0);
+}
+
 function toggleAcc(id){const e=document.getElementById(id);if(e)e.style.display=e.style.display==='none'?'block':'none';}
 // Igual ao toggleAcc, mas para linhas de tabela (<tr> precisa de display:table-row, não 'block')
 function toggleTr(id,chevId){
