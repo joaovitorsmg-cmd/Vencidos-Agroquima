@@ -4715,7 +4715,7 @@ function gerarRelatorioEstoque(){
   const porFilial={};
   recs.forEach(r=>{
     const k=r.Sigla||'SEM FILIAL';
-    if(!porFilial[k])porFilial[k]={sigla:k,gerente:r.GerenteLoja||'—',total:0};
+    if(!porFilial[k])porFilial[k]={sigla:k,total:0};
     porFilial[k].total+=r.Total;
   });
   const filiais=Object.values(porFilial).sort((a,b)=>b.total-a.total);
@@ -4723,106 +4723,115 @@ function gerarRelatorioEstoque(){
   const fmt=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
   const dt=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
-  // ─── Build rows (all inline styles for html2canvas compat) ───
+  // ─── 2 colunas para manter proporção paisagem ≈ 2:1 ───
   const maxVal=filiais[0]?.total||1;
-  const tableRows=filiais.map((f,i)=>{
+  const half=Math.ceil(filiais.length/2);
+
+  const thS=`padding:8px 12px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#8696ab;border-bottom:2px solid #d8e3f0`;
+
+  const mkRow=(f,gi)=>{
     const pct=(totalGeral>0?(f.total/totalGeral*100):0).toFixed(1);
-    const barW=Math.round(f.total/maxVal*100);
-    const bg=i%2===0?'#ffffff':'#f4f8fd';
+    const bw=Math.round(f.total/maxVal*100);
+    const bg=gi%2===0?'#ffffff':'#f4f8fd';
     return `<tr>
-      <td style="padding:11px 16px;border-bottom:1px solid #e8eef6;font-size:12px;color:#8696ab;width:42px;text-align:center;background:${bg};font-weight:600">${i+1}</td>
-      <td style="padding:11px 20px;border-bottom:1px solid #e8eef6;font-weight:800;font-size:16px;color:#102845;background:${bg};letter-spacing:-.2px">${f.sigla}</td>
-      <td style="padding:11px 20px;border-bottom:1px solid #e8eef6;text-align:right;font-weight:900;font-size:17px;color:#0b5cab;white-space:nowrap;background:${bg};letter-spacing:-.3px">${fmt(f.total)}</td>
-      <td style="padding:11px 24px 11px 16px;border-bottom:1px solid #e8eef6;width:380px;background:${bg}">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="flex:1;height:14px;background:#e7f0fb;border-radius:7px;overflow:hidden">
-            <div style="width:${barW}%;height:100%;background:linear-gradient(90deg,#083d73,#0b5cab,#4a8fd4);border-radius:7px"></div>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf1f8;font-size:11px;color:#8696ab;width:28px;text-align:center;background:${bg};font-weight:600">${gi+1}</td>
+      <td style="padding:7px 14px;border-bottom:1px solid #edf1f8;font-weight:800;font-size:15px;color:#102845;background:${bg}">${f.sigla}</td>
+      <td style="padding:7px 14px;border-bottom:1px solid #edf1f8;text-align:right;font-weight:900;font-size:15px;color:#0b5cab;white-space:nowrap;background:${bg}">${fmt(f.total)}</td>
+      <td style="padding:7px 12px 7px 8px;border-bottom:1px solid #edf1f8;width:160px;background:${bg}">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="flex:1;height:10px;background:#e7f0fb;border-radius:5px;overflow:hidden">
+            <div style="width:${bw}%;height:100%;background:linear-gradient(90deg,#083d73,#0b5cab,#4a8fd4);border-radius:5px"></div>
           </div>
-          <span style="font-size:13px;font-weight:800;color:#0b5cab;white-space:nowrap;min-width:44px;text-align:right">${pct}%</span>
+          <span style="font-size:11px;font-weight:800;color:#0b5cab;min-width:32px;text-align:right">${pct}%</span>
         </div>
       </td>
     </tr>`;
-  }).join('');
+  };
 
-  const logoSvg=`<svg viewBox="0 0 40 40" fill="none" width="44" height="44" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="14" height="14" rx="2.5" fill="#ffffff" opacity=".9"/><rect x="22" y="4" width="14" height="14" rx="2.5" fill="#ffffff"/><rect x="4" y="22" width="14" height="14" rx="2.5" fill="#ffffff"/><rect x="22" y="22" width="14" height="14" rx="2.5" fill="#ffffff" opacity=".5"/></svg>`;
+  const mkThead=()=>`<thead><tr style="background:#f0f5fc">
+    <th style="${thS};text-align:center;width:28px">#</th>
+    <th style="${thS};text-align:left">Filial</th>
+    <th style="${thS};text-align:right">Valor em Estoque</th>
+    <th style="${thS};text-align:left;width:160px">Participação</th>
+  </tr></thead>`;
 
-  const html=`<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f9;padding:32px;width:1600px">
-  <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 32px rgba(11,92,171,.14)">
+  const leftRows=filiais.slice(0,half).map((f,i)=>mkRow(f,i)).join('');
+  const rightRows=filiais.slice(half).map((f,i)=>mkRow(f,half+i)).join('');
 
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#083d73 0%,#0b5cab 55%,#1565c0 100%);padding:28px 48px;display:flex;align-items:center;justify-content:space-between">
-      <div style="display:flex;align-items:center;gap:16px">
-        ${logoSvg}
-        <div>
-          <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-.3px;line-height:1">AGROQUIMA</div>
-          <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:5px;font-weight:500">Responsabilidade sobre o Estoque — Documento Interno</div>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:13px;font-weight:700;color:#fff">${dt}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:3px">Referência: ${current.importDate||'—'}</div>
-      </div>
-    </div>
+  const logoSvg=`<svg viewBox="0 0 40 40" fill="none" width="40" height="40" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="14" height="14" rx="2.5" fill="#fff" opacity=".9"/><rect x="22" y="4" width="14" height="14" rx="2.5" fill="#fff"/><rect x="4" y="22" width="14" height="14" rx="2.5" fill="#fff"/><rect x="22" y="22" width="14" height="14" rx="2.5" fill="#fff" opacity=".5"/></svg>`;
 
-    <!-- KPI Hero -->
-    <div style="background:#e7f0fb;border-bottom:1px solid #cddcee;padding:22px 48px;display:flex;align-items:center;gap:48px">
+  const html=`<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f9;padding:18px;width:1600px">
+<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(11,92,171,.13)">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#083d73 0%,#0b5cab 55%,#1565c0 100%);padding:16px 38px;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:13px">
+      ${logoSvg}
       <div>
-        <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8696ab;margin-bottom:4px">Valor Total em Estoque</div>
-        <div style="font-size:40px;font-weight:900;color:#0b5cab;line-height:1;letter-spacing:-.5px">${fmt(totalGeral)}</div>
-        <div style="font-size:12px;color:#8696ab;margin-top:5px">${filiais.length} filiais · UBS, Fábrica Aparecida e Goianira excluídas</div>
-      </div>
-      <div style="width:1px;height:56px;background:#cddcee;flex-shrink:0"></div>
-      <div style="text-align:center">
-        <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8696ab;margin-bottom:4px">Filiais</div>
-        <div style="font-size:44px;font-weight:900;color:#0b5cab;line-height:1">${filiais.length}</div>
-        <div style="font-size:12px;color:#8696ab;margin-top:5px">gerentes responsáveis</div>
+        <div style="font-size:21px;font-weight:900;color:#fff;letter-spacing:-.3px;line-height:1">AGROQUIMA</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.72);margin-top:3px;font-weight:500">Responsabilidade sobre o Estoque — Documento Interno</div>
       </div>
     </div>
-
-    <!-- Table full width -->
-    <div style="padding:24px 48px 0">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#8696ab;margin-bottom:12px">Estoque por Filial</div>
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr style="background:#f4f8fd">
-            <th style="padding:10px 16px;text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0;width:42px">#</th>
-            <th style="padding:10px 20px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0">Filial</th>
-            <th style="padding:10px 20px;text-align:right;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0">Valor em Estoque</th>
-            <th style="padding:10px 24px 10px 16px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0;width:380px">Participação</th>
-          </tr>
-        </thead>
-        <tbody>${tableRows}</tbody>
-        <tfoot>
-          <tr>
-            <td colspan="2" style="padding:12px 20px;font-weight:800;font-size:14px;color:#102845;background:#eef3fb;border-top:2px solid #cddcee">TOTAL GERAL</td>
-            <td style="padding:12px 20px;text-align:right;font-weight:900;font-size:17px;color:#0b5cab;background:#eef3fb;border-top:2px solid #cddcee;white-space:nowrap;letter-spacing:-.3px">${fmt(totalGeral)}</td>
-            <td style="background:#eef3fb;border-top:2px solid #cddcee"></td>
-          </tr>
-        </tfoot>
-      </table>
+    <div style="text-align:right">
+      <div style="font-size:12px;font-weight:700;color:#fff">${dt}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:2px">Referência: ${current.importDate||'—'}</div>
     </div>
-
-    <!-- Two message cards below table -->
-    <div style="display:flex;gap:20px;padding:24px 48px 32px">
-      <div style="flex:1;padding:20px 24px;background:#f6f9fc;border-left:4px solid #0b5cab;border-radius:0 10px 10px 0">
-        <div style="font-size:13.5px;line-height:1.85;color:#4a5d75">
-          Este documento foi elaborado para que cada gestor tenha plena consciência do montante de recursos que passa diariamente pelas mãos de sua equipe. <strong style="color:#102845">Controlar um estoque dessa magnitude exige atenção, disciplina e rigor nos processos.</strong> Qualquer atropelamento — mesmo bem-intencionado — pode gerar perdas irreversíveis e comprometer de forma extrema a operação da AGROQUIMA.
-        </div>
-      </div>
-      <div style="flex:1;padding:20px 24px;background:#f6f9fc;border-left:4px solid #083d73;border-radius:0 10px 10px 0">
-        <div style="font-size:13.5px;line-height:1.85;color:#4a5d75">
-          <strong style="color:#102845">Gerenciar um estoque de alto valor vai muito além de conferir prateleiras.</strong> Cada item representa dinheiro real da empresa. Um processo pulado, uma entrada não registrada ou uma data de validade ignorada pode gerar prejuízos que afetam não só os resultados financeiros, mas a credibilidade e a continuidade do negócio. <strong style="color:#102845">A AGROQUIMA confia em cada gestor para proteger este patrimônio com seriedade e comprometimento.</strong>
-        </div>
-      </div>
-    </div>
-
   </div>
+
+  <!-- KPI -->
+  <div style="background:#e7f0fb;border-bottom:1px solid #cddcee;padding:14px 38px;display:flex;align-items:center;gap:34px">
+    <div>
+      <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8696ab;margin-bottom:3px">Valor Total em Estoque</div>
+      <div style="font-size:32px;font-weight:900;color:#0b5cab;line-height:1;letter-spacing:-.5px">${fmt(totalGeral)}</div>
+      <div style="font-size:10px;color:#8696ab;margin-top:3px">${filiais.length} filiais · UBS, Fábrica Aparecida e Goianira excluídas</div>
+    </div>
+    <div style="width:1px;height:44px;background:#cddcee;flex-shrink:0"></div>
+    <div style="text-align:center">
+      <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8696ab;margin-bottom:3px">Filiais</div>
+      <div style="font-size:36px;font-weight:900;color:#0b5cab;line-height:1">${filiais.length}</div>
+      <div style="font-size:10px;color:#8696ab;margin-top:3px">gerentes responsáveis</div>
+    </div>
+  </div>
+
+  <!-- Tabela em 2 colunas -->
+  <div style="padding:12px 38px 0">
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#8696ab;font-weight:800;margin-bottom:7px">Estoque por Filial</div>
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div style="flex:1;border:1px solid #dde6f0;border-radius:7px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse">${mkThead()}<tbody>${leftRows}</tbody></table>
+      </div>
+      <div style="flex:1;border:1px solid #dde6f0;border-radius:7px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse">${mkThead()}<tbody>${rightRows}</tbody></table>
+      </div>
+    </div>
+    <!-- Total footer -->
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#eef3fb;border:1px solid #cddcee;padding:9px 14px;margin-top:6px;border-radius:6px">
+      <span style="font-weight:800;font-size:12px;color:#4a5d75;text-transform:uppercase;letter-spacing:.3px">Total Geral · ${filiais.length} filiais</span>
+      <span style="font-weight:900;font-size:16px;color:#0b5cab;letter-spacing:-.3px">${fmt(totalGeral)}</span>
+    </div>
+  </div>
+
+  <!-- Cards abaixo -->
+  <div style="display:flex;gap:14px;padding:12px 38px 18px">
+    <div style="flex:1;padding:13px 17px;background:#f6f9fc;border-left:4px solid #0b5cab;border-radius:0 7px 7px 0">
+      <div style="font-size:12.5px;line-height:1.78;color:#4a5d75">
+        Este documento foi elaborado para que cada gestor tenha plena consciência do montante de recursos que passa diariamente pelas mãos de sua equipe. <strong style="color:#102845">Controlar um estoque dessa magnitude exige atenção, disciplina e rigor nos processos.</strong> Qualquer atropelamento — mesmo bem-intencionado — pode gerar perdas irreversíveis e comprometer de forma extrema a operação da AGROQUIMA.
+      </div>
+    </div>
+    <div style="flex:1;padding:13px 17px;background:#f6f9fc;border-left:4px solid #083d73;border-radius:0 7px 7px 0">
+      <div style="font-size:12.5px;line-height:1.78;color:#4a5d75">
+        <strong style="color:#102845">Gerenciar um estoque de alto valor vai muito além de conferir prateleiras.</strong> Cada item representa dinheiro real da empresa. Um processo pulado, uma entrada não registrada ou uma data de validade ignorada pode gerar prejuízos que afetam não só os resultados financeiros, mas a credibilidade e a continuidade do negócio. <strong style="color:#102845">A AGROQUIMA confia em cada gestor para proteger este patrimônio com seriedade e comprometimento.</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
 </div>`;
 
   const wrap=document.getElementById('estoque-export-wrap');
   wrap.innerHTML=html;
   toast('Gerando imagem de responsabilidade de estoque...','brand');
-  html2canvas(wrap,{scale:2,backgroundColor:'#f0f4f9',logging:false,useCORS:true,width:1664,windowWidth:1664}).then(canvas=>{
+  html2canvas(wrap,{scale:2,backgroundColor:'#f0f4f9',logging:false,useCORS:true,width:1636,windowWidth:1636}).then(canvas=>{
     canvas.toBlob(blob=>{
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
@@ -4852,6 +4861,6 @@ if('serviceWorker' in navigator){
 <!-- Container oculto para geração de PNG do relatório regional detalhado -->
 <div id="reg-export-wrap" style="position:fixed;left:-9999px;top:0;width:1100px;background:#fff;z-index:-1;pointer-events:none"></div>
 <!-- Container oculto para geração de PNG de responsabilidade de estoque (paisagem) -->
-<div id="estoque-export-wrap" style="position:fixed;left:-9999px;top:0;width:1664px;background:#f0f4f9;z-index:-1;pointer-events:none"></div>
+<div id="estoque-export-wrap" style="position:fixed;left:-9999px;top:0;width:1636px;background:#f0f4f9;z-index:-1;pointer-events:none"></div>
 </body>
 </html>
