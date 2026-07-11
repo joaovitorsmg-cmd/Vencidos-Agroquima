@@ -4730,16 +4730,15 @@ function gerarRelatorioEstoque(){
     const barW=Math.round(f.total/maxVal*100);
     const bg=i%2===0?'#ffffff':'#f4f8fd';
     return `<tr>
-      <td style="padding:9px 14px;border-bottom:1px solid #e8eef6;font-size:12px;color:#8696ab;width:36px;text-align:center;background:${bg}">${i+1}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #e8eef6;font-weight:700;font-size:13px;color:#102845;background:${bg}">${f.sigla}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #e8eef6;font-size:12px;color:#4a5d75;background:${bg}">${f.gerente}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #e8eef6;text-align:right;font-weight:700;font-size:13px;color:#0b5cab;white-space:nowrap;background:${bg}">${fmt(f.total)}</td>
-      <td style="padding:9px 14px 9px 10px;border-bottom:1px solid #e8eef6;width:200px;background:${bg}">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="flex:1;height:8px;background:#e7f0fb;border-radius:4px;overflow:hidden">
-            <div style="width:${barW}%;height:100%;background:linear-gradient(90deg,#0b5cab,#4a8fd4);border-radius:4px"></div>
+      <td style="padding:11px 16px;border-bottom:1px solid #e8eef6;font-size:12px;color:#8696ab;width:42px;text-align:center;background:${bg};font-weight:600">${i+1}</td>
+      <td style="padding:11px 20px;border-bottom:1px solid #e8eef6;font-weight:800;font-size:16px;color:#102845;background:${bg};letter-spacing:-.2px">${f.sigla}</td>
+      <td style="padding:11px 20px;border-bottom:1px solid #e8eef6;text-align:right;font-weight:900;font-size:17px;color:#0b5cab;white-space:nowrap;background:${bg};letter-spacing:-.3px">${fmt(f.total)}</td>
+      <td style="padding:11px 24px 11px 16px;border-bottom:1px solid #e8eef6;width:380px;background:${bg}">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="flex:1;height:14px;background:#e7f0fb;border-radius:7px;overflow:hidden">
+            <div style="width:${barW}%;height:100%;background:linear-gradient(90deg,#083d73,#0b5cab,#4a8fd4);border-radius:7px"></div>
           </div>
-          <span style="font-size:11px;font-weight:700;color:#4a5d75;white-space:nowrap;min-width:36px;text-align:right">${pct}%</span>
+          <span style="font-size:13px;font-weight:800;color:#0b5cab;white-space:nowrap;min-width:44px;text-align:right">${pct}%</span>
         </div>
       </td>
     </tr>`;
@@ -4755,8 +4754,8 @@ function gerarRelatorioEstoque(){
       <div style="display:flex;align-items:center;gap:16px">
         ${logoSvg}
         <div>
-          <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.3px;line-height:1">AGROQUIMA</div>
-          <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:4px;font-weight:500">Responsabilidade sobre o Estoque — Documento Interno</div>
+          <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-.3px;line-height:1">AGROQUIMA</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:5px;font-weight:500">Responsabilidade sobre o Estoque — Documento Interno</div>
         </div>
       </div>
       <div style="text-align:right">
@@ -4769,8 +4768,8 @@ function gerarRelatorioEstoque(){
     <div style="background:#e7f0fb;border-bottom:1px solid #cddcee;padding:22px 48px;display:flex;align-items:center;gap:48px">
       <div>
         <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8696ab;margin-bottom:4px">Valor Total em Estoque</div>
-        <div style="font-size:38px;font-weight:900;color:#0b5cab;line-height:1;letter-spacing:-.5px">${fmt(totalGeral)}</div>
-        <div style="font-size:12px;color:#8696ab;margin-top:5px">${filiais.length} filiais incluídas · UBS, Fábrica Aparecida e Goianira excluídas</div>
+        <div style="font-size:40px;font-weight:900;color:#0b5cab;line-height:1;letter-spacing:-.5px">${fmt(totalGeral)}</div>
+        <div style="font-size:12px;color:#8696ab;margin-top:5px">${filiais.length} filiais · UBS, Fábrica Aparecida e Goianira excluídas</div>
       </div>
       <div style="width:1px;height:56px;background:#cddcee;flex-shrink:0"></div>
       <div style="text-align:center">
@@ -4780,43 +4779,39 @@ function gerarRelatorioEstoque(){
       </div>
     </div>
 
-    <!-- Two-column layout: table + message -->
-    <div style="display:flex;gap:0">
-      <!-- Table -->
-      <div style="flex:1;padding:24px 0 24px 48px;border-right:1px solid #e8eef6">
-        <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#8696ab;margin-bottom:12px">Estoque por Filial</div>
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="background:#f4f8fd">
-              <th style="padding:9px 14px;text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0;width:36px">#</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0">Filial</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0">Gerente Responsável</th>
-              <th style="padding:9px 14px;text-align:right;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0">Valor em Estoque</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0;width:200px">Participação</th>
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3" style="padding:11px 14px;font-weight:800;font-size:13px;color:#102845;background:#eef3fb;border-top:2px solid #cddcee">TOTAL GERAL</td>
-              <td style="padding:11px 14px;text-align:right;font-weight:900;font-size:15px;color:#0b5cab;background:#eef3fb;border-top:2px solid #cddcee;white-space:nowrap">${fmt(totalGeral)}</td>
-              <td style="background:#eef3fb;border-top:2px solid #cddcee"></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+    <!-- Table full width -->
+    <div style="padding:24px 48px 0">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#8696ab;margin-bottom:12px">Estoque por Filial</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f4f8fd">
+            <th style="padding:10px 16px;text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0;width:42px">#</th>
+            <th style="padding:10px 20px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0">Filial</th>
+            <th style="padding:10px 20px;text-align:right;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0">Valor em Estoque</th>
+            <th style="padding:10px 24px 10px 16px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8696ab;border-bottom:2px solid #dde6f0;width:380px">Participação</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="padding:12px 20px;font-weight:800;font-size:14px;color:#102845;background:#eef3fb;border-top:2px solid #cddcee">TOTAL GERAL</td>
+            <td style="padding:12px 20px;text-align:right;font-weight:900;font-size:17px;color:#0b5cab;background:#eef3fb;border-top:2px solid #cddcee;white-space:nowrap;letter-spacing:-.3px">${fmt(totalGeral)}</td>
+            <td style="background:#eef3fb;border-top:2px solid #cddcee"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
 
-      <!-- Right: message -->
-      <div style="width:360px;flex-shrink:0;padding:24px 36px 24px 32px;display:flex;flex-direction:column;justify-content:center;gap:20px">
-        <div style="padding:20px 22px;background:#f6f9fc;border-left:4px solid #0b5cab;border-radius:0 10px 10px 0">
-          <div style="font-size:13px;line-height:1.85;color:#4a5d75">
-            Este documento foi elaborado para que cada gestor tenha plena consciência do montante de recursos que passa diariamente pelas mãos de sua equipe. <strong style="color:#102845">Controlar um estoque dessa magnitude exige atenção, disciplina e rigor nos processos.</strong>
-          </div>
+    <!-- Two message cards below table -->
+    <div style="display:flex;gap:20px;padding:24px 48px 32px">
+      <div style="flex:1;padding:20px 24px;background:#f6f9fc;border-left:4px solid #0b5cab;border-radius:0 10px 10px 0">
+        <div style="font-size:13.5px;line-height:1.85;color:#4a5d75">
+          Este documento foi elaborado para que cada gestor tenha plena consciência do montante de recursos que passa diariamente pelas mãos de sua equipe. <strong style="color:#102845">Controlar um estoque dessa magnitude exige atenção, disciplina e rigor nos processos.</strong> Qualquer atropelamento — mesmo bem-intencionado — pode gerar perdas irreversíveis e comprometer de forma extrema a operação da AGROQUIMA.
         </div>
-        <div style="padding:20px 22px;background:#f6f9fc;border-left:4px solid #083d73;border-radius:0 10px 10px 0">
-          <div style="font-size:13px;line-height:1.85;color:#4a5d75">
-            <strong style="color:#102845">Gerenciar um estoque de alto valor vai muito além de conferir prateleiras.</strong> Cada item representa dinheiro real da empresa. Um processo pulado, uma entrada não registrada ou uma data de validade ignorada pode gerar prejuízos que afetam a continuidade do negócio. <strong style="color:#102845">A AGROQUIMA confia em cada gestor para proteger este patrimônio com seriedade e comprometimento.</strong>
-          </div>
+      </div>
+      <div style="flex:1;padding:20px 24px;background:#f6f9fc;border-left:4px solid #083d73;border-radius:0 10px 10px 0">
+        <div style="font-size:13.5px;line-height:1.85;color:#4a5d75">
+          <strong style="color:#102845">Gerenciar um estoque de alto valor vai muito além de conferir prateleiras.</strong> Cada item representa dinheiro real da empresa. Um processo pulado, uma entrada não registrada ou uma data de validade ignorada pode gerar prejuízos que afetam não só os resultados financeiros, mas a credibilidade e a continuidade do negócio. <strong style="color:#102845">A AGROQUIMA confia em cada gestor para proteger este patrimônio com seriedade e comprometimento.</strong>
         </div>
       </div>
     </div>
