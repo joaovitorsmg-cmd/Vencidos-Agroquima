@@ -1068,6 +1068,14 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-shield-dollar"></i> Responsabilidade de Estoque</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.7">
+      Gera um documento formal de responsabilidade mostrando o valor total do estoque da AGROQUIMA por filial (excluindo UBS, Fábrica Aparecida e Goianira). Ideal para comunicar aos gerentes o peso da responsabilidade sobre um estoque de alto valor.
+    </div>
+    <button class="btn primary" onclick="gerarRelatorioEstoque()" style="justify-content:center"><i class="ti ti-file-certificate"></i> Gerar Documento de Responsabilidade</button>
+  </div>
+
   <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
     <strong>Sincronização automática via GitHub:</strong> ao importar um XLSX, os dados são publicados diretamente em <code>data/vencidos.json</code> no repositório — todos veem em ~2 minutos. Nenhum arquivo manual, nenhum limite de tamanho.
   </div></div>
@@ -4692,6 +4700,183 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;c
   <button class="btn" onclick="window.close()"><i class="ti ti-x"></i> Fechar</button>
 </div>
 ${body.innerHTML.replace(/<button[^>]*>[\s\S]*?<\/button>/g,'')}
+</body></html>`);
+  win.document.close();
+  win.focus();
+}
+
+function gerarRelatorioEstoque(){
+  if(!current||!current.allRecords||!current.allRecords.length){
+    toast('Importe dados antes de gerar o relatório','amber');return;
+  }
+  const EXCLUIR=new Set(['UBS','FABRICA APARECIDA','GOIANIRA']);
+  const recs=current.allRecords.filter(r=>!EXCLUIR.has((r.Sigla||'').toUpperCase().trim()));
+  const porFilial={};
+  recs.forEach(r=>{
+    const k=r.Sigla||'SEM FILIAL';
+    if(!porFilial[k])porFilial[k]={sigla:k,gerente:r.GerenteLoja||'—',total:0};
+    porFilial[k].total+=r.Total;
+  });
+  const filiais=Object.values(porFilial).sort((a,b)=>b.total-a.total);
+  const totalGeral=filiais.reduce((s,f)=>s+f.total,0);
+  const fmt=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
+  const dt=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  const win=window.open('','_blank','width=860,height=980,left=80,top=60');
+  if(!win){toast('Permita popups para gerar o documento','amber');return;}
+  const rows=filiais.map((f,i)=>{
+    const pct=(totalGeral>0?(f.total/totalGeral*100):0).toFixed(1);
+    const bar=Math.round(parseFloat(pct));
+    return `<tr>
+      <td class="num">${i+1}</td>
+      <td class="loja">${f.sigla}</td>
+      <td class="ger">${f.gerente}</td>
+      <td class="val">${fmt(f.total)}</td>
+      <td class="pct-cell">
+        <div class="pct-wrap">
+          <div class="pct-bar" style="width:${bar}%"></div>
+          <span class="pct-label">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<title>Responsabilidade de Estoque — Agroquima</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--brand:#0b5cab;--brand2:#1565c0;--brand-dk:#083d73;--brand-lt:#e7f0fb;
+--red:#c0392b;--amber:#d68910;--green:#1e8449;
+--text:#102845;--text2:#4a5d75;--text3:#8696ab;--border:#e2e8f1;--bg:#fff;--bg2:#f6f9fc;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--text);background:#f0f4f9;min-height:100vh;padding:32px 24px}
+.page{max-width:780px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(11,92,171,.13);overflow:hidden}
+.doc-header{background:linear-gradient(135deg,var(--brand-dk) 0%,var(--brand) 60%,var(--brand2) 100%);padding:40px 44px 34px;color:#fff;position:relative;overflow:hidden}
+.doc-header::after{content:'';position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none}
+.doc-header::before{content:'';position:absolute;right:40px;bottom:-80px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none}
+.org-tag{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px}
+.doc-title{font-size:26px;font-weight:900;line-height:1.2;color:#fff;margin-bottom:6px}
+.doc-sub{font-size:14px;color:rgba(255,255,255,.75);margin-bottom:20px}
+.doc-date{font-size:12px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px}
+.hero{background:var(--brand-lt);border-bottom:1px solid #cddcee;padding:28px 44px;display:flex;gap:32px;align-items:center}
+.hero-kpi{text-align:center;flex:1}
+.hero-kpi .kpi-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.hero-kpi .kpi-val{font-size:34px;font-weight:900;color:var(--brand);line-height:1.1}
+.hero-kpi .kpi-note{font-size:11px;color:var(--text3);margin-top:3px}
+.hero-divider{width:1px;background:#c7d8ee;height:60px;flex-shrink:0}
+.msg-box{margin:28px 44px 0;padding:18px 22px;background:linear-gradient(135deg,#fff9e6,#fffdf5);border:1.5px solid #f0cc65;border-radius:10px}
+.msg-box .msg-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#9c6c00;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.msg-box .msg-text{font-size:13px;line-height:1.75;color:#5a4200}
+.section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:22px 44px 10px}
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:8px 12px;background:#f8fafd;border-bottom:2px solid var(--border);text-align:left}
+th.r{text-align:right}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
+td.num{font-size:11px;color:var(--text3);width:32px;text-align:center}
+td.loja{font-weight:700;color:var(--text)}
+td.ger{color:var(--text2);font-size:12px}
+td.val{text-align:right;font-weight:700;color:var(--brand);font-size:13px;white-space:nowrap}
+td.pct-cell{width:130px;padding-right:16px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f6f9fc}
+.pct-wrap{display:flex;align-items:center;gap:7px}
+.pct-bar{height:7px;border-radius:4px;background:linear-gradient(90deg,var(--brand),#5a9fd4);min-width:2px;flex-shrink:0}
+.pct-label{font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap}
+.tfoot-row td{font-weight:800;font-size:13.5px;color:var(--text);background:#f0f5fb;border-top:2px solid var(--border)}
+.tfoot-row td.val{color:var(--brand)}
+.responsibility{margin:24px 44px;padding:20px 24px;background:#f9f9fb;border-left:4px solid var(--brand);border-radius:0 10px 10px 0}
+.responsibility p{font-size:13px;line-height:1.8;color:var(--text2);margin-bottom:10px}
+.responsibility p:last-child{margin-bottom:0}
+.responsibility strong{color:var(--text)}
+.doc-footer{padding:18px 44px 30px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);margin-top:12px}
+.doc-footer .foot-brand{font-size:12px;font-weight:700;color:var(--brand)}
+.doc-footer .foot-note{font-size:11px;color:var(--text3)}
+.print-actions{padding:16px 44px 0;display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #c7d3e3;background:#fff;color:var(--text)}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff;padding:0}
+  .page{box-shadow:none;border-radius:0;max-width:100%}
+  .doc-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pct-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tfoot-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:8mm 10mm;size:A4 portrait}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="doc-header">
+    <div class="org-tag">AGROQUIMA — Documento Interno</div>
+    <div class="doc-title"><i class="ti ti-shield-dollar"></i> Responsabilidade sobre o Estoque</div>
+    <div class="doc-sub">Valor consolidado do estoque ativo por filial</div>
+    <div class="doc-date"><i class="ti ti-calendar"></i> ${dt}</div>
+  </div>
+
+  <div class="print-actions no-print">
+    <button class="btn primary" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir / Salvar PDF</button>
+    <button class="btn" onclick="window.close()"><i class="ti ti-x"></i> Fechar</button>
+  </div>
+
+  <div class="hero">
+    <div class="hero-kpi">
+      <div class="kpi-label">Valor Total do Estoque</div>
+      <div class="kpi-val">${fmt(totalGeral)}</div>
+      <div class="kpi-note">${filiais.length} filiais · excluindo UBS, Fábrica e Goianira</div>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-kpi">
+      <div class="kpi-label">Filiais Analisadas</div>
+      <div class="kpi-val" style="font-size:40px">${filiais.length}</div>
+      <div class="kpi-note">gerentes responsáveis</div>
+    </div>
+  </div>
+
+  <div class="msg-box" style="margin-top:28px">
+    <div class="msg-title"><i class="ti ti-alert-triangle"></i> Mensagem da Direção</div>
+    <div class="msg-text">
+      Este documento foi elaborado para que cada gestor tenha plena consciência do montante de recursos que passa diariamente pelas mãos de sua equipe.
+      <strong>Controlar um estoque dessa magnitude exige atenção, disciplina e rigor nos processos.</strong>
+      Qualquer atropelamento — mesmo bem-intencionado — pode gerar perdas irreversíveis e comprometer de forma extrema a operação da AGROQUIMA.
+    </div>
+  </div>
+
+  <div class="section-label">Estoque por Filial</div>
+  <div style="padding:0 44px">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:32px">#</th>
+        <th>Filial</th>
+        <th>Gerente</th>
+        <th class="r">Valor em Estoque</th>
+        <th style="width:130px">Participação</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr class="tfoot-row">
+        <td></td>
+        <td colspan="2"><strong>TOTAL GERAL</strong></td>
+        <td class="val">${fmt(totalGeral)}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+  </div>
+
+  <div class="responsibility">
+    <p><strong>Gerenciar um estoque de alto valor vai muito além de conferir prateleiras.</strong> Envolve decisões diárias sobre entradas, saídas, validades, armazenamento e conformidade com processos internos. Cada item representa dinheiro real da empresa.</p>
+    <p>Um processo pulado, uma entrada não registrada, um produto mal armazenado ou uma data de validade ignorada podem gerar prejuízos que afetam não só os resultados financeiros, mas a credibilidade e a continuidade do negócio.</p>
+    <p><strong>A AGROQUIMA confia em cada gestor para que este patrimônio seja protegido com seriedade, responsabilidade e comprometimento.</strong></p>
+  </div>
+
+  <div class="doc-footer">
+    <div class="foot-brand"><i class="ti ti-leaf"></i> AGROQUIMA</div>
+    <div class="foot-note">Documento gerado em ${dt} · Uso interno — Confidencial</div>
+  </div>
+</div>
 </body></html>`);
   win.document.close();
   win.focus();
