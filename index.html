@@ -4776,6 +4776,7 @@ ${body.innerHTML.replace(/<button[^>]*>[\s\S]*?<\/button>/g,'')}
 let movState=null;          // {ib,ic} índices em history (0 = mais recente)
 let movFiltro={filial:'',busca:'',soVenc:false};
 let movResultado=null;      // último cálculo (usado pelo export)
+let movEntTodas=false;      // mostrar entradas de estoque novo (não vencido) na seção ④
 
 const movEsc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const movQtd=v=>(v||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
@@ -4927,6 +4928,7 @@ function movCalcular(){
   alteracoes.sort((a,b)=>(b.mascarou-a.mascarou)||(b.total-a.total));
   substituicoes.sort((a,b)=>(a.forca==='ALTA'?-1:1)-(b.forca==='ALTA'?-1:1)||b.valorSaiu-a.valorSaiu);
   movResultado={base,comp,restrito,useCod,saidas,entradas,alteracoes,substituicoes};
+  movEntTodas=false;   // ao trocar o par, volta ao foco em vencidos
 
   // Popula o filtro de filial preservando a seleção atual
   const siglas=new Set();
@@ -4969,16 +4971,15 @@ function movRenderBody(){
   const fS=movAplicaFiltro(R.saidas),fE=movAplicaFiltro(R.entradas),
         fA=movAplicaFiltro(R.alteracoes),fSub=movAplicaFiltro(R.substituicoes);
   const valorSaida=fS.reduce((s,x)=>s+x.valorSaida,0);
-  const valorEntrada=fE.reduce((s,x)=>s+x.valorEntrada,0);
 
   document.getElementById('mov-summary').innerHTML=`
     <div class="metric ${fA.length||fSub.length?'red':'green'}"><div class="ml">Alertas de manobra</div><div class="mv">${fA.length+fSub.length}</div><div class="ms">${fA.length} alteração(ões) de data · ${fSub.length} substituição(ões) de lote</div></div>
     <div class="metric"><div class="ml">Saídas de estoque</div><div class="mv">${fS.length}</div><div class="ms">${brl(valorSaida)} deixaram o estoque</div></div>
     <div class="metric"><div class="ml">Saídas de itens vencidos</div><div class="mv">${fS.filter(x=>x.vencidoBase).length}</div><div class="ms">${brl(fS.filter(x=>x.vencidoBase).reduce((s,x)=>s+x.valorSaida,0))} em vencidos que saíram</div></div>
-    <div class="metric"><div class="ml">${R.restrito?'Novos vencidos / aumentos':'Entradas / aumentos'}</div><div class="mv">${fE.length}</div><div class="ms">${brl(valorEntrada)} entraram no período</div></div>`;
+    <div class="metric"><div class="ml">Novos vencidos</div><div class="mv">${fE.filter(e=>e.minDias<=0).length}</div><div class="ms">${brl(fE.filter(e=>e.minDias<=0).reduce((s,x)=>s+x.valorEntrada,0))} venceram no período</div></div>`;
 
   const thS='cursor:default';
-  const cap=(arr,cols)=>arr.length>100?`<tr><td colspan="${cols}" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Exibindo 100 de ${arr.length} linhas — refine os filtros ou use o Exportar XLSX para a lista completa.</td></tr>`:'';
+  const cap=(arr,cols)=>arr.length>100?`<tr class="total-row"><td colspan="${cols}" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Exibindo 100 de ${arr.length} linhas — refine os filtros ou use o Exportar XLSX para a lista completa.</td></tr>`:'';
   const badgeVenc=v=>v?'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(192,57,43,.12);color:#c0392b">VENCIDO</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(30,132,73,.12);color:#1e8449">A VENCER</span>';
 
   let html='';
@@ -4988,7 +4989,7 @@ function movRenderBody(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">O mesmo lote físico não muda de data de fabricação nem de vencimento. Qualquer linha aqui indica <strong>redigitação do cadastro</strong> — confronte com a filial e exija justificativa documentada.</div>
     ${fA.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote</th><th>Fabricação (antes → depois)</th><th>Vencimento (antes → depois)</th><th>Situação</th><th class="r">Qtd</th><th class="r">Valor</th></tr></thead><tbody>
       ${fA.slice(0,100).map(x=>`<tr style="${x.mascarou?'background:rgba(192,57,43,.06)':''}">
-        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}${x.cod?`<div style="font-size:10px;color:var(--text3);font-family:monospace">cód ${movEsc(x.cod)}</div>`:''}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
         <td>${x.fabMudou?`<span style="color:#c0392b;font-weight:700">${movEsc(x.fabAntes)} → ${movEsc(x.fabDepois)}</span>`:movEsc(x.fabDepois)}</td>
         <td>${x.venMudou?`<span style="color:#c0392b;font-weight:700">${movEsc(x.venAntes)} → ${movEsc(x.venDepois)}</span>`:movEsc(x.venDepois)}</td>
         <td>${x.mascarou?'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:#c0392b;color:#fff">VENCIDO → REGULARIZADO</span>':badgeVenc(x.vencidoBase)}</td>
@@ -5002,7 +5003,7 @@ function movRenderBody(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Lote <strong>vencido</strong> saiu por inteiro e, na mesma semana, um lote "novo" do <strong>mesmo produto</strong> entrou na <strong>mesma filial</strong> com vencimento futuro. Força <strong>ALTA</strong> = quantidade idêntica. Pode ser reposição legítima — confirme com nota fiscal de entrada e destino da baixa do lote antigo.</div>
     ${fSub.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote que saiu</th><th class="r">Qtd saiu</th><th class="r">Valor</th><th>Lote que entrou</th><th class="r">Qtd entrou</th><th>Força</th></tr></thead><tbody>
       ${fSub.slice(0,100).map(x=>`<tr>
-        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td>
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}${x.cod?`<div style="font-size:10px;color:var(--text3);font-family:monospace">cód ${movEsc(x.cod)}</div>`:''}</td>
         <td style="font-family:monospace">${movEsc(x.loteSaiu)}<div style="font-size:10px;color:#c0392b">venc: ${movEsc(x.vencSaiu)}</div></td>
         <td class="r">${movQtd(x.qtdSaiu)}</td><td class="r"><strong>${brl(x.valorSaiu)}</strong></td>
         <td style="font-family:monospace">${movEsc(x.loteEntrou)}<div style="font-size:10px;color:#1e8449">venc: ${movEsc(x.vencEntrou)}</div></td>
@@ -5017,7 +5018,7 @@ function movRenderBody(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Lotes presentes na importação base e ausentes (ou reduzidos) na comparada — venda, transferência ou baixa.${R.restrito?' <strong>Neste modo restrito, também pode ser alteração de data (o item sai da extração de vencidos).</strong>':''}</div>
     ${fS.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote</th><th>Fabricação</th><th>Vencimento</th><th>Situação na base</th><th>Saída</th><th class="r">Qtd saída</th><th class="r">Valor saído</th></tr></thead><tbody>
       ${fS.slice(0,100).map(x=>`<tr>
-        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}${x.cod?`<div style="font-size:10px;color:var(--text3);font-family:monospace">cód ${movEsc(x.cod)}</div>`:''}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
         <td>${movEsc(movJoin(x.fabs)||'—')}</td><td>${movEsc(movJoin(x.vencs)||'—')}</td>
         <td>${badgeVenc(x.vencidoBase)}</td>
         <td>${x.tipo==='total'?'Total':`Parcial <span style="font-size:11px;color:var(--text3)">(${movQtd(x.qtdAntes)} → ${movQtd(x.qtdDepois)})</span>`}</td>
@@ -5025,21 +5026,29 @@ function movRenderBody(){
       ${cap(fS,9)}</tbody></table></div>`
     :'<div style="padding:10px 0;color:var(--text3);font-size:13px">Nenhuma saída no período com os filtros atuais.</div>'}
   </div>`;
-  // ④ Entradas
+  // ④ Novos vencidos — o painel é de vencidos: entradas legítimas de estoque novo
+  //    são ruído aqui; ficam recolhidas (e completas no XLSX).
+  const entVenc=fE.filter(e=>e.minDias<=0);
+  const entOutras=fE.length-entVenc.length;
+  const listaEnt=movEntTodas?fE:entVenc;
   html+=`<div class="card" style="margin-bottom:18px">
-    <div class="card-h"><i class="ti ti-login"></i> ${R.restrito?'Novos Vencidos / Aumentos':'O Que Entrou / Aumentou'} (${fE.length})</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">${R.restrito?'Itens que passaram a constar na extração de vencidos — em geral, produtos que venceram durante o período.':'Lotes novos ou com aumento de quantidade na importação comparada.'}</div>
-    ${fE.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote</th><th>Fabricação</th><th>Vencimento</th><th>Tipo</th><th class="r">Qtd entrada</th><th class="r">Valor</th></tr></thead><tbody>
-      ${fE.slice(0,100).map(x=>`<tr>
-        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
+    <div class="card-h"><i class="ti ti-alarm-plus"></i> Novos Vencidos no Período (${entVenc.length})</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Lotes que passaram a constar como vencidos entre as duas importações — produtos que venceram na semana ou aumentos de quantidade em itens já vencidos. É o número que deve bater com a variação da aba Evolução.${entOutras>0&&!R.restrito?` <a href="javascript:void(0)" onclick="movToggleEntradas()" style="color:var(--brand);font-weight:700">${movEntTodas?'Ocultar entradas de estoque novo':`Mostrar também as ${entOutras} entradas de estoque novo (não vencido)`}</a> — a lista completa sempre sai no XLSX.`:''}</div>
+    ${listaEnt.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote</th><th>Fabricação</th><th>Vencimento</th><th>Situação</th><th>Tipo</th><th class="r">Qtd entrada</th><th class="r">Valor</th></tr></thead><tbody>
+      ${listaEnt.slice(0,100).map(x=>`<tr>
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}${x.cod?`<div style="font-size:10px;color:var(--text3);font-family:monospace">cód ${movEsc(x.cod)}</div>`:''}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
         <td>${movEsc(movJoin(x.fabs)||'—')}</td><td>${movEsc(movJoin(x.vencs)||'—')}</td>
-        <td>${x.tipo==='novo'?'Novo lote':`Aumento <span style="font-size:11px;color:var(--text3)">(${movQtd(x.qtdAntes)} → ${movQtd(x.qtdDepois)})</span>`}</td>
+        <td>${badgeVenc(x.minDias<=0)}</td>
+        <td>${x.tipo==='novo'?'Novo na extração':`Aumento <span style="font-size:11px;color:var(--text3)">(${movQtd(x.qtdAntes)} → ${movQtd(x.qtdDepois)})</span>`}</td>
         <td class="r">${movQtd(x.qtdEntrada)}</td><td class="r"><strong>${brl(x.valorEntrada)}</strong></td></tr>`).join('')}
-      ${cap(fE,8)}</tbody></table></div>`
-    :'<div style="padding:10px 0;color:var(--text3);font-size:13px">Nenhuma entrada no período com os filtros atuais.</div>'}
+      ${cap(listaEnt,9)}</tbody></table></div>`
+    :'<div style="padding:10px 0;color:var(--text3);font-size:13px"><i class="ti ti-circle-check"></i> Nenhum novo vencido no período com os filtros atuais.</div>'}
   </div>`;
   document.getElementById('mov-body').innerHTML=html;
+  // Ordenação por clique nos cabeçalhos — mesmo mecanismo das demais abas
+  enableSorting(document.getElementById('mov-body'));
 }
+function movToggleEntradas(){movEntTodas=!movEntTodas;movRenderBody();}
 function movExportXLSX(){
   const R=movResultado;
   if(!R){toast('Gere a comparação antes de exportar','amber');return;}
@@ -5065,8 +5074,8 @@ function movExportXLSX(){
     R.substituicoes.map(x=>[x.sigla,x.nome,x.cod,x.loteSaiu,x.vencSaiu,x.qtdSaiu,x.valorSaiu,x.loteEntrou,x.vencEntrou,x.qtdEntrou,x.forca]));
   add('Saídas',['Filial','Produto','Código','Lote','Fabricação','Vencimento','Vencido na base','Saída','Qtd saída','Valor saído'],
     R.saidas.map(x=>[x.sigla,x.nome,x.cod,x.lote,movJoin(x.fabs),movJoin(x.vencs),x.vencidoBase?'SIM':'não',x.tipo==='total'?'Total':'Parcial',x.qtdSaida,x.valorSaida]));
-  add('Entradas',['Filial','Produto','Código','Lote','Fabricação','Vencimento','Tipo','Qtd entrada','Valor'],
-    R.entradas.map(x=>[x.sigla,x.nome,x.cod,x.lote,movJoin(x.fabs),movJoin(x.vencs),x.tipo==='novo'?'Novo lote':'Aumento de quantidade',x.qtdEntrada,x.valorEntrada]));
+  add('Entradas',['Filial','Produto','Código','Lote','Fabricação','Vencimento','Situação','Tipo','Qtd entrada','Valor'],
+    R.entradas.map(x=>[x.sigla,x.nome,x.cod,x.lote,movJoin(x.fabs),movJoin(x.vencs),x.minDias<=0?'VENCIDO':'a vencer',x.tipo==='novo'?'Novo lote':'Aumento de quantidade',x.qtdEntrada,x.valorEntrada]));
   const f=d=>(d||'').replace(/\//g,'-');
   XLSX.writeFile(wb,`Auditoria_Movimentacao_${f(R.base.importDate)}_vs_${f(R.comp.importDate)}.xlsx`);
   toast('✓ Auditoria exportada em XLSX (todas as linhas, sem filtro)','green');
