@@ -974,6 +974,59 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div id="cacaerros-body"></div>
 </div>
 
+<!-- AUDITORIA DE MOVIMENTAÇÃO (Controladoria) -->
+<div id="v-movaudit" style="display:none">
+  <div class="view-head"><div><h2><i class="ti ti-git-compare"></i> Auditoria de Movimentação — Semana a Semana</h2>
+    <div class="sub">Controladoria: o que saiu do estoque entre duas importações e possíveis manobras de mascaramento de vencidos</div></div>
+    <button class="btn ghost" onclick="nav('config')"><i class="ti ti-arrow-left"></i> Voltar à Área Restrita</button>
+  </div>
+
+  <div class="alert brand" style="margin-bottom:18px"><i class="ti ti-shield-search"></i><div>
+    Cada lote é identificado por <strong>Filial + Produto + Lote</strong> e rastreado entre as duas importações selecionadas.
+    A análise aponta: <strong>saídas</strong> (lote presente na base anterior e ausente na atual — venda, transferência ou baixa),
+    <strong>alterações de data de fabricação/vencimento no mesmo lote</strong> (impossível ocorrer naturalmente — indício direto de manobra)
+    e <strong>substituições de lote</strong> (lote vencido some e um "novo" lote do mesmo produto surge na mesma filial com vencimento futuro).
+  </div></div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-h"><i class="ti ti-calendar-search"></i> Seleção do Período</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">Importação base (anterior)</label>
+        <select id="mov-sel-base" onchange="movOnSelChange()" style="padding:8px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;min-width:190px"></select>
+      </div>
+      <div style="font-size:18px;color:var(--text3);padding-bottom:8px"><i class="ti ti-arrow-right"></i></div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">Importação comparada (atual)</label>
+        <select id="mov-sel-comp" onchange="movOnSelChange()" style="padding:8px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;min-width:190px"></select>
+      </div>
+      <div style="display:flex;gap:8px;padding-bottom:1px">
+        <button class="btn ghost sm" onclick="movShiftPar(1)" title="Deslocar o par para importações mais antigas"><i class="ti ti-chevron-left"></i> Par anterior</button>
+        <button class="btn ghost sm" onclick="movShiftPar(-1)" title="Deslocar o par para importações mais recentes">Par seguinte <i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn primary" onclick="movExportXLSX()" style="align-self:flex-end"><i class="ti ti-file-spreadsheet"></i> Exportar XLSX</button>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">Filial</label>
+        <select id="mov-f-filial" onchange="movOnFiltro()" style="padding:8px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;min-width:170px"></select>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">Buscar produto, lote ou código</label>
+        <input id="mov-f-busca" oninput="movOnFiltro()" placeholder="Ex: nome do produto, número do lote..." style="width:100%;padding:8px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px">
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text2);padding-bottom:9px;cursor:pointer">
+        <input type="checkbox" id="mov-f-sovenc" onchange="movOnFiltro()"> Somente itens vencidos na base
+      </label>
+    </div>
+  </div>
+
+  <div id="mov-avisos"></div>
+  <div id="mov-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:18px"></div>
+  <div id="mov-body"></div>
+</div>
+
 <!-- METAS -->
 <div id="v-metas" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-target"></i> Metas de Redução</h2>
@@ -1074,6 +1127,15 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       Gera um documento formal de responsabilidade mostrando o valor total do estoque da AGROQUIMA por filial (excluindo UBS, Fábrica Aparecida e Goianira). Ideal para comunicar aos gerentes o peso da responsabilidade sobre um estoque de alto valor.
     </div>
     <button class="btn primary" onclick="gerarRelatorioEstoque()" style="justify-content:center"><i class="ti ti-photo-down"></i> Exportar Imagem (Paisagem)</button>
+  </div>
+
+  <div class="card" style="margin-bottom:22px">
+    <div class="card-h"><i class="ti ti-git-compare"></i> Auditoria de Movimentação (Controladoria)</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.7">
+      Compara duas importações e mostra <strong>o que saiu do estoque</strong> (produto, lote, fabricação e vencimento) de uma semana para outra.
+      Detecta também <strong>possíveis manobras para mascarar vencidos</strong>: alteração de data de fabricação/vencimento no mesmo lote e substituição de lote vencido por lote "novo" do mesmo produto.
+    </div>
+    <button class="btn primary" onclick="nav('movaudit')" style="justify-content:center"><i class="ti ti-shield-search"></i> Abrir Auditoria de Movimentação</button>
   </div>
 
   <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
@@ -1724,6 +1786,7 @@ function nav(id){
   if(id==='principio')renderPrincipio();
   if(id==='alertas')renderAlertas();
   if(id==='cacaerros')renderCacaErros();
+  if(id==='movaudit')renderMovAudit();
   if(id==='config'){loadConfigView();}
   if(id==='relatorio')renderRelatorio();
   // Reset detail views to list when (re)entering
@@ -4703,6 +4766,310 @@ ${body.innerHTML.replace(/<button[^>]*>[\s\S]*?<\/button>/g,'')}
 </body></html>`);
   win.document.close();
   win.focus();
+}
+
+// ─── AUDITORIA DE MOVIMENTAÇÃO (Controladoria) ───
+// Compara duas importações lote a lote (Filial+Produto+Lote) para apontar:
+//  - saídas (venda/transferência/baixa) totais e parciais
+//  - alterações de DtFab/DtVenc no MESMO lote (fisicamente impossível → manobra)
+//  - substituições de lote (vencido some e lote "novo" do mesmo produto surge)
+let movState=null;          // {ib,ic} índices em history (0 = mais recente)
+let movFiltro={filial:'',busca:'',soVenc:false};
+let movResultado=null;      // último cálculo (usado pelo export)
+
+const movEsc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const movQtd=v=>(v||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+
+function renderMovAudit(){
+  const body=document.getElementById('mov-body');
+  if(history.length<2){
+    document.getElementById('mov-summary').innerHTML='';
+    document.getElementById('mov-avisos').innerHTML='';
+    body.innerHTML='<div class="alert amber"><i class="ti ti-alert-triangle"></i><div>São necessárias pelo menos <strong>duas importações</strong> no histórico para comparar semanas. Importe a planilha de mais de uma data.</div></div>';
+    document.getElementById('mov-sel-base').innerHTML='';
+    document.getElementById('mov-sel-comp').innerHTML='';
+    return;
+  }
+  if(!movState||movState.ib>=history.length||movState.ic>=history.length)movState={ib:1,ic:0};
+  movPopularSelects();
+  movCalcular();
+  movRenderBody();
+}
+function movPopularSelects(){
+  const opt=h=>`<option value="${movEsc(h.importDate)}">${movEsc(h.importDate)} · ${tipoEfetivo(h)==='completa'?'Completa':'Só vencidos'}</option>`;
+  const selB=document.getElementById('mov-sel-base'),selC=document.getElementById('mov-sel-comp');
+  selB.innerHTML=history.map(opt).join('');
+  selC.innerHTML=history.map(opt).join('');
+  selB.value=history[movState.ib].importDate;
+  selC.value=history[movState.ic].importDate;
+}
+function movOnSelChange(){
+  const vb=document.getElementById('mov-sel-base').value;
+  const vc=document.getElementById('mov-sel-comp').value;
+  let ib=history.findIndex(h=>h.importDate===vb);
+  let ic=history.findIndex(h=>h.importDate===vc);
+  if(ib<0||ic<0)return;
+  if(ib===ic){toast('Selecione duas importações diferentes','amber');movPopularSelects();return;}
+  // Base deve ser a mais antiga (history é ordenado do mais recente p/ o mais antigo)
+  if(ib<ic){const t=ib;ib=ic;ic=t;toast('Ordem ajustada: a base deve ser anterior à comparada','brand');}
+  movState={ib,ic};
+  movPopularSelects();
+  movCalcular();
+  movRenderBody();
+}
+function movShiftPar(dir){
+  if(!movState||history.length<2)return;
+  const ib=movState.ib+dir,ic=movState.ic+dir;
+  if(ib>=history.length||ic<0){toast(dir>0?'Não há importação mais antiga para este par':'Não há importação mais recente para este par','amber');return;}
+  movState={ib,ic};
+  movPopularSelects();
+  movCalcular();
+  movRenderBody();
+}
+function movOnFiltro(){
+  movFiltro.filial=document.getElementById('mov-f-filial').value;
+  movFiltro.busca=document.getElementById('mov-f-busca').value.trim().toLowerCase();
+  movFiltro.soVenc=document.getElementById('mov-f-sovenc').checked;
+  movRenderBody();
+}
+// Agrupa registros por Filial+Produto+Lote somando quantidades e coletando as datas
+function movAgrupar(recs,useCod){
+  const m=new Map();
+  for(const r of recs){
+    const cod=(r.CodProduto||'').toString().trim();
+    const prodKey=(useCod&&cod)?('C:'+cod):('N:'+(r.Nome||'').toUpperCase().trim());
+    const lote=(r.Lote||'').toString().toUpperCase().trim()||'(SEM LOTE)';
+    const k=(r.Sigla||'')+'␟'+prodKey+'␟'+lote;
+    let g=m.get(k);
+    if(!g){g={sigla:r.Sigla||'',nome:r.Nome||'',cod:cod,lote:lote,qtd:0,total:0,fabs:new Set(),vencs:new Set(),minDias:Infinity};m.set(k,g);}
+    g.qtd+=r.Qtd;g.total+=r.Total;
+    if(r.DtFab)g.fabs.add(r.DtFab);
+    if(r.DtVenc)g.vencs.add(r.DtVenc);
+    if(r.Dias<g.minDias)g.minDias=r.Dias;
+  }
+  return m;
+}
+const movJoin=set=>[...set].sort((a,b)=>pdate(a)-pdate(b)).join(' | ');
+const movMaxVenc=g=>{let mx=0;g.vencs.forEach(v=>{const t=pdate(v);if(t>mx)mx=t;});return mx;};
+
+function movCalcular(){
+  const base=history[movState.ib],comp=history[movState.ic];
+  // Universo comparável: se qualquer lado for extração "só vencidos", restringe os dois
+  // a Dias<=0 — senão todo o estoque a-vencer da importação completa viraria falsa "saída".
+  const restrito=tipoEfetivo(base)==='vencidos'||tipoEfetivo(comp)==='vencidos';
+  const pick=snap=>{
+    const all=snap.allRecords||snap.records||[];
+    return restrito?all.filter(r=>r.Dias<=0):all;
+  };
+  const recsB=pick(base),recsC=pick(comp);
+  // Chave de produto: código ERP quando os DOIS arquivos o trazem de forma consistente;
+  // caso contrário usa o nome (arquivos antigos não tinham a coluna de código).
+  const pctCod=recs=>{if(!recs.length)return 0;let c=0;for(const r of recs)if((r.CodProduto||'').toString().trim())c++;return c/recs.length;};
+  const useCod=pctCod(recsB)>0.9&&pctCod(recsC)>0.9;
+  const gB=movAgrupar(recsB,useCod),gC=movAgrupar(recsC,useCod);
+
+  const saidas=[],entradas=[],alteracoes=[],substituicoes=[];
+  // — Saídas e alterações: percorre a base —
+  for(const [k,b] of gB){
+    const c=gC.get(k);
+    if(!c){
+      saidas.push({...b,tipo:'total',qtdSaida:b.qtd,valorSaida:b.total,vencidoBase:b.minDias<=0});
+      continue;
+    }
+    // Mesmo lote nos dois lados → compara datas (só quando ambos têm a informação;
+    // arquivos antigos sem DtFab não podem gerar falso alerta)
+    if(b.lote!=='(SEM LOTE)'){
+      const fabB=movJoin(b.fabs),fabC=movJoin(c.fabs);
+      const venB=movJoin(b.vencs),venC=movJoin(c.vencs);
+      const fabMudou=fabB&&fabC&&fabB!==fabC;
+      const venMudou=venB&&venC&&venB!==venC;
+      if(fabMudou||venMudou){
+        alteracoes.push({sigla:b.sigla,nome:b.nome,cod:b.cod,lote:b.lote,
+          fabAntes:fabB||'—',fabDepois:fabC||'—',venAntes:venB||'—',venDepois:venC||'—',
+          fabMudou,venMudou,qtd:c.qtd,total:c.total,
+          mascarou:b.minDias<=0&&c.minDias>0,   // era vencido, "voltou" a valer → manobra clássica
+          vencidoBase:b.minDias<=0});
+      }
+    }
+    if(c.qtd<b.qtd-0.001){
+      saidas.push({...b,tipo:'parcial',qtdAntes:b.qtd,qtdDepois:c.qtd,qtdSaida:b.qtd-c.qtd,
+        valorSaida:Math.max(0,b.total-c.total),vencidoBase:b.minDias<=0});
+    }else if(c.qtd>b.qtd+0.001){
+      entradas.push({...c,tipo:'aumento',qtdAntes:b.qtd,qtdDepois:c.qtd,qtdEntrada:c.qtd-b.qtd,valorEntrada:Math.max(0,c.total-b.total)});
+    }
+  }
+  // — Entradas novas: no comparado e ausente na base —
+  for(const [k,c] of gC){
+    if(!gB.has(k))entradas.push({...c,tipo:'novo',qtdEntrada:c.qtd,valorEntrada:c.total});
+  }
+  // — Substituição de lote: lote VENCIDO saiu por inteiro e lote novo do mesmo
+  //   produto entrou na mesma filial com vencimento posterior —
+  const entradasNovas=entradas.filter(e=>e.tipo==='novo'&&e.lote!=='(SEM LOTE)');
+  const idxEntradas={};
+  for(const e of entradasNovas){
+    const pk=e.sigla+'␟'+(useCod&&e.cod?('C:'+e.cod):('N:'+e.nome.toUpperCase().trim()));
+    (idxEntradas[pk]=idxEntradas[pk]||[]).push(e);
+  }
+  for(const s of saidas){
+    if(s.tipo!=='total'||!s.vencidoBase||s.lote==='(SEM LOTE)')continue;
+    const pk=s.sigla+'␟'+(useCod&&s.cod?('C:'+s.cod):('N:'+s.nome.toUpperCase().trim()));
+    for(const e of (idxEntradas[pk]||[])){
+      if(movMaxVenc(e)>movMaxVenc(s)){
+        substituicoes.push({sigla:s.sigla,nome:s.nome,cod:s.cod,
+          loteSaiu:s.lote,vencSaiu:movJoin(s.vencs)||'—',qtdSaiu:s.qtd,valorSaiu:s.total,
+          loteEntrou:e.lote,vencEntrou:movJoin(e.vencs)||'—',qtdEntrou:e.qtd,
+          forca:Math.abs(s.qtd-e.qtd)<0.001?'ALTA':'MÉDIA'});
+      }
+    }
+  }
+  saidas.sort((a,b)=>b.valorSaida-a.valorSaida);
+  entradas.sort((a,b)=>b.valorEntrada-a.valorEntrada);
+  alteracoes.sort((a,b)=>(b.mascarou-a.mascarou)||(b.total-a.total));
+  substituicoes.sort((a,b)=>(a.forca==='ALTA'?-1:1)-(b.forca==='ALTA'?-1:1)||b.valorSaiu-a.valorSaiu);
+  movResultado={base,comp,restrito,useCod,saidas,entradas,alteracoes,substituicoes};
+
+  // Popula o filtro de filial preservando a seleção atual
+  const siglas=new Set();
+  saidas.forEach(x=>siglas.add(x.sigla));entradas.forEach(x=>siglas.add(x.sigla));
+  alteracoes.forEach(x=>siglas.add(x.sigla));substituicoes.forEach(x=>siglas.add(x.sigla));
+  const sel=document.getElementById('mov-f-filial'),atual=sel.value;
+  sel.innerHTML='<option value="">Todas as filiais</option>'+[...siglas].sort().map(s=>`<option value="${movEsc(s)}">${movEsc(s)}</option>`).join('');
+  if([...siglas].includes(atual))sel.value=atual;else movFiltro.filial='';
+}
+
+function movAplicaFiltro(arr){
+  return arr.filter(x=>{
+    if(movFiltro.filial&&x.sigla!==movFiltro.filial)return false;
+    if(movFiltro.soVenc&&x.vencidoBase===false)return false;
+    if(movFiltro.busca){
+      const alvo=(x.nome+' '+x.lote+' '+(x.loteSaiu||'')+' '+(x.loteEntrou||'')+' '+(x.cod||'')).toLowerCase();
+      if(!alvo.includes(movFiltro.busca))return false;
+    }
+    return true;
+  });
+}
+function movRenderBody(){
+  const R=movResultado;if(!R)return;
+  // Avisos de contexto
+  let avisos='';
+  if(R.restrito){
+    avisos+=`<div class="alert amber" style="margin-bottom:14px"><i class="ti ti-alert-triangle"></i><div>
+      <strong>Comparação restrita ao universo de vencidos:</strong> pelo menos uma das importações selecionadas é do tipo "só vencidos".
+      Itens a vencer não podem ser comparados. <strong>Atenção de auditoria:</strong> neste modo, um lote vencido cuja data foi adulterada
+      <u>desaparece da extração</u> e fica indistinguível de uma venda — toda "saída" listada abaixo pode ser venda, baixa OU manobra de data.
+      Para a detecção completa de alteração de datas, compare duas importações <strong>completas</strong>.</div></div>`;
+  }
+  if(!R.useCod){
+    avisos+=`<div class="alert brand" style="margin-bottom:14px"><i class="ti ti-info-circle"></i><div>
+      Uma das importações não traz o <strong>código de produto</strong> em todas as linhas — o pareamento foi feito pelo <strong>nome do produto</strong>.
+      Diferenças de grafia entre os arquivos podem gerar pares de saída/entrada artificiais.</div></div>`;
+  }
+  document.getElementById('mov-avisos').innerHTML=avisos;
+
+  const fS=movAplicaFiltro(R.saidas),fE=movAplicaFiltro(R.entradas),
+        fA=movAplicaFiltro(R.alteracoes),fSub=movAplicaFiltro(R.substituicoes);
+  const valorSaida=fS.reduce((s,x)=>s+x.valorSaida,0);
+  const valorEntrada=fE.reduce((s,x)=>s+x.valorEntrada,0);
+
+  document.getElementById('mov-summary').innerHTML=`
+    <div class="metric ${fA.length||fSub.length?'red':'green'}"><div class="ml">Alertas de manobra</div><div class="mv">${fA.length+fSub.length}</div><div class="ms">${fA.length} alteração(ões) de data · ${fSub.length} substituição(ões) de lote</div></div>
+    <div class="metric"><div class="ml">Saídas de estoque</div><div class="mv">${fS.length}</div><div class="ms">${brl(valorSaida)} deixaram o estoque</div></div>
+    <div class="metric"><div class="ml">Saídas de itens vencidos</div><div class="mv">${fS.filter(x=>x.vencidoBase).length}</div><div class="ms">${brl(fS.filter(x=>x.vencidoBase).reduce((s,x)=>s+x.valorSaida,0))} em vencidos que saíram</div></div>
+    <div class="metric"><div class="ml">${R.restrito?'Novos vencidos / aumentos':'Entradas / aumentos'}</div><div class="mv">${fE.length}</div><div class="ms">${brl(valorEntrada)} entraram no período</div></div>`;
+
+  const thS='cursor:default';
+  const cap=(arr,cols)=>arr.length>100?`<tr><td colspan="${cols}" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Exibindo 100 de ${arr.length} linhas — refine os filtros ou use o Exportar XLSX para a lista completa.</td></tr>`:'';
+  const badgeVenc=v=>v?'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(192,57,43,.12);color:#c0392b">VENCIDO</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(30,132,73,.12);color:#1e8449">A VENCER</span>';
+
+  let html='';
+  // ① Alterações de data — o alerta mais grave
+  html+=`<div class="card" style="margin-bottom:18px;border-left:4px solid #c0392b">
+    <div class="card-h" style="color:#c0392b"><i class="ti ti-alert-octagon"></i> Alteração de Fabricação/Vencimento no Mesmo Lote (${fA.length})</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">O mesmo lote físico não muda de data de fabricação nem de vencimento. Qualquer linha aqui indica <strong>redigitação do cadastro</strong> — confronte com a filial e exija justificativa documentada.</div>
+    ${fA.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote</th><th>Fabricação (antes → depois)</th><th>Vencimento (antes → depois)</th><th>Situação</th><th class="r">Qtd</th><th class="r">Valor</th></tr></thead><tbody>
+      ${fA.slice(0,100).map(x=>`<tr style="${x.mascarou?'background:rgba(192,57,43,.06)':''}">
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
+        <td>${x.fabMudou?`<span style="color:#c0392b;font-weight:700">${movEsc(x.fabAntes)} → ${movEsc(x.fabDepois)}</span>`:movEsc(x.fabDepois)}</td>
+        <td>${x.venMudou?`<span style="color:#c0392b;font-weight:700">${movEsc(x.venAntes)} → ${movEsc(x.venDepois)}</span>`:movEsc(x.venDepois)}</td>
+        <td>${x.mascarou?'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:#c0392b;color:#fff">VENCIDO → REGULARIZADO</span>':badgeVenc(x.vencidoBase)}</td>
+        <td class="r">${movQtd(x.qtd)}</td><td class="r"><strong>${brl(x.total)}</strong></td></tr>`).join('')}
+      ${cap(fA,8)}</tbody></table></div>`
+    :'<div style="padding:10px 0;color:var(--text3);font-size:13px"><i class="ti ti-circle-check"></i> Nenhuma alteração de data detectada entre as duas importações.</div>'}
+  </div>`;
+  // ② Substituições de lote
+  html+=`<div class="card" style="margin-bottom:18px;border-left:4px solid #d68910">
+    <div class="card-h" style="color:#d68910"><i class="ti ti-replace"></i> Possível Substituição de Lote Vencido (${fSub.length})</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Lote <strong>vencido</strong> saiu por inteiro e, na mesma semana, um lote "novo" do <strong>mesmo produto</strong> entrou na <strong>mesma filial</strong> com vencimento futuro. Força <strong>ALTA</strong> = quantidade idêntica. Pode ser reposição legítima — confirme com nota fiscal de entrada e destino da baixa do lote antigo.</div>
+    ${fSub.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote que saiu</th><th class="r">Qtd saiu</th><th class="r">Valor</th><th>Lote que entrou</th><th class="r">Qtd entrou</th><th>Força</th></tr></thead><tbody>
+      ${fSub.slice(0,100).map(x=>`<tr>
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td>
+        <td style="font-family:monospace">${movEsc(x.loteSaiu)}<div style="font-size:10px;color:#c0392b">venc: ${movEsc(x.vencSaiu)}</div></td>
+        <td class="r">${movQtd(x.qtdSaiu)}</td><td class="r"><strong>${brl(x.valorSaiu)}</strong></td>
+        <td style="font-family:monospace">${movEsc(x.loteEntrou)}<div style="font-size:10px;color:#1e8449">venc: ${movEsc(x.vencEntrou)}</div></td>
+        <td class="r">${movQtd(x.qtdEntrou)}</td>
+        <td>${x.forca==='ALTA'?'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:#c0392b;color:#fff">ALTA</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(214,137,16,.15);color:#d68910">MÉDIA</span>'}</td></tr>`).join('')}
+      ${cap(fSub,8)}</tbody></table></div>`
+    :'<div style="padding:10px 0;color:var(--text3);font-size:13px"><i class="ti ti-circle-check"></i> Nenhum padrão de substituição de lote detectado.</div>'}
+  </div>`;
+  // ③ Saídas
+  html+=`<div class="card" style="margin-bottom:18px">
+    <div class="card-h"><i class="ti ti-logout"></i> O Que Saiu do Estoque · ${movEsc(R.base.importDate)} → ${movEsc(R.comp.importDate)} (${fS.length})</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Lotes presentes na importação base e ausentes (ou reduzidos) na comparada — venda, transferência ou baixa.${R.restrito?' <strong>Neste modo restrito, também pode ser alteração de data (o item sai da extração de vencidos).</strong>':''}</div>
+    ${fS.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote</th><th>Fabricação</th><th>Vencimento</th><th>Situação na base</th><th>Saída</th><th class="r">Qtd saída</th><th class="r">Valor saído</th></tr></thead><tbody>
+      ${fS.slice(0,100).map(x=>`<tr>
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
+        <td>${movEsc(movJoin(x.fabs)||'—')}</td><td>${movEsc(movJoin(x.vencs)||'—')}</td>
+        <td>${badgeVenc(x.vencidoBase)}</td>
+        <td>${x.tipo==='total'?'Total':`Parcial <span style="font-size:11px;color:var(--text3)">(${movQtd(x.qtdAntes)} → ${movQtd(x.qtdDepois)})</span>`}</td>
+        <td class="r">${movQtd(x.qtdSaida)}</td><td class="r"><strong>${brl(x.valorSaida)}</strong></td></tr>`).join('')}
+      ${cap(fS,9)}</tbody></table></div>`
+    :'<div style="padding:10px 0;color:var(--text3);font-size:13px">Nenhuma saída no período com os filtros atuais.</div>'}
+  </div>`;
+  // ④ Entradas
+  html+=`<div class="card" style="margin-bottom:18px">
+    <div class="card-h"><i class="ti ti-login"></i> ${R.restrito?'Novos Vencidos / Aumentos':'O Que Entrou / Aumentou'} (${fE.length})</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">${R.restrito?'Itens que passaram a constar na extração de vencidos — em geral, produtos que venceram durante o período.':'Lotes novos ou com aumento de quantidade na importação comparada.'}</div>
+    ${fE.length?`<div class="tw"><table><thead><tr><th>Filial</th><th>Produto</th><th>Lote</th><th>Fabricação</th><th>Vencimento</th><th>Tipo</th><th class="r">Qtd entrada</th><th class="r">Valor</th></tr></thead><tbody>
+      ${fE.slice(0,100).map(x=>`<tr>
+        <td><strong>${movEsc(x.sigla)}</strong></td><td>${movEsc(x.nome)}</td><td style="font-family:monospace">${movEsc(x.lote)}</td>
+        <td>${movEsc(movJoin(x.fabs)||'—')}</td><td>${movEsc(movJoin(x.vencs)||'—')}</td>
+        <td>${x.tipo==='novo'?'Novo lote':`Aumento <span style="font-size:11px;color:var(--text3)">(${movQtd(x.qtdAntes)} → ${movQtd(x.qtdDepois)})</span>`}</td>
+        <td class="r">${movQtd(x.qtdEntrada)}</td><td class="r"><strong>${brl(x.valorEntrada)}</strong></td></tr>`).join('')}
+      ${cap(fE,8)}</tbody></table></div>`
+    :'<div style="padding:10px 0;color:var(--text3);font-size:13px">Nenhuma entrada no período com os filtros atuais.</div>'}
+  </div>`;
+  document.getElementById('mov-body').innerHTML=html;
+}
+function movExportXLSX(){
+  const R=movResultado;
+  if(!R){toast('Gere a comparação antes de exportar','amber');return;}
+  if(typeof XLSX==='undefined'){toast('Biblioteca XLSX não carregou. Recarregue a página.','red');return;}
+  const wb=XLSX.utils.book_new();
+  const add=(nome,header,rows)=>{
+    const ws=XLSX.utils.aoa_to_sheet([header,...rows]);
+    XLSX.utils.book_append_sheet(wb,ws,nome);
+  };
+  add('Resumo',['Item','Valor'],[
+    ['Importação base (anterior)',R.base.importDate],
+    ['Importação comparada (atual)',R.comp.importDate],
+    ['Universo da comparação',R.restrito?'Restrito a vencidos (uma das importações é "só vencidos")':'Estoque completo'],
+    ['Pareamento de produto',R.useCod?'Código ERP':'Nome do produto'],
+    ['Alterações de data detectadas',R.alteracoes.length],
+    ['Substituições de lote suspeitas',R.substituicoes.length],
+    ['Saídas (linhas)',R.saidas.length],
+    ['Valor total saído',Math.round(R.saidas.reduce((s,x)=>s+x.valorSaida,0)*100)/100],
+    ['Entradas (linhas)',R.entradas.length]]);
+  add('Alterações de Data',['Filial','Produto','Código','Lote','Fabricação antes','Fabricação depois','Vencimento antes','Vencimento depois','Era vencido e foi regularizado','Qtd','Valor'],
+    R.alteracoes.map(x=>[x.sigla,x.nome,x.cod,x.lote,x.fabAntes,x.fabDepois,x.venAntes,x.venDepois,x.mascarou?'SIM':'não',x.qtd,x.total]));
+  add('Substituições de Lote',['Filial','Produto','Código','Lote que saiu','Venc. do que saiu','Qtd saiu','Valor saiu','Lote que entrou','Venc. do que entrou','Qtd entrou','Força do indício'],
+    R.substituicoes.map(x=>[x.sigla,x.nome,x.cod,x.loteSaiu,x.vencSaiu,x.qtdSaiu,x.valorSaiu,x.loteEntrou,x.vencEntrou,x.qtdEntrou,x.forca]));
+  add('Saídas',['Filial','Produto','Código','Lote','Fabricação','Vencimento','Vencido na base','Saída','Qtd saída','Valor saído'],
+    R.saidas.map(x=>[x.sigla,x.nome,x.cod,x.lote,movJoin(x.fabs),movJoin(x.vencs),x.vencidoBase?'SIM':'não',x.tipo==='total'?'Total':'Parcial',x.qtdSaida,x.valorSaida]));
+  add('Entradas',['Filial','Produto','Código','Lote','Fabricação','Vencimento','Tipo','Qtd entrada','Valor'],
+    R.entradas.map(x=>[x.sigla,x.nome,x.cod,x.lote,movJoin(x.fabs),movJoin(x.vencs),x.tipo==='novo'?'Novo lote':'Aumento de quantidade',x.qtdEntrada,x.valorEntrada]));
+  const f=d=>(d||'').replace(/\//g,'-');
+  XLSX.writeFile(wb,`Auditoria_Movimentacao_${f(R.base.importDate)}_vs_${f(R.comp.importDate)}.xlsx`);
+  toast('✓ Auditoria exportada em XLSX (todas as linhas, sem filtro)','green');
 }
 
 function gerarRelatorioEstoque(){
