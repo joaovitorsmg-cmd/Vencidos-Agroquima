@@ -4242,8 +4242,15 @@ function _rndRect(ctx,x,y,w,h,r){
   ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
   ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
-function _statusCor(s){return s==='CRÍTICO'?'#c62828':s==='ATENÇÃO'?'#e65100':'#2e7d32';}
-function _statusDoBkg(vencido,total){const p=total>0?vencido/total:0;return p>=0.10?'CRÍTICO':p>=0.03?'ATENÇÃO':'BAIXO';}
+// Todo vencido é crítico (sujeito a incineração em fiscalização) — não há status
+// "baixo". As filiais são ordenadas do maior para o menor risco e a cor é contínua:
+// vermelho para quem concentra mais valor vencido, azul institucional para quem concentra menos.
+function _riscoCor(pct,maxPct){
+  const t=maxPct>0?Math.min(1,pct/maxPct):0;
+  const a=[13,71,161],b=[183,28,28]; // azul royal → vermelho crítico
+  return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';
+}
+const _pctBR=p=>(p*100).toFixed(1).replace('.',',')+'%';
 
 function _buildSlide(d, filtroRegional){
   const vencidos=filtroRegional?d.records.filter(r=>r.Gerente===filtroRegional):d.records;
@@ -4253,7 +4260,14 @@ function _buildSlide(d, filtroRegional){
   const av120={};
   aVencer.filter(r=>r.Dias>0&&r.Dias<=120).forEach(r=>{av120[r.Sigla]=(av120[r.Sigla]||0)+r.Total;});
   const totalAV120=Object.values(av120).reduce((s,v)=>s+v,0);
-  const filData=filiais.map(f=>({key:f.key,vencido:f.total,av120:av120[f.key]||0,status:_statusDoBkg(f.total,grandTotal),itens:f.items||0}));
+  const filData=filiais.map(f=>({key:f.key,vencido:f.total,av120:av120[f.key]||0,itens:f.items||0}))
+    .sort((a,b)=>b.vencido-a.vencido);
+  const maxPct=grandTotal>0&&filData.length?filData[0].vencido/grandTotal:0;
+  filData.forEach((f,i)=>{
+    f.rank=i+1;
+    f.pct=grandTotal>0?f.vencido/grandTotal:0;
+    f.cor=_riscoCor(f.pct,maxPct);
+  });
   const prodMap={};
   vencidos.forEach(r=>{
     const k=r.Nome||r.Desc||'—';
@@ -4262,17 +4276,16 @@ function _buildSlide(d, filtroRegional){
     if(r.Total>prodMap[k].topV){prodMap[k].topV=r.Total;prodMap[k].filial=r.Sigla;}
   });
   const top5=Object.values(prodMap).sort((a,b)=>b.total-a.total).slice(0,5);
-  const nCrit=filData.filter(f=>f.status==='CRÍTICO').length;
-  const nAtenc=filData.filter(f=>f.status==='ATENÇÃO').length;
-  const nBaixo=filData.filter(f=>f.status==='BAIXO').length;
-  return {grandTotal,totalItens:vencidos.length,numFiliais:filData.length,filiais:filData,top5,totalAV120,nCrit,nAtenc,nBaixo};
+  const top3Pct=filData.slice(0,3).reduce((s,f)=>s+f.pct,0);
+  const topFilial=filData[0]||null;
+  return {grandTotal,totalItens:vencidos.length,numFiliais:filData.length,filiais:filData,top5,totalAV120,top3Pct,topFilial};
 }
 
 function _drawSlideCanvas(canvas,titulo,data,slide){
   const W=1280,H=720;
   canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext('2d');
-  const {grandTotal,totalItens,numFiliais,filiais,top5,totalAV120,nCrit,nAtenc,nBaixo}=slide;
+  const {grandTotal,totalItens,numFiliais,filiais,top5,totalAV120,top3Pct,topFilial}=slide;
   // Paleta oficial Agroquima (manual de marca)
   const C={dark:'#002B5B',royal:'#0D47A1',light:'#64B5F6',bg:'#EEF3FA',bgRow2:'#F0F6FF',border:'#C8D9EF',textPri:'#0A1628',textSec:'#4B5E7A',crit:'#C62828',atenc:'#E65100',baixo:'#2E7D32'};
 
@@ -4303,7 +4316,7 @@ function _drawSlideCanvas(canvas,titulo,data,slide){
   const kpis=[
     {label:'TOTAL DE PRODUTOS VENCIDOS',val:totalItens+' itens',sub:numFiliais+' '+(numFiliais===1?'filial':'filiais')+' afetadas',c1:'#0A2248',c2:C.royal,accent:C.light},
     {label:'VALOR TOTAL EM PERDAS',val:brl(grandTotal),sub:'em produtos com validade expirada',c1:C.dark,c2:'#0A3470',accent:C.light},
-    {label:'STATUS CONSOLIDADO',val:nCrit>0?nCrit+' Crítica(s)':nAtenc>0?nAtenc+' Atenção':'Situação Baixa',sub:nCrit+' crítico · '+nAtenc+' atenção · '+nBaixo+' baixo',c1:nCrit>0?'#6B1111':nAtenc>0?'#5A2A00':C.dark,c2:nCrit>0?'#B71C1C':nAtenc>0?'#BF360C':C.royal,accent:nCrit>0?'#EF9A9A':nAtenc>0?'#FFB74D':C.light},
+    {label:'MAIOR CONCENTRAÇÃO DE RISCO',val:topFilial?topFilial.key:'—',sub:topFilial?_pctBR(topFilial.pct)+' do vencido · top 3 concentram '+_pctBR(top3Pct):'sem vencidos no recorte',c1:'#6B1111',c2:'#B71C1C',accent:'#EF9A9A'},
   ];
   kpis.forEach((k,i)=>{
     const kx=20+i*(CW+CG);
@@ -4342,7 +4355,7 @@ function _drawSlideCanvas(canvas,titulo,data,slide){
     const sW=(W-40-28)/3,sG=14;
     const situacao=[
       {lab:'A VENCER EM 120 DIAS',val:brl(totalAV120),sub:'valor recuperável — ação preventiva',cor:C.royal},
-      {lab:'FILIAIS COM STATUS CRÍTICO / ATENÇÃO',val:nCrit+' crítica(s)  ·  '+nAtenc+' atenção  ·  '+nBaixo+' baixo',sub:'distribuição de risco por filial',cor:nCrit>0?C.crit:C.dark},
+      {lab:'CONCENTRAÇÃO DO RISCO',val:'Top 3 filiais = '+_pctBR(top3Pct)+' do vencido',sub:'ranking do maior para o menor risco — todo vencido é crítico',cor:C.crit},
       {lab:'REPRESENTATIVIDADE DO VENCIDO',val:totalAV120>0?Math.round(grandTotal/(grandTotal+totalAV120)*100)+'% do fluxo ativo':'—',sub:'proporção no portfólio total em risco',cor:C.dark},
     ];
     situacao.forEach((s,i)=>{
@@ -4373,7 +4386,7 @@ function _drawSlideCanvas(canvas,titulo,data,slide){
 function _drawFilialTable(ctx,x,y,w,filiais,RH,HDR,grandTotal){
   const C={dark:'#002B5B',royal:'#0D47A1',light:'#64B5F6',bg:'#F0F6FF',border:'#C8D9EF',textPri:'#0A1628',textSec:'#4B5E7A'};
   const cols=[0.22,0.21,0.08,0.22,0.27];
-  const labs=['Filial','Vencido (R$)','Itens','A Vencer 120d','Status'];
+  const labs=['Filial','Vencido (R$)','Itens','A Vencer 120d','Risco'];
   // Cabeçalho
   ctx.fillStyle=C.dark;ctx.fillRect(x,y,w,HDR);
   ctx.fillStyle=C.light;ctx.fillRect(x,y+HDR-3,w,3);
@@ -4393,7 +4406,7 @@ function _drawFilialTable(ctx,x,y,w,filiais,RH,HDR,grandTotal){
     if(grandTotal>0){
       const bx=x+w*cols[0]+3,bw=w*cols[1]-6,pct=Math.min(f.vencido/grandTotal,1);
       ctx.fillStyle=C.border;ctx.fillRect(bx,ry+RH-3,bw,2);
-      ctx.fillStyle=_statusCor(f.status);ctx.fillRect(bx,ry+RH-3,Math.round(bw*pct),2);
+      ctx.fillStyle=f.cor;ctx.fillRect(bx,ry+RH-3,Math.round(bw*pct),2);
     }
     cx=x;
     [f.key,brl(f.vencido),String(f.itens||'—'),brl(f.av120)].forEach((v,i)=>{
@@ -4401,11 +4414,11 @@ function _drawFilialTable(ctx,x,y,w,filiais,RH,HDR,grandTotal){
       ctx.font=i===0?'bold 12px sans-serif':'12px sans-serif';
       ctx.fillText(v,i===0?cx+10:cx+cw-10,ry+RH/2);cx+=cw;
     });
-    // Status pill
+    // Pill de risco: posição no ranking + participação no vencido total
     const sw=w*cols[4],px=cx+8,pillW=sw-16,pillH=20,pillY=ry+(RH-pillH)/2;
-    ctx.fillStyle=_statusCor(f.status);_rndRect(ctx,px,pillY,pillW,pillH,5);ctx.fill();
+    ctx.fillStyle=f.cor;_rndRect(ctx,px,pillY,pillW,pillH,5);ctx.fill();
     ctx.fillStyle='#ffffff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
-    ctx.fillText(f.status,px+pillW/2,ry+RH/2);
+    ctx.fillText(f.rank+'º MAIOR RISCO · '+_pctBR(f.pct),px+pillW/2,ry+RH/2);
   });
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
