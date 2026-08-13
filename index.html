@@ -735,7 +735,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- ALERTAS DE VENCIMENTO -->
 <div id="v-alertas" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-alarm"></i> Alertas de Vencimento</h2>
-    <div class="sub">Produtos a vencer — dinheiro ainda recuperável se houver ação agora</div></div></div>
+    <div class="sub">Produtos a vencer — dinheiro ainda recuperável se houver ação agora</div></div>
+    <button class="btn ghost sm" onclick="exportarAlertasXlsx()" title="Exportar lista filtrada em XLSX"><i class="ti ti-file-spreadsheet"></i> Exportar XLSX</button></div>
   <div class="alert green"><i class="ti ti-shield-check"></i><div><strong>Prevenção, não constatação.</strong> Estes produtos ainda não venceram. Cada item é uma oportunidade de ação antes da perda: <strong>pastagem (FAG)</strong> — negociar devolução à fábrica para itens de alto giro ou escoar por venda; <strong>nutrição animal (FAP/FCB)</strong> — escoar por venda imediata, sem opção de devolução futura; <strong>agrícola</strong> — verificar revalidação ou promover venda; <strong>demais</strong> — venda ou bonificação com fornecedor. Escolha a janela de antecedência abaixo.</div></div>
 
   <div id="alertas-fonte-notice" style="display:none;margin-bottom:12px"></div>
@@ -748,6 +749,28 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       <button class="ws-btn" data-dias="180" onclick="setAlertWindow(180)">180 dias</button>
       <button class="ws-btn" data-dias="9999" onclick="setAlertWindow(9999)">Tudo</button>
     </div>
+  </div>
+
+  <!-- Filtros de Regional e Loja -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;flex-shrink:0">Regional:</span>
+      <div id="al-reg-chips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="col-picker-wrap">
+          <button class="btn sm" id="al-loja-btn" onclick="toggleAlertaLojaPicker()" style="min-width:160px;justify-content:space-between">
+            <span id="al-loja-lbl">Todas as Lojas</span><i class="ti ti-chevron-down" style="font-size:12px;margin-left:6px"></i>
+          </button>
+          <div class="col-picker-drop" id="al-loja-drop" style="min-width:230px;max-height:290px;overflow-y:auto;left:auto;right:0">
+            <label onclick="clearAlertaLojas(event)" style="color:var(--brand);font-weight:800"><input type="checkbox" id="al-loja-all" checked style="accent-color:var(--brand)"> Todas as Lojas</label>
+            <div class="divider" style="margin:4px 8px"></div>
+            <div id="al-loja-opts"></div>
+          </div>
+        </div>
+        <button class="btn xs ghost" id="al-clear-btn" onclick="clearAlertasFiltros()" style="display:none;color:var(--red);border-color:var(--red);white-space:nowrap"><i class="ti ti-x"></i> Limpar filtros</button>
+      </div>
+    </div>
+    <div id="alertas-filtro-ativo" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2);flex-wrap:wrap;align-items:center;gap:8px"></div>
   </div>
 
   <div id="alertas-empty" style="display:none" class="empty-state">
@@ -763,13 +786,24 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     <!-- Destaques -->
     <div id="alertas-highlights"></div>
 
+    <!-- Gráfico: Urgência por Regional -->
+    <div class="card" id="al-chart-card" style="margin-bottom:22px">
+      <div class="card-h"><i class="ti ti-chart-bar"></i> Urgência por Regional — Distribuição da Janela Selecionada</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Cada barra mostra o valor em risco por regional dividido pelas faixas de urgência. Clique em uma barra ou em um chip de regional para filtrar.</div>
+      <div class="legend" id="al-chart-legend"></div>
+      <div class="chartbox" style="height:280px"><canvas id="ch-alertas-reg"></canvas></div>
+    </div>
+
     <!-- Por Regional / Loja -->
     <div class="g2" style="margin-bottom:22px">
-      <div class="card"><div class="card-h"><i class="ti ti-map-pin"></i> Risco por Regional</div>
-        <div class="tw"><table><thead><tr><th>Regional</th><th class="r">Itens</th><th class="r">Valor em Risco</th><th style="width:120px">Urgência</th></tr></thead><tbody id="alertas-reg"></tbody></table></div>
+      <div class="card">
+        <div class="card-h" id="al-reg-card-h"><i class="ti ti-map-pin"></i> Risco por Regional</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px" id="al-reg-hint">Clique em uma linha para filtrar por regional</div>
+        <div class="tw"><table><thead><tr><th>Regional</th><th class="r">≤30d</th><th class="r">31–60d</th><th class="r">61–90d</th><th class="r">Total</th><th style="width:80px">Urgência</th></tr></thead><tbody id="alertas-reg"></tbody></table></div>
       </div>
-      <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Risco por Loja</div>
-        <div class="tw"><table><thead><tr><th>Loja</th><th>Regional</th><th class="r">Valor em Risco</th></tr></thead><tbody id="alertas-loja"></tbody></table></div>
+      <div class="card">
+        <div class="card-h"><i class="ti ti-building-store"></i> Risco por Loja</div>
+        <div class="tw"><table><thead><tr><th>Loja</th><th>Regional</th><th class="r">≤30d</th><th class="r">Total</th></tr></thead><tbody id="alertas-loja"></tbody></table></div>
       </div>
     </div>
 
@@ -2639,64 +2673,204 @@ function renderCompra(){
 
 // ─── ALERTAS DE VENCIMENTO (A VENCER) ───
 let alertWindow=60;
-function setAlertWindow(dias){
-  alertWindow=dias;
-  document.querySelectorAll('.ws-btn').forEach(b=>b.classList.toggle('active',parseInt(b.getAttribute('data-dias'))===dias));
+let alertasFiltroReg='';
+let alertasFiltroLojas=new Set();
+
+function _alGetFonte(){
+  const d=current;
+  if(!d)return{fonte:null,aviso:null};
+  if(tipoEfetivo(d)==='completa')return{fonte:d,aviso:null};
+  const uc=ultimaCompleta(null);
+  if(uc)return{fonte:uc,aviso:uc.importDate};
+  return{fonte:null,aviso:null};
+}
+
+function _alUpdateLojaOpts(){
+  const {fonte}=_alGetFonte();
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const todosF=(fonte&&fonte.aVencer||[]).map(r=>{
+    const vt=pdate(r.DtVenc);
+    return{...r,Dias:vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0)};
+  }).filter(r=>r.Dias>0&&r.Dias<=alertWindow);
+  const lojasFonte=alertasFiltroReg?todosF.filter(r=>r.Gerente===alertasFiltroReg).map(r=>r.Sigla):todosF.map(r=>r.Sigla);
+  const lojas=[...new Set(lojasFonte)].sort();
+  const container=document.getElementById('al-loja-opts');
+  if(!container)return;
+  container.innerHTML=lojas.map(l=>`<label><input type="checkbox" value="${l}" ${alertasFiltroLojas.size===0||alertasFiltroLojas.has(l)?'checked':''} onchange="toggleAlertaLoja('${l.replace(/'/g,"\\'")}',this.checked)"> ${l}</label>`).join('');
+  const allCb=document.getElementById('al-loja-all');
+  if(allCb)allCb.checked=alertasFiltroLojas.size===0;
+  _alLojaLabel();
+}
+
+function _alLojaLabel(){
+  const lbl=document.getElementById('al-loja-lbl');
+  if(!lbl)return;
+  if(alertasFiltroLojas.size===0)lbl.textContent='Todas as Lojas';
+  else if(alertasFiltroLojas.size===1)lbl.textContent=[...alertasFiltroLojas][0];
+  else lbl.textContent=alertasFiltroLojas.size+' lojas selecionadas';
+}
+
+function setAlertaFiltroReg(reg){
+  alertasFiltroReg=alertasFiltroReg===reg?'':reg;
+  alertasFiltroLojas=new Set();
+  _alUpdateLojaOpts();
   renderAlertas();
 }
+
+function toggleAlertaLoja(loja,checked){
+  if(checked)alertasFiltroLojas.add(loja);
+  else alertasFiltroLojas.delete(loja);
+  const allCb=document.getElementById('al-loja-all');
+  if(allCb)allCb.checked=alertasFiltroLojas.size===0;
+  _alLojaLabel();
+  renderAlertas();
+}
+
+function clearAlertaLojas(e){
+  if(e)e.stopPropagation();
+  alertasFiltroLojas=new Set();
+  _alUpdateLojaOpts();
+  renderAlertas();
+}
+
+function clearAlertasFiltros(){
+  alertasFiltroReg='';
+  alertasFiltroLojas=new Set();
+  _alUpdateLojaOpts();
+  renderAlertas();
+}
+
+function toggleAlertaLojaPicker(e){
+  if(e)e.stopPropagation();
+  const drop=document.getElementById('al-loja-drop');
+  if(drop)drop.classList.toggle('open');
+}
+
+function setAlertWindow(dias){
+  alertWindow=dias;
+  document.querySelectorAll('.ws-btn[data-dias]').forEach(b=>b.classList.toggle('active',parseInt(b.getAttribute('data-dias'))===dias));
+  renderAlertas();
+}
+
+function exportarAlertasXlsx(){
+  if(typeof XLSX==='undefined'){toast('Biblioteca XLSX não carregada','red');return;}
+  const {fonte}=_alGetFonte();
+  if(!fonte){toast('Nenhuma fonte de dados disponível','red');return;}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  let lista=(fonte.aVencer||[]).map(r=>{
+    const vt=pdate(r.DtVenc);
+    return{...r,Dias:vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0)};
+  }).filter(r=>r.Dias>0&&r.Dias<=alertWindow);
+  if(alertasFiltroReg)lista=lista.filter(r=>r.Gerente===alertasFiltroReg);
+  if(alertasFiltroLojas.size>0)lista=lista.filter(r=>alertasFiltroLojas.has(r.Sigla));
+  if(!lista.length){toast('Nenhum item a exportar no filtro atual','amber');return;}
+  const wb=XLSX.utils.book_new();
+  const rows=[['Produto','Código','Loja','Regional','Auditor','Lote','Qtd','Vencimento','Faltam (dias)','Valor (R$)']];
+  lista.forEach(r=>rows.push([cleanProd(r.Nome),r.CodProduto||'',r.Sigla,r.Gerente||'',r.Auditor||'',r.Lote||'',r.Qtd,r.DtVenc,r.Dias,r.Total]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,ws,'A Vencer');
+  const fname='alertas_'+alertWindow+'d'+(alertasFiltroReg?'_'+alertasFiltroReg.replace(/\s+/g,'_'):'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  XLSX.writeFile(wb,fname);
+  toast('XLSX exportado!','green');
+}
+
 function renderAlertas(){
-  const d=current;
   const empty=document.getElementById('alertas-empty');
   const content=document.getElementById('alertas-content');
-  // Se importação ativa não é completa, busca a última importação completa disponível no histórico
-  let fonteDados=d;
-  let fonteAviso=null;
-  if(!d||tipoEfetivo(d)!=='completa'){
-    const uc=ultimaCompleta(null); // sem limite de data — pega a mais recente completa do histórico
-    if(uc){
-      fonteDados=uc;
-      fonteAviso=uc.importDate;
-    }else{
-      empty.style.display='block';content.style.display='none';
-      empty.querySelector('h3').textContent='Nenhuma importação completa disponível';
-      empty.querySelector('p').textContent='Para ver os alertas de vencimento é necessário ao menos uma importação completa (vencidos + a vencer) no histórico.';
-      return;
-    }
-  }
-  // Exibe aviso quando os dados de a-vencer vêm de outra importação
+  const {fonte:fonteDados,aviso:fonteAviso}=_alGetFonte();
+
   const fonteNotice=document.getElementById('alertas-fonte-notice');
   if(fonteNotice){
     if(fonteAviso){
       fonteNotice.style.display='block';
-      fonteNotice.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>Os dados de <strong>a vencer</strong> são da última importação completa disponível (<strong>${fonteAviso}</strong>). A importação ativa (${d?d.importDate:'—'}) é "só vencidos" e não contém produtos futuros. Os prazos são recalculados a partir de hoje.</div></div>`;
+      fonteNotice.innerHTML=`<div class="alert brand"><i class="ti ti-info-circle"></i><div>Os dados de <strong>a vencer</strong> são da última importação completa disponível (<strong>${fonteAviso}</strong>). A importação ativa (${current?current.importDate:'—'}) é "só vencidos" e não contém produtos futuros. Os prazos são recalculados a partir de hoje.</div></div>`;
     }else{
       fonteNotice.style.display='none';
     }
   }
-  // Recalcula Dias de cada registro a partir de DtVenc vs hoje (corrige defasagem de importações antigas)
+
+  if(!fonteDados){
+    empty.style.display='block';content.style.display='none';
+    empty.querySelector('h3').textContent='Nenhuma importação completa disponível';
+    empty.querySelector('p').textContent='Para ver os alertas de vencimento é necessário ao menos uma importação completa (vencidos + a vencer) no histórico.';
+    return;
+  }
+
+  // Recalcula Dias a partir de hoje
   const hoje=new Date();hoje.setHours(0,0,0,0);
-  const todos=(fonteDados.aVencer||[]).map(r=>{
+  const todosGlobal=(fonteDados.aVencer||[]).map(r=>{
     const vt=pdate(r.DtVenc);
-    const diasAtual=vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0);
-    return {...r,Dias:diasAtual};
-  }).filter(r=>r.Dias>0); // filtra os que já venceram desde a última importação completa
-  // Filtra pela janela selecionada
-  const itens=todos.filter(r=>r.Dias<=alertWindow).sort((a,b)=>a.Dias-b.Dias);
-  if(todos.length===0){
+    return{...r,Dias:vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0)};
+  }).filter(r=>r.Dias>0);
+
+  if(todosGlobal.length===0){
     empty.style.display='block';content.style.display='none';
     empty.querySelector('h3').textContent='Nenhum produto a vencer';
     empty.querySelector('p').textContent='A importação completa mais recente não contém itens a vencer (ou todos já venceram desde então).';
     return;
   }
-  if(itens.length===0){
+
+  // Todos dentro da janela de tempo (contexto global para chips e gráfico)
+  const todosJanela=todosGlobal.filter(r=>r.Dias<=alertWindow);
+
+  // Chips de regional (baseados no contexto global da janela)
+  const todasRegs=[...new Set(todosJanela.map(r=>r.Gerente).filter(Boolean))].sort();
+  const chipsEl=document.getElementById('al-reg-chips');
+  if(chipsEl){
+    if(todasRegs.length===0){
+      chipsEl.innerHTML='<span style="font-size:12px;color:var(--text3)">—</span>';
+    }else{
+      const isAllActive=alertasFiltroReg==='';
+      chipsEl.innerHTML=
+        `<button class="chip${isAllActive?' brand':' gray'}" onclick="setAlertaFiltroReg('')" style="cursor:pointer;font-size:11px;padding:3px 10px;border:none">Todas</button>`+
+        todasRegs.map(reg=>{
+          const active=alertasFiltroReg===reg;
+          const cnt=todosJanela.filter(r=>r.Gerente===reg).length;
+          return`<button class="chip${active?' brand':' gray'}" onclick="setAlertaFiltroReg('${reg.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;padding:3px 10px;border:none">${reg} <span style="opacity:.7;font-size:10px">${cnt}</span></button>`;
+        }).join('');
+    }
+  }
+
+  // Itens escopados (regional + loja)
+  let itens=todosJanela;
+  if(alertasFiltroReg)itens=itens.filter(r=>r.Gerente===alertasFiltroReg);
+  if(alertasFiltroLojas.size>0)itens=itens.filter(r=>alertasFiltroLojas.has(r.Sigla));
+  itens=itens.sort((a,b)=>a.Dias-b.Dias);
+
+  // Botão limpar + breadcrumb
+  const clearBtn=document.getElementById('al-clear-btn');
+  const filtroAtivo=document.getElementById('alertas-filtro-ativo');
+  const temFiltro=alertasFiltroReg||alertasFiltroLojas.size>0;
+  if(clearBtn)clearBtn.style.display=temFiltro?'inline-flex':'none';
+  if(filtroAtivo){
+    if(temFiltro){
+      filtroAtivo.style.display='flex';
+      const parts=[];
+      if(alertasFiltroReg)parts.push(`<strong>Regional:</strong> ${alertasFiltroReg}`);
+      if(alertasFiltroLojas.size>0)parts.push(`<strong>Lojas:</strong> ${[...alertasFiltroLojas].join(', ')}`);
+      filtroAtivo.innerHTML=`<i class="ti ti-filter" style="font-size:13px"></i>&ensp;Filtro ativo — ${parts.join(' / ')}&ensp;<span style="color:var(--text3)">(${itens.length} iten${itens.length===1?'':'s'})</span>`;
+    }else{
+      filtroAtivo.style.display='none';
+    }
+  }
+
+  if(todosJanela.length===0){
     empty.style.display='block';content.style.display='none';
     empty.querySelector('h3').textContent='Nenhum produto vence em até '+alertWindow+' dias';
-    empty.querySelector('p').textContent='Há '+todos.length+' produto(s) a vencer, mas nenhum dentro do prazo selecionado. Tente uma janela maior.';
+    empty.querySelector('p').textContent='Há '+todosGlobal.length+' produto(s) a vencer, mas nenhum dentro do prazo selecionado. Tente uma janela maior.';
+    return;
+  }
+  if(itens.length===0){
+    empty.style.display='block';content.style.display='none';
+    empty.querySelector('h3').textContent='Nenhum item para o filtro selecionado';
+    empty.querySelector('p').textContent='O filtro de regional/loja ativo não retornou itens na janela de '+alertWindow+' dias. Tente outro regional ou limpe o filtro.';
     return;
   }
   empty.style.display='none';content.style.display='block';
 
   const total=itens.reduce((s,r)=>s+r.Total,0);
+  const soma=arr=>arr.reduce((s,r)=>s+r.Total,0);
+
   // Faixas de urgência
   const faixas={
     f30:itens.filter(r=>r.Dias<=30),
@@ -2705,14 +2879,12 @@ function renderAlertas(){
     f180:itens.filter(r=>r.Dias>90&&r.Dias<=180),
     fmais:itens.filter(r=>r.Dias>180)
   };
-  const soma=arr=>arr.reduce((s,r)=>s+r.Total,0);
-  // Monta cards de faixa só das que têm itens (respeitando a janela)
   const tiers=[];
-  if(faixas.f30.length)tiers.push({cls:'t-red',ic:'ti-alarm-filled',lbl:'Vence em até 30 dias',v:soma(faixas.f30),n:faixas.f30.length,sub:'Ação imediata — acionar destino por linha (ver Insights › Política de Devolução)'});
-  if(faixas.f60.length)tiers.push({cls:'t-amber',ic:'ti-clock-exclamation',lbl:'31 a 60 dias',v:soma(faixas.f60),n:faixas.f60.length,sub:'Planejar transferência entre lojas'});
-  if(faixas.f90.length)tiers.push({cls:'t-green',ic:'ti-clock',lbl:'61 a 90 dias',v:soma(faixas.f90),n:faixas.f90.length,sub:'Acionar compras e monitorar giro'});
-  if(faixas.f180.length)tiers.push({cls:'t-gray',ic:'ti-calendar',lbl:'91 a 180 dias',v:soma(faixas.f180),n:faixas.f180.length,sub:'Em observação'});
-  if(faixas.fmais.length)tiers.push({cls:'t-gray',ic:'ti-calendar',lbl:'+180 dias',v:soma(faixas.fmais),n:faixas.fmais.length,sub:'Folga de prazo'});
+  if(faixas.f30.length)tiers.push({cls:'t-red',ic:'ti-alarm-filled',lbl:'Vence em até 30 dias',v:soma(faixas.f30),n:faixas.f30.length});
+  if(faixas.f60.length)tiers.push({cls:'t-amber',ic:'ti-clock-exclamation',lbl:'31 a 60 dias',v:soma(faixas.f60),n:faixas.f60.length});
+  if(faixas.f90.length)tiers.push({cls:'t-green',ic:'ti-clock',lbl:'61 a 90 dias',v:soma(faixas.f90),n:faixas.f90.length});
+  if(faixas.f180.length)tiers.push({cls:'t-gray',ic:'ti-calendar',lbl:'91 a 180 dias',v:soma(faixas.f180),n:faixas.f180.length});
+  if(faixas.fmais.length)tiers.push({cls:'t-gray',ic:'ti-calendar',lbl:'+180 dias',v:soma(faixas.fmais),n:faixas.fmais.length});
   document.getElementById('alertas-tiers').innerHTML=tiers.map(t=>`
     <div class="tier-card ${t.cls}">
       <div class="tier-icon"><i class="ti ${t.ic}"></i></div>
@@ -2721,55 +2893,123 @@ function renderAlertas(){
       <div class="tier-meta">${t.n} ${t.n===1?'item':'itens'}</div>
     </div>`).join('');
 
-  // Destaques (insights automáticos)
-  const porReg={},porLoja={},porProd={};
+  // Agrega por produto (escopado)
+  const porProd={};
   itens.forEach(r=>{
-    porReg[r.Gerente]=(porReg[r.Gerente]||0)+r.Total;
-    if(!porLoja[r.Sigla])porLoja[r.Sigla]={total:0,reg:r.Gerente};
-    porLoja[r.Sigla].total+=r.Total;
     const n=cleanProd(r.Nome);
     if(!porProd[n])porProd[n]={nome:n,qtd:0,total:0,lojas:new Set(),cods:new Set(),minDias:99999,porLoja:{}};
-    porProd[n].qtd+=r.Qtd;porProd[n].total+=r.Total;porProd[n].lojas.add(r.Sigla);porProd[n].cods.add(r.CodProduto);if(r.Dias<porProd[n].minDias)porProd[n].minDias=r.Dias;
-    // Detalhe por loja — permite ver na mesma tela onde está a quantidade agregada do produto
+    porProd[n].qtd+=r.Qtd;porProd[n].total+=r.Total;porProd[n].lojas.add(r.Sigla);porProd[n].cods.add(r.CodProduto);
+    if(r.Dias<porProd[n].minDias)porProd[n].minDias=r.Dias;
     if(!porProd[n].porLoja[r.Sigla])porProd[n].porLoja[r.Sigla]={qtd:0,total:0,minDias:99999};
-    const pl=porProd[n].porLoja[r.Sigla];
-    pl.qtd+=r.Qtd;pl.total+=r.Total;if(r.Dias<pl.minDias)pl.minDias=r.Dias;
+    const pl=porProd[n].porLoja[r.Sigla];pl.qtd+=r.Qtd;pl.total+=r.Total;if(r.Dias<pl.minDias)pl.minDias=r.Dias;
   });
-  const topReg=Object.entries(porReg).sort((a,b)=>b[1]-a[1])[0];
+
+  // Agrega por regional — contexto global da janela (para o gráfico e tabela regional)
+  const porRegGlobal={};
+  todosJanela.forEach(r=>{
+    const reg=r.Gerente||'—';
+    if(!porRegGlobal[reg])porRegGlobal[reg]={f30:0,f60:0,f90:0,total:0};
+    porRegGlobal[reg].total+=r.Total;
+    if(r.Dias<=30)porRegGlobal[reg].f30+=r.Total;
+    else if(r.Dias<=60)porRegGlobal[reg].f60+=r.Total;
+    else if(r.Dias<=90)porRegGlobal[reg].f90+=r.Total;
+  });
+
+  // Agrega por regional — escopado (para highlights)
+  const porRegScope={};
+  itens.forEach(r=>{const reg=r.Gerente||'—';porRegScope[reg]=(porRegScope[reg]||0)+r.Total;});
+
+  const topRegEntry=Object.entries(porRegScope).sort((a,b)=>b[1]-a[1])[0];
   const prodArr=Object.values(porProd).map(p=>({...p,lojas:p.lojas.size,cod:codGrupo(p.cods)})).sort((a,b)=>b.total-a.total);
-  const topProd=prodArr[0];
-  const urgente=itens[0]; // menor Dias
+  const urgente=itens[0];
+
+  // Destaques
   document.getElementById('alertas-highlights').innerHTML=`
     <div class="card" style="margin-bottom:22px;background:linear-gradient(135deg,var(--brand-lt),var(--bg));border-left:4px solid var(--brand)">
       <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center">
-        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Total em risco (${alertWindow===9999?'todos':'até '+alertWindow+'d'})</div><div style="font-size:26px;font-weight:800;color:var(--brand)">${brl(total)}</div><div style="font-size:12px;color:var(--text2)">${itens.length} itens podem ser salvos com ação</div></div>
+        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Total em risco (${alertWindow===9999?'todos':'até '+alertWindow+'d'}${alertasFiltroReg?' · '+alertasFiltroReg:''})</div><div style="font-size:26px;font-weight:800;color:var(--brand)">${brl(total)}</div><div style="font-size:12px;color:var(--text2)">${itens.length} item${itens.length===1?'':'s'} podem ser salvos com ação</div></div>
         <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Mais urgente</div><div style="font-size:15px;font-weight:700">${urgente?prodNomeCod(urgente):'—'}</div><div style="font-size:12px;color:var(--red)">${urgente?'vence em '+urgente.Dias+' dias · '+urgente.Sigla+' · '+brl(urgente.Total):''}</div></div>
-        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Regional + exposto</div><div style="font-size:15px;font-weight:700">${topReg?topReg[0]:'—'}</div><div style="font-size:12px;color:var(--text2)">${topReg?brl(topReg[1])+' em risco':''}</div></div>
+        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Regional + exposta</div><div style="font-size:15px;font-weight:700">${topRegEntry?topRegEntry[0]:'—'}</div><div style="font-size:12px;color:var(--text2)">${topRegEntry?brl(topRegEntry[1])+' em risco':''}</div></div>
       </div>
     </div>`;
 
-  // Por Regional
-  const regSorted=Object.entries(porReg).sort((a,b)=>b[1]-a[1]);
-  const maxReg=regSorted[0]?regSorted[0][1]:1;
-  document.getElementById('alertas-reg').innerHTML=regSorted.map(([reg,v])=>{
-    const n=itens.filter(r=>r.Gerente===reg).length;
-    const minD=Math.min(...itens.filter(r=>r.Gerente===reg).map(r=>r.Dias));
+  // Gráfico de barras horizontais empilhadas por regional (contexto global)
+  const regKeys=Object.keys(porRegGlobal).sort((a,b)=>porRegGlobal[b].total-porRegGlobal[a].total);
+  destroyChart('ch-alertas-reg');
+  const chartCard=document.getElementById('al-chart-card');
+  if(regKeys.length>0){
+    if(chartCard)chartCard.style.display='block';
+    document.getElementById('al-chart-legend').innerHTML=`
+      <span><span class="dot" style="background:#ef4444"></span>≤30d (urgente)</span>
+      <span><span class="dot" style="background:#f59e0b"></span>31–60d (atenção)</span>
+      <span><span class="dot" style="background:#10b981"></span>61–90d (observação)</span>`;
+    safeChart('ch-alertas-reg',{
+      type:'bar',
+      data:{
+        labels:regKeys,
+        datasets:[
+          {label:'≤30d',data:regKeys.map(r=>porRegGlobal[r].f30),backgroundColor:'#ef4444',borderRadius:2},
+          {label:'31–60d',data:regKeys.map(r=>porRegGlobal[r].f60),backgroundColor:'#f59e0b',borderRadius:2},
+          {label:'61–90d',data:regKeys.map(r=>porRegGlobal[r].f90),backgroundColor:'#10b981',borderRadius:2}
+        ]
+      },
+      options:{
+        indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+brl(ctx.raw)}}},
+        scales:{x:{stacked:true,ticks:{callback:v=>brl(v)},grid:{color:'rgba(128,128,128,.1)'}},y:{stacked:true}},
+        onClick:(evt,els)=>{if(els&&els.length)setAlertaFiltroReg(regKeys[els[0].index]);}
+      }
+    });
+  }else{
+    if(chartCard)chartCard.style.display='none';
+  }
+
+  // Tabela por regional — contexto global com click para filtrar
+  const regCardH=document.getElementById('al-reg-card-h');
+  if(regCardH)regCardH.innerHTML=`<i class="ti ti-map-pin"></i> Risco por Regional${alertasFiltroReg?' — '+alertasFiltroReg:''}`;
+  const regHint=document.getElementById('al-reg-hint');
+  if(regHint)regHint.textContent=alertasFiltroReg?'Clique em "Todas" nos chips acima para limpar o filtro':'Clique em uma linha para filtrar por regional';
+  document.getElementById('alertas-reg').innerHTML=regKeys.map(reg=>{
+    const o=porRegGlobal[reg];
+    const regItens=todosJanela.filter(r=>r.Gerente===reg);
+    const minD=regItens.length?Math.min(...regItens.map(r=>r.Dias)):0;
     const urg=minD<=30?'red':minD<=60?'amber':'green';
-    return `<tr><td class="b">${reg}</td><td class="r">${n}</td><td class="r b">${brl(v)}</td><td><span class="chip ${urg}">${minD}d</span></td></tr>`;
+    const isActive=alertasFiltroReg===reg;
+    return`<tr style="cursor:pointer${isActive?';background:var(--brand-lt)':''}" onclick="setAlertaFiltroReg('${reg.replace(/'/g,"\\'")}')" title="Filtrar por ${reg}">
+      <td class="b">${reg}${isActive?' <i class="ti ti-check" style="color:var(--brand);font-size:11px"></i>':''}</td>
+      <td class="r">${o.f30>0?brl(o.f30):'—'}</td>
+      <td class="r">${o.f60>0?brl(o.f60):'—'}</td>
+      <td class="r">${o.f90>0?brl(o.f90):'—'}</td>
+      <td class="r b">${brl(o.total)}</td>
+      <td class="c"><span class="chip ${urg}">${minD}d</span></td>
+    </tr>`;
   }).join('');
 
-  // Por Loja
-  const lojaSorted=Object.entries(porLoja).sort((a,b)=>b[1].total-a[1].total);
-  document.getElementById('alertas-loja').innerHTML=lojaSorted.map(([loja,o])=>`<tr><td class="b">${loja}</td><td><span class="pill">${o.reg}</span></td><td class="r b">${brl(o.total)}</td></tr>`).join('');
+  // Tabela por loja — escopada, com coluna ≤30d
+  const porLoja={};
+  itens.forEach(r=>{
+    if(!porLoja[r.Sigla])porLoja[r.Sigla]={total:0,f30:0,reg:r.Gerente||'—'};
+    porLoja[r.Sigla].total+=r.Total;
+    if(r.Dias<=30)porLoja[r.Sigla].f30+=r.Total;
+  });
+  document.getElementById('alertas-loja').innerHTML=Object.entries(porLoja).sort((a,b)=>b[1].total-a[1].total).map(([loja,o])=>{
+    const isSelected=alertasFiltroLojas.has(loja);
+    return`<tr${isSelected?' style="background:var(--brand-lt)"':''}>
+      <td class="b">${loja}</td>
+      <td><span class="pill">${o.reg}</span></td>
+      <td class="r">${o.f30>0?brl(o.f30):'—'}</td>
+      <td class="r b">${brl(o.total)}</td>
+    </tr>`;
+  }).join('');
 
-  // Produtos — linha clicável que expande o detalhe por loja (onde está a quantidade agregada)
+  // Produtos agrupados — expansível por loja
   document.getElementById('alertas-prod').innerHTML=prodArr.map((p,pi)=>{
     const urg=p.minDias<=30?'red':p.minDias<=60?'amber':'green';
     const det=Object.entries(p.porLoja).sort((a,b)=>b[1].total-a[1].total).map(([loja,o])=>{
       const lurg=o.minDias<=30?'red':o.minDias<=60?'amber':'green';
-      return `<div style="display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="b">${loja}</span><span>${num(Math.round(o.qtd))} un</span><span class="chip ${lurg}">${o.minDias}d</span><span class="b">${brl(o.total)}</span></div>`;
+      return`<div style="display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="b">${loja}</span><span>${num(Math.round(o.qtd))} un</span><span class="chip ${lurg}">${o.minDias}d</span><span class="b">${brl(o.total)}</span></div>`;
     }).join('');
-    return `<tr style="cursor:pointer" onclick="toggleAlertaProd(${pi})"><td style="width:18px"><i class="ti ti-chevron-right" id="ap-chev-${pi}" style="display:inline-block;transition:transform .15s"></i></td><td class="b" style="font-size:12px">${nomeGrupoCod(p.nome,p.cod)}</td><td class="r">${num(Math.round(p.qtd))}</td><td class="r">${p.lojas}</td><td class="r"><span class="chip ${urg}">${p.minDias}d</span></td><td class="r b">${brl(p.total)}</td></tr>`+
+    return`<tr style="cursor:pointer" onclick="toggleAlertaProd(${pi})"><td style="width:18px"><i class="ti ti-chevron-right" id="ap-chev-${pi}" style="display:inline-block;transition:transform .15s"></i></td><td class="b" style="font-size:12px">${nomeGrupoCod(p.nome,p.cod)}</td><td class="r">${num(Math.round(p.qtd))}</td><td class="r">${p.lojas}</td><td class="r"><span class="chip ${urg}">${p.minDias}d</span></td><td class="r b">${brl(p.total)}</td></tr>`+
       `<tr id="ap-det-${pi}" class="detail-row" style="display:none;background:var(--bg2)"><td></td><td colspan="5" style="padding:6px 14px 12px">${det}</td></tr>`;
   }).join('');
 
@@ -2777,7 +3017,7 @@ function renderAlertas(){
   document.getElementById('alertas-count').textContent=itens.length;
   document.getElementById('alertas-list').innerHTML=itens.map(r=>{
     const urg=r.Dias<=30?'red':r.Dias<=60?'amber':r.Dias<=90?'green':'gray';
-    return `<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny"><span class="chip" style="background:${audColor(r.Auditor)}22;color:${audColor(r.Auditor)}">${r.Auditor}</span></td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r"><span class="chip ${urg}">${r.Dias}d</span></td><td class="r b">${brl(r.Total)}</td></tr>`;
+    return`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny"><span class="chip" style="background:${audColor(r.Auditor)}22;color:${audColor(r.Auditor)}">${r.Auditor}</span></td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r"><span class="chip ${urg}">${r.Dias}d</span></td><td class="r b">${brl(r.Total)}</td></tr>`;
   }).join('');
 }
 
@@ -2957,6 +3197,11 @@ document.addEventListener('click',function(e){
   if(drop&&drop.classList.contains('open')){
     const wrap=document.getElementById('evo-col-btn');
     if(!drop.contains(e.target)&&e.target!==wrap&&!wrap.contains(e.target)){drop.classList.remove('open');}
+  }
+  const alDrop=document.getElementById('al-loja-drop');
+  if(alDrop&&alDrop.classList.contains('open')){
+    const alBtn=document.getElementById('al-loja-btn');
+    if(!alDrop.contains(e.target)&&e.target!==alBtn&&!(alBtn&&alBtn.contains(e.target))){alDrop.classList.remove('open');}
   }
 });
 
@@ -3300,6 +3545,7 @@ function populateFilters(){
   setSel('pa-reg',regs,'Todos os Regionais');setSel('pa-loja',lojas,'Todas as Lojas');setSel('pa-aud',auds,'Todos os Auditores');
   setSel('cp-reg',regs,'Todos os Regionais');setSel('cp-loja',lojas,'Todas as Lojas');setSel('cp-aud',auds,'Todos os Auditores');
   setSel('pq-reg',regs,'Todos os Regionais');setSel('pq-loja',lojas,'Todas as Lojas');setSel('pq-linha',d.byLinha.map(l=>l.key),'Todas as Linhas');
+  _alUpdateLojaOpts();
 }
 function renderLojas(){
   const d=current;
