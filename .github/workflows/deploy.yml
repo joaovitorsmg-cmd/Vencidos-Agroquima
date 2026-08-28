@@ -46,3 +46,26 @@ jobs:
           git add -A
           git diff --cached --quiet || git commit -m "chore: deploy de main"
           git push origin gh-pages
+
+      - name: Avisar o hub (auditoria) para sincronizar agora
+        continue-on-error: true
+        env:
+          TOKEN: ${{ secrets.AUDITORIA_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "AUDITORIA_DISPATCH_TOKEN não configurado — hub sincroniza sozinho no próximo ciclo agendado (até 15 min)."
+            exit 0
+          fi
+          http_code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/joaovitorsmg-cmd/auditoria/actions/workflows/pull-paineis.yml/dispatches" \
+            -d '{"ref":"main"}')
+          if [ "$http_code" = "204" ]; then
+            echo "Hub avisado com sucesso — sincronização imediata disparada."
+          else
+            echo "Aviso: não consegui disparar a sincronização do hub (HTTP $http_code). Ele ainda sincroniza sozinho no próximo ciclo agendado (até 15 min)."
+            cat /tmp/resp.json 2>/dev/null || true
+          fi
