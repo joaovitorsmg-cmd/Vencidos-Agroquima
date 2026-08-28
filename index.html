@@ -4046,7 +4046,10 @@ async function ghReq(path,opts){
 async function syncPull(){
   setSyncStatus('syncing','Carregando...');
   try{
-    const url=`https://${GH_OWNER}.github.io/${GH_REPO}/${GH_DATA_FILE}?t=${Date.now()}`;
+    // Caminho relativo à própria página: funciona tanto no link antigo
+    // (github.io/Vencidos-Agroquima) quanto em auditoria.agroquima.com/vencidos-agroquima/,
+    // já que o robô do hub copia index.html e data/ juntos, como irmãos.
+    const url=`./${GH_DATA_FILE}?t=${Date.now()}`;
     const r=await fetch(url);
     if(!r.ok){
       if(r.status===404){setSyncStatus(history.length?'ok':'conectado');return;}
