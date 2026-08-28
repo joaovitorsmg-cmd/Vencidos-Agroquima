@@ -1359,6 +1359,18 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- MODAL CONFIRMAÇÃO DE PUBLICAÇÃO -->
+<div class="modal-bg" id="modal-publicar">
+  <div class="modal" style="width:420px;max-width:95vw">
+    <h3 style="display:flex;align-items:center;gap:10px"><i class="ti ti-cloud-upload" style="color:var(--brand);font-size:22px"></i> Publicar para todos?</h3>
+    <p style="margin-bottom:4px;font-size:13px;color:var(--text2);line-height:1.6">A importação foi salva neste dispositivo. Deseja publicar agora, tornando visível pra todos que acessarem o painel?</p>
+    <div class="modal-foot" style="margin-top:18px">
+      <button class="btn ghost" onclick="fecharModalPublicar()">Agora não</button>
+      <button class="btn primary" onclick="confirmarPublicar()"><i class="ti ti-cloud-upload"></i> Sim, publicar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DETALHE DO CARD -->
 <div class="modal-bg" id="modal-card-detail">
   <div class="modal" style="width:440px;max-width:95vw">
@@ -1727,8 +1739,8 @@ function handleUpload(inp){
       setTimeout(()=>toast('⚠️ '+nInc+' possível(is) inconsistência(s) detectada(s). Veja a aba "Caça-Erros".','amber'),1200);
     }
     nav('resumo');
-    // Auto-sync: publica na nuvem se houver bin+chave configurados
-    if(getGhToken()) syncPush(); else atualizarStatus();
+    // Pergunta antes de publicar na nuvem (se houver token configurado)
+    if(getGhToken()) abrirModalPublicar(); else atualizarStatus();
   };
   rd.onerror=()=>toast('Falha ao abrir o arquivo. Tente novamente.','red');
   rd.readAsArrayBuffer(file);inp.value='';
@@ -1762,7 +1774,7 @@ function handleUploadMulti(inp){
         console.error('Erros na importação em lote:',errosMsg);
         setTimeout(()=>toast('Detalhe dos erros: '+errosMsg.join(' | '),'red'),sobrescritos.length>0?2600:1300);
       }
-      if(getGhToken())setTimeout(()=>syncPush(),400); else atualizarStatus();
+      if(getGhToken())setTimeout(()=>abrirModalPublicar(),400); else atualizarStatus();
       nav('evolucao');
       return;
     }
@@ -1846,6 +1858,9 @@ function askDel(i){
   });
 }
 function closeModal(){document.getElementById('modal-del').classList.remove('open');delTarget=null;}
+function abrirModalPublicar(){document.getElementById('modal-publicar').classList.add('open');}
+function fecharModalPublicar(){document.getElementById('modal-publicar').classList.remove('open');atualizarStatus();}
+function confirmarPublicar(){document.getElementById('modal-publicar').classList.remove('open');syncPush();}
 function confirmDel(){
   if(delTarget===null)return;
   const r=history.splice(delTarget,1)[0];
