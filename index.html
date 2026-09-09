@@ -1359,6 +1359,22 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- MODAL CONFIRMAÇÃO DE DATA DE IMPORTAÇÃO -->
+<div class="modal-bg" id="modal-data-import">
+  <div class="modal" style="width:420px;max-width:95vw">
+    <h3 style="display:flex;align-items:center;gap:10px"><i class="ti ti-calendar" style="color:var(--brand);font-size:22px"></i> Confirmar importação</h3>
+    <p style="margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.6">Arquivo: <strong id="mdi-filename"></strong><br>Confirme (ou ajuste) a data da semana em que esses dados serão inseridos.</p>
+    <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Data da importação</label>
+    <input type="date" id="mdi-date-input"
+      style="width:100%;padding:11px 14px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:15px;font-family:inherit">
+    <div id="mdi-hint" style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5"></div>
+    <div class="modal-foot" style="margin-top:18px">
+      <button class="btn ghost" onclick="cancelModalDataImport()">Cancelar</button>
+      <button class="btn primary" onclick="confirmModalDataImport()"><i class="ti ti-check"></i> Confirmar importação</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAÇÃO DE PUBLICAÇÃO -->
 <div class="modal-bg" id="modal-publicar">
   <div class="modal" style="width:420px;max-width:95vw">
@@ -1698,7 +1714,38 @@ function extractDateFromFilename(name){
   }
   return null;
 }
-function handleUpload(inp){
+function isoHoje(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function brParaIso(br){const p=br.split('/');return `${p[2]}-${p[1]}-${p[0]}`;}
+function isoParaBr(iso){const p=iso.split('-');return `${p[2]}/${p[1]}/${p[0]}`;}
+// Modal de confirmação/edição da data de importação (permite corrigir a semana
+// quando o arquivo é carregado com atraso, em vez de forçar a data de hoje)
+let mdiPendingFile=null,mdiPendingInput=null;
+function abrirModalDataImport(file,inp){
+  mdiPendingFile=file;mdiPendingInput=inp;
+  document.getElementById('mdi-filename').textContent=file.name;
+  const dataArquivo=extractDateFromFilename(file.name);
+  document.getElementById('mdi-date-input').value=dataArquivo?brParaIso(dataArquivo):isoHoje();
+  document.getElementById('mdi-hint').textContent=dataArquivo
+    ?'Data detectada automaticamente pelo nome do arquivo — ajuste se necessário.'
+    :'Não detectei a data pelo nome do arquivo, então veio preenchida com a data de hoje. Se este arquivo é de uma semana anterior, ajuste antes de confirmar.';
+  document.getElementById('modal-data-import').classList.add('open');
+}
+function cancelModalDataImport(){
+  document.getElementById('modal-data-import').classList.remove('open');
+  if(mdiPendingInput)mdiPendingInput.value='';
+  mdiPendingFile=null;mdiPendingInput=null;
+}
+function confirmModalDataImport(){
+  const iso=document.getElementById('mdi-date-input').value;
+  if(!iso){toast('Selecione uma data válida.','red');return;}
+  const dataFinal=isoParaBr(iso);
+  const file=mdiPendingFile,inp=mdiPendingInput;
+  document.getElementById('modal-data-import').classList.remove('open');
+  if(inp)inp.value='';
+  mdiPendingFile=null;mdiPendingInput=null;
+  handleUpload({files:[file]},dataFinal);
+}
+function handleUpload(inp,dataOverride){
   const file=inp.files[0];if(!file)return;
   const rd=new FileReader();
   rd.onload=e=>{
@@ -1716,7 +1763,7 @@ function handleUpload(inp){
     // Detecta a data pelo NOME do arquivo (para importar históricos antigos corretamente)
     const dataArquivo=extractDateFromFilename(file.name);
     const today=new Date().toLocaleDateString('pt-BR');
-    const dataFinal=dataArquivo||today;
+    const dataFinal=dataOverride||dataArquivo||today;
     snap.importDate=dataFinal;
     const i=history.findIndex(h=>h.importDate===dataFinal);
     if(i>=0)history[i]=snap;else history.push(snap);
@@ -1730,7 +1777,7 @@ function handleUpload(inp){
       current=history[0];
       tbDate();renderAll();
     }
-    const msgData=dataArquivo?(' (data '+dataArquivo+' detectada do nome)'):'';
+    const msgData=' (semana '+dataFinal+')';
     const tipoDet=snap.tipo==='completa'?'completa (vencidos + a vencer)':'só vencidos';
     toast('✓ '+file.name+' importado'+msgData+'! '+snap.totalItems+' vencidos · '+(snap.aVencer?snap.aVencer.length:0)+' a vencer · tipo: '+tipoDet+'.','green');
     // Alerta de inconsistências detectadas
@@ -1749,13 +1796,11 @@ function handleUpload(inp){
 function handleUploadMulti(inp){
   const files=Array.from(inp.files||[]);
   if(!files.length)return;
+  if(files.length===1){abrirModalDataImport(files[0],inp);return;}
   const datas=files.map(f=>extractDateFromFilename(f.name)||new Date().toLocaleDateString('pt-BR'));
-  const msg=files.length===1
-    ? `Este arquivo vai atualizar a base com data ${datas[0]}. Deseja realmente confirmar essa importação?`
-    : `Estes ${files.length} arquivos vão atualizar a base nas datas: ${datas.join(', ')}. Deseja realmente confirmar essa importação?`;
+  const msg=`Estes ${files.length} arquivos vão atualizar a base nas datas: ${datas.join(', ')}. Deseja realmente confirmar essa importação?`;
   if(!window.confirm(msg)){inp.value='';return;}
   inp.value='';
-  if(files.length===1){return handleUpload({files:[files[0]]});}
   // Vários arquivos: processa sequencialmente
   let ok=0,erros=0,semData=[],sobrescritos=[],errosMsg=[];
   const processar=(idx)=>{
