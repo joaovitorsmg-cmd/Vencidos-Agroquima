@@ -1273,7 +1273,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
 
   <div class="alert brand" style="margin-bottom:22px"><i class="ti ti-info-circle"></i><div>
-    <strong>Sincronização automática via GitHub:</strong> ao importar um XLSX, os dados são publicados diretamente em <code>data/vencidos.json</code> no repositório — todos veem em ~2 minutos. Nenhum arquivo manual, nenhum limite de tamanho.
+    <strong>Sincronização automática via GitHub:</strong> ao importar um XLSX ou salvar a Responsabilização (responsável/prazo/status de cada item), os dados são publicados diretamente em <code>data/vencidos.json</code> no repositório — todos veem em ~2 minutos. Nenhum arquivo manual, nenhum limite de tamanho.
   </div></div>
 
 
@@ -1330,7 +1330,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
       </div>
       <div style="display:flex;gap:10px;align-items:flex-start">
         <span style="background:#1e8449;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">✓</span>
-        <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX, os dados são publicados automaticamente em <code style="background:var(--bg3);padding:1px 6px;border-radius:4px">data/vencidos.json</code> — todos verão em ~2 minutos, sem precisar subir arquivo.</span>
+        <span><strong>Pronto.</strong> Daqui em diante, ao importar um XLSX ou salvar a Responsabilização, os dados são publicados automaticamente em <code style="background:var(--bg3);padding:1px 6px;border-radius:4px">data/vencidos.json</code> — todos verão em ~2 minutos, sem precisar subir arquivo.</span>
       </div>
     </div>
   </div>
@@ -4665,6 +4665,18 @@ async function ghReq(path,opts){
   if(!r.ok) throw new Error((d&&d.message)||('Erro HTTP '+r.status));
   return d;
 }
+// Mescla a Responsabilização (responsável/prazo/status/observação) local com a
+// publicada — item a item, sempre ficando com a edição mais recente de cada um
+// (local ou da nuvem), em vez de um lado simplesmente sobrescrever o outro.
+// Chaves que só existem de um lado são sempre preservadas.
+function mergeAcoes(local,remote){
+  const out={...(local||{})};
+  Object.keys(remote||{}).forEach(k=>{
+    const r=remote[k],l=out[k];
+    if(!l||(r.updatedAt||'')>(l.updatedAt||''))out[k]=r;
+  });
+  return out;
+}
 async function syncPull(){
   setSyncStatus('syncing','Carregando...');
   try{
@@ -4678,6 +4690,8 @@ async function syncPull(){
       throw new Error('HTTP '+r.status);
     }
     const remote=await r.json();
+    let historyMudou=false,acoesMudaram=false;
+
     if(remote&&Array.isArray(remote.history)&&remote.history.length){
       const remDates=new Set(remote.history.map(h=>h.importDate));
       const built=remote.history.map(h=>{const s=buildSnapshot(h.records||[]);s.importDate=h.importDate;return s;});
@@ -4686,10 +4700,24 @@ async function syncPull(){
       history=built;
       save();
       historyOriginal=history.slice();
+      current=history[0];tbDate();
+      historyMudou=true;
+    }
+
+    if(remote&&remote.acoes){
+      const antes=getAcoesSalvas();
+      const merged=mergeAcoes(antes,remote.acoes);
+      if(JSON.stringify(merged)!==JSON.stringify(antes)){
+        saveAcoes(merged);
+        acoesMudaram=true;
+      }
+    }
+
+    if(historyMudou||acoesMudaram){
       if(perfilAtual&&perfilAtual.tipo&&perfilAtual.tipo!=='auditor'){
         aplicarPerfil();
       }else{
-        current=history[0];tbDate();renderAll();
+        renderAll();
       }
       setSyncStatus('ok');
       saveGhCfg({lastPull:new Date().toLocaleString('pt-BR')});
@@ -4710,6 +4738,7 @@ async function syncPush(){
   try{
     const payload={
       history:history.map(h=>({importDate:h.importDate,records:h.allRecords||h.records||[]})),
+      acoes:getAcoesSalvas(),
       lastUpdate:new Date().toISOString(),
       app:'agroquima-vencidos'
     };
@@ -5478,11 +5507,21 @@ function salvarAcoes(){
     const responsavel=(tr.querySelector('.acao-resp')||{}).value||'';
     const prazo=(tr.querySelector('.acao-prazo')||{}).value||'';
     const obs=(tr.querySelector('.acao-obs')||{}).value||'';
-    saved[k]={status,responsavel,prazo,obs};
+    const antigo=saved[k];
+    const ehPadrao=status==='Pendente'&&!responsavel&&!prazo&&!obs;
+    if(!antigo&&ehPadrao)return; // linha nunca tocada e ainda no padrão — nada a gravar
+    // Só carimba um "updatedAt" novo se algo mudou de fato nesta linha — assim,
+    // salvar a tela inteira não "vence" por acidente uma edição mais recente
+    // feita por outra pessoa em outro item, na hora de mesclar (mergeAcoes).
+    const mudou=!antigo||antigo.status!==status||antigo.responsavel!==responsavel||antigo.prazo!==prazo||antigo.obs!==obs;
+    saved[k]=mudou?{status,responsavel,prazo,obs,updatedAt:new Date().toISOString()}:antigo;
   });
   saveAcoes(saved);
   toast('Ações salvas com sucesso!','brand');
   renderAcoes();
+  // Publica para todos verem o mesmo status de responsabilização (mesmo
+  // mecanismo já usado para a planilha importada).
+  if(getGhToken()){setTimeout(()=>syncPush(),300);}else atualizarStatus();
 }
 
 // ─── PROJEÇÃO DE PERDA 30 DIAS (ITEM 4) ───
