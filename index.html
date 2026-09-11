@@ -2011,6 +2011,7 @@ function confirmarPublicar(){document.getElementById('modal-publicar').classList
 function confirmDel(){
   if(delTarget===null)return;
   const r=history.splice(delTarget,1)[0];
+  addExcluida(r.importDate); // senão a mescla do syncPush traria a semana de volta
   save();
   if(current&&current.importDate===r.importDate){
     // Volta para a importação anterior; se não houver, painel zerado
@@ -4692,10 +4693,15 @@ async function syncPull(){
     const remote=await r.json();
     let historyMudou=false,acoesMudaram=false;
 
+    // Exclusões feitas em qualquer dispositivo valem para todos.
+    const excluidas=mergeExcluidas(remote&&remote.excluidas);
+    const semExcluidas=d=>!excluidas.includes(d);
+
     if(remote&&Array.isArray(remote.history)&&remote.history.length){
-      const remDates=new Set(remote.history.map(h=>h.importDate));
-      const built=remote.history.map(h=>{const s=buildSnapshot(h.records||[]);s.importDate=h.importDate;return s;});
-      history.forEach(h=>{if(!remDates.has(h.importDate))built.push(h);});
+      const usaveis=remote.history.filter(h=>h&&semExcluidas(h.importDate));
+      const remDates=new Set(usaveis.map(h=>h.importDate));
+      const built=usaveis.map(h=>{const s=buildSnapshot(h.records||[]);s.importDate=h.importDate;return s;});
+      history.forEach(h=>{if(!remDates.has(h.importDate)&&semExcluidas(h.importDate))built.push(h);});
       built.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
       history=built;
       save();
@@ -4736,15 +4742,40 @@ async function syncPush(){
   ghSyncing=true;
   setSyncStatus('syncing','Publicando...');
   try{
+    // Publicar SUBSTITUI o arquivo inteiro. Antes o payload era montado só com o
+    // estado local, então quem publicasse sem ter terminado o syncPull (ou com a
+    // cópia do hub, que só atualiza a cada 15 min) apagava da nuvem as semanas e
+    // as ações que outra pessoa tinha acabado de publicar. Por isso a mescla é
+    // feita AQUI, contra o arquivo autoritativo, e não só no sentido nuvem→local.
+    let sha, remoto=null;
+    try{
+      const info=await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_DATA_FILE}`);
+      sha=info.sha;
+      if(info.content) remoto=JSON.parse(base64ToUtf8(info.content));
+    }catch(e){ /* arquivo ainda não existe: é a primeira publicação */ }
+
+    const excluidas=mergeExcluidas(remoto&&remoto.excluidas);
+    const semExcluidas=d=>!excluidas.includes(d);
+
+    const hist=history
+      .map(h=>({importDate:h.importDate,records:h.allRecords||h.records||[]}))
+      .filter(h=>semExcluidas(h.importDate));
+    if(remoto&&Array.isArray(remoto.history)){
+      const locais=new Set(hist.map(h=>h.importDate));
+      remoto.history.forEach(h=>{
+        if(h&&!locais.has(h.importDate)&&semExcluidas(h.importDate)) hist.push(h);
+      });
+      hist.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
+    }
+
     const payload={
-      history:history.map(h=>({importDate:h.importDate,records:h.allRecords||h.records||[]})),
-      acoes:getAcoesSalvas(),
+      history:hist,
+      acoes:mergeAcoes(getAcoesSalvas(), remoto&&remoto.acoes),
+      excluidas,
       lastUpdate:new Date().toISOString(),
       app:'agroquima-vencidos'
     };
     const content=utf8ToBase64(JSON.stringify(payload));
-    let sha;
-    try{const info=await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_DATA_FILE}`);sha=info.sha;}catch(e){}
     const body={message:'Dados atualizados — '+new Date().toLocaleString('pt-BR'),content,branch:GH_BASE_BRANCH};
     if(sha)body.sha=sha;
     await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_DATA_FILE}`,{method:'PUT',body});
@@ -4761,6 +4792,30 @@ function utf8ToBase64(str){
   let bin='';
   for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
   return btoa(bin);
+}
+function base64ToUtf8(b64){
+  const bin=atob(String(b64||'').replace(/\s/g,''));
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+// Importações excluídas DE PROPÓSITO. Publicar agora mescla o que está na nuvem
+// para não apagar o trabalho de outra pessoa — e, sem esta lista, essa mesma
+// mescla traria de volta toda semana que alguém tivesse excluído.
+const EXCL_KEY='agroquima_vencidos_excluidas';
+function getExcluidas(){try{return JSON.parse(localStorage.getItem(EXCL_KEY)||'[]');}catch(e){return [];}}
+function addExcluida(importDate){
+  if(!importDate)return;
+  const l=getExcluidas();
+  if(!l.includes(importDate)){l.push(importDate);localStorage.setItem(EXCL_KEY,JSON.stringify(l));}
+}
+function mergeExcluidas(remotas){
+  const l=getExcluidas();
+  let mudou=false;
+  (remotas||[]).forEach(d=>{if(d&&!l.includes(d)){l.push(d);mudou=true;}});
+  if(mudou)localStorage.setItem(EXCL_KEY,JSON.stringify(l));
+  return l;
 }
 // Abre o PR via API (gera notificação real do GitHub — e-mail + push no app do celular).
 // Exige a permissão extra "Pull requests: Read and write" no token; se faltar, o caller cai
