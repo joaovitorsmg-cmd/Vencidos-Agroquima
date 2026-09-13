@@ -1865,6 +1865,7 @@ function handleUpload(inp,dataOverride){
     const today=new Date().toLocaleDateString('pt-BR');
     const dataFinal=dataOverride||dataArquivo||today;
     snap.importDate=dataFinal;
+    removeExcluida(dataFinal);
     const i=history.findIndex(h=>h.importDate===dataFinal);
     if(i>=0)history[i]=snap;else history.push(snap);
     history.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
@@ -1934,6 +1935,7 @@ function handleUploadMulti(inp){
           if(!dataArquivo)semData.push(file.name);
           const dataFinal=dataArquivo||new Date().toLocaleDateString('pt-BR');
           snap.importDate=dataFinal;
+          removeExcluida(dataFinal);
           const i=history.findIndex(h=>h.importDate===dataFinal);
           if(i>=0){sobrescritos.push(dataFinal+' ('+file.name+')');history[i]=snap;}else history.push(snap);
           ok++;
@@ -4747,12 +4749,20 @@ async function syncPush(){
     // cópia do hub, que só atualiza a cada 15 min) apagava da nuvem as semanas e
     // as ações que outra pessoa tinha acabado de publicar. Por isso a mescla é
     // feita AQUI, contra o arquivo autoritativo, e não só no sentido nuvem→local.
-    let sha, remoto=null;
+    let sha=null, remoto=null;
     try{
       const info=await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_DATA_FILE}`);
       sha=info.sha;
-      if(info.content) remoto=JSON.parse(base64ToUtf8(info.content));
-    }catch(e){ /* arquivo ainda não existe: é a primeira publicação */ }
+    }catch(e){ /* sem sha = arquivo ainda não existe: é a primeira publicação */ }
+    if(sha){
+      // O arquivo existe, então a mescla é obrigatória. Se a leitura falhar,
+      // ABORTA: publicar sem ter lido apagaria o que os outros já publicaram.
+      try{
+        remoto=await ghLerArquivoJson(GH_DATA_FILE);
+      }catch(e){
+        throw new Error('não consegui ler a base atual na nuvem, publicação cancelada para não apagar dados de outros ('+e.message+')');
+      }
+    }
 
     const excluidas=mergeExcluidas(remoto&&remoto.excluidas);
     const semExcluidas=d=>!excluidas.includes(d);
@@ -4793,6 +4803,22 @@ function utf8ToBase64(str){
   for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
   return btoa(bin);
 }
+// A Contents API devolve content VAZIO para arquivo acima de 1 MB, e o
+// data/vencidos.json já passa de 17 MB. Era por isso que a mescla do syncPush
+// nunca acontecia: remoto ficava null e a publicação voltava a sobrescrever a
+// base inteira. O Accept raw entrega o conteúdo de verdade (até 100 MB).
+async function ghLerArquivoJson(path){
+  const token=getGhToken();
+  if(!token) throw new Error('Token do GitHub não configurado');
+  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BASE_BRANCH}`,{
+    headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github.raw'}
+  });
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const txt=await r.text();
+  return txt.trim()?JSON.parse(txt):null;
+}
+
 function base64ToUtf8(b64){
   const bin=atob(String(b64||'').replace(/\s/g,''));
   const bytes=new Uint8Array(bin.length);
@@ -4809,6 +4835,14 @@ function addExcluida(importDate){
   if(!importDate)return;
   const l=getExcluidas();
   if(!l.includes(importDate)){l.push(importDate);localStorage.setItem(EXCL_KEY,JSON.stringify(l));}
+}
+// Reimportar uma semana que tinha sido excluída desfaz a exclusão. Sem isto a
+// data continuava na lista, o syncPush a omitia do payload e o syncPull a
+// apagava de novo do localStorage — a importação sumia em silêncio.
+function removeExcluida(importDate){
+  if(!importDate)return;
+  const l=getExcluidas();
+  if(l.includes(importDate))localStorage.setItem(EXCL_KEY,JSON.stringify(l.filter(d=>d!==importDate)));
 }
 function mergeExcluidas(remotas){
   const l=getExcluidas();
