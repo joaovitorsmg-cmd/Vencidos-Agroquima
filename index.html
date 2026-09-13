@@ -1640,7 +1640,13 @@ function buildSnapshot(records){
   };
 }
 // ─── PERSISTENCE ───
-function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(history.map(h=>({importDate:h.importDate,records:h.allRecords||h.records}))));}catch(e){}}
+function save(){try{
+  // Persiste SEMPRE a base completa. Com perfil regional/gerente ativo, `history`
+  // está filtrado por perfil — gravá-lo apagava do armazenamento os registros das
+  // outras regionais de TODAS as semanas já carregadas.
+  const base=(typeof historyOriginal!=='undefined'&&historyOriginal.length)?historyOriginal:history;
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(base.map(h=>({importDate:h.importDate,records:h.allRecords||h.records}))));
+}catch(e){}}
 function load(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){const raw=JSON.parse(s);history=raw.map(h=>{const snap=buildSnapshot(h.records);snap.importDate=h.importDate;return snap;});}}catch(e){history=[];}}
 
 // ─── TIPO DE IMPORTAÇÃO (vencidos x completa) ───
@@ -1866,11 +1872,15 @@ function handleUpload(inp,dataOverride){
     const dataFinal=dataOverride||dataArquivo||today;
     snap.importDate=dataFinal;
     removeExcluida(dataFinal);
+    // A semana importada entra na BASE COMPLETA. Fazer historyOriginal=history
+    // (que pode estar filtrado por perfil) descartava os registros das outras
+    // regionais de todas as semanas anteriores.
+    const io=historyOriginal.findIndex(h=>h.importDate===dataFinal);
+    if(io>=0)historyOriginal[io]=snap;else historyOriginal.push(snap);
+    historyOriginal.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
     const i=history.findIndex(h=>h.importDate===dataFinal);
     if(i>=0)history[i]=snap;else history.push(snap);
     history.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
-    // Atualiza a cópia original (dados completos) e refiltra pelo perfil atual
-    historyOriginal=history.slice();
     save();
     if(perfilAtual&&perfilAtual.tipo!=='auditor'){
       aplicarPerfil();  // re-filtra para o perfil logado
@@ -2014,6 +2024,8 @@ function confirmDel(){
   if(delTarget===null)return;
   const r=history.splice(delTarget,1)[0];
   addExcluida(r.importDate); // senão a mescla do syncPush traria a semana de volta
+  const io=historyOriginal.findIndex(h=>h.importDate===r.importDate);
+  if(io>=0)historyOriginal.splice(io,1); // sai também da base completa
   save();
   if(current&&current.importDate===r.importDate){
     // Volta para a importação anterior; se não houver, painel zerado
@@ -4706,8 +4718,8 @@ async function syncPull(){
       history.forEach(h=>{if(!remDates.has(h.importDate)&&semExcluidas(h.importDate))built.push(h);});
       built.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
       history=built;
+      historyOriginal=history.slice(); // antes do save: ele persiste a base completa
       save();
-      historyOriginal=history.slice();
       current=history[0];tbDate();
       historyMudou=true;
     }
