@@ -4677,8 +4677,20 @@ async function ghReq(path,opts){
     body:o.body?JSON.stringify(o.body):undefined
   });
   const d=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error((d&&d.message)||('Erro HTTP '+r.status));
+  if(!r.ok) throw new Error(ghErroExplicado(r.status,d));
   return d;
+}
+// Traduz o erro do GitHub num motivo explícito, pra quem não é técnico conseguir
+// entender (ou pelo menos copiar) o que travou, em vez de só "Erro HTTP 403".
+function ghErroExplicado(status,d){
+  const msg=(d&&d.message)||'';
+  const dica={
+    401:'token inválido, expirado ou removido — gere um novo em github.com/settings/tokens',
+    403:'sem permissão de ESCRITA — confira se o token tem "Contents: Read and write" para este repositório, ou se há alguma regra de proteção bloqueando gravação direta na branch "main"',
+    404:'repositório ou arquivo não encontrado — confira se o token foi criado com acesso ao repositório certo',
+    422:'a publicação ficou desatualizada (alguém publicou antes) — tente de novo em alguns segundos'
+  }[status];
+  return 'HTTP '+status+(msg?' — '+msg:'')+(dica?' ('+dica+')':'');
 }
 // Mescla a Responsabilização (responsável/prazo/status/observação) local com a
 // publicada — item a item, sempre ficando com a edição mais recente de cada um
@@ -4746,6 +4758,8 @@ async function syncPull(){
     }
   }catch(e){
     setSyncStatus('error',e.message.slice(0,20));
+    saveGhCfg({lastError:e.message,lastErrorAt:new Date().toLocaleString('pt-BR'),lastErrorOp:'ler'});
+    loadConfigView();
     console.warn('syncPull:',e.message);
   }
 }
@@ -4806,6 +4820,8 @@ async function syncPush(){
     toast('☁ Dados publicados — todos verão em ~2 minutos','green');
   }catch(e){
     setSyncStatus('error',e.message.slice(0,20));
+    saveGhCfg({lastError:e.message,lastErrorAt:new Date().toLocaleString('pt-BR'),lastErrorOp:'publicar'});
+    loadConfigView();
     toast('Erro ao publicar: '+e.message,'red');
   }finally{ghSyncing=false;}
 }
@@ -4906,8 +4922,9 @@ function loadConfigView(){
   const st=document.getElementById('config-current-status');
   if(st){
     const hasToken=!!getGhToken();
-    if(hasToken)st.innerHTML=`<span style="color:var(--green)"><i class="ti ti-check"></i> <strong>Token configurado.</strong></span> Dados sincronizados via GitHub.<br><span style="font-size:11px;color:var(--text3)">\u00daltima publica\u00e7\u00e3o: ${cfg.lastPush||'nunca'} \u00b7 \u00daltima leitura: ${cfg.lastPull||'nunca'}</span>`;
-    else st.innerHTML='<span style="color:var(--text3)"><i class="ti ti-alert-circle"></i> Token n\u00e3o configurado. Siga os passos ao lado.</span>';
+    const erro=cfg.lastError?`<div style="margin-top:8px;padding:8px 10px;background:#fdecea;border:1px solid #f5b7b1;border-radius:6px;color:#c0392b;font-size:11px"><strong>\u00daltimo erro</strong> (${cfg.lastErrorOp==='publicar'?'ao publicar':'ao ler'}, ${cfg.lastErrorAt||''}):<br>${cfg.lastError}</div>`:'';
+    if(hasToken)st.innerHTML=`<span style="color:var(--green)"><i class="ti ti-check"></i> <strong>Token configurado.</strong></span> Dados sincronizados via GitHub.<br><span style="font-size:11px;color:var(--text3)">\u00daltima publica\u00e7\u00e3o: ${cfg.lastPush||'nunca'} \u00b7 \u00daltima leitura: ${cfg.lastPull||'nunca'}</span>${erro}`;
+    else st.innerHTML='<span style="color:var(--text3)"><i class="ti ti-alert-circle"></i> Token n\u00e3o configurado. Siga os passos ao lado.</span>'+erro;
   }
 }
 async function handleSaveConfig(){
@@ -4951,8 +4968,13 @@ async function handleTestGithub(){
   showConfigStatus('loading','Testando conexão com o GitHub...');
   try{
     saveGhToken(token);
-    await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/git/ref/heads/${GH_BASE_BRANCH}`);
-    showConfigStatus('ok',`Conexão OK! Token válido, com acesso ao repositório ${GH_OWNER}/${GH_REPO}.\n\nObs.: este teste só confirma a permissão "Contents". Pra abrir Pull Request automático (e notificação no GitHub), o token também precisa de "Pull requests: Read and write" — sem confirmação aqui, só na hora de publicar um arquivo grande de verdade.`);
+    const info=await ghReq(`/repos/${GH_OWNER}/${GH_REPO}`);
+    const podeEscrever=info&&info.permissions&&info.permissions.push;
+    if(podeEscrever===false){
+      showConfigStatus('error',`Conexão OK, mas o token só tem permissão de LEITURA em ${GH_OWNER}/${GH_REPO}.\n\nAs importações vão continuar falhando (erro 403) até o token ser recriado com "Contents: Read and write" em github.com/settings/tokens.`);
+      return;
+    }
+    showConfigStatus('ok',`Conexão OK! Token válido, com acesso de leitura e escrita ao repositório ${GH_OWNER}/${GH_REPO}.\n\nObs.: isto confirma a permissão "Contents". Pra abrir Pull Request automático (e notificação no GitHub), o token também precisa de "Pull requests: Read and write" — sem confirmação aqui, só na hora de publicar um arquivo grande de verdade.`);
   }catch(e){
     showConfigStatus('error','Falha: '+e.message+'\n\nVerifique se o token tem permissão "Contents: Read and write" e "Pull requests: Read and write" neste repositório.');
   }
