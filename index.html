@@ -4719,8 +4719,12 @@ async function syncPull(){
     const remote=await r.json();
     let historyMudou=false,acoesMudaram=false;
 
-    // Exclusões feitas em qualquer dispositivo valem para todos.
-    const excluidas=mergeExcluidas(remote&&remote.excluidas);
+    // Exclusões feitas em qualquer dispositivo valem para todos. Mas se a nuvem
+    // tem dado REAL publicado pra uma data, isso vale mais que uma exclusão
+    // antiga guardada só neste navegador — senão uma semana reimportada nunca
+    // conseguia voltar (a exclusão velha voltava a filtrá-la a cada sync).
+    const remDatasReais=new Set((remote&&Array.isArray(remote.history)?remote.history:[]).map(h=>h&&h.importDate));
+    const excluidas=mergeExcluidas(remote&&remote.excluidas).filter(d=>!remDatasReais.has(d));
     const semExcluidas=d=>!excluidas.includes(d);
 
     if(remote&&Array.isArray(remote.history)&&remote.history.length){
@@ -4790,7 +4794,13 @@ async function syncPush(){
       }
     }
 
-    const excluidas=mergeExcluidas(remoto&&remoto.excluidas);
+    // Uma data com dado REAL neste navegador (reimportada agora ou nunca apagada
+    // daqui) nunca pode ficar em excluidas — senão uma exclusão antiga (deste ou
+    // de outro dispositivo) volta a filtrar a reimportação bem na hora de publicar,
+    // e a semana nunca sai do "excluída" mesmo depois de reimportada e salva.
+    const datasComDadoLocal=new Set(history.map(h=>h.importDate));
+    const excluidas=mergeExcluidas(remoto&&remoto.excluidas).filter(d=>!datasComDadoLocal.has(d));
+    localStorage.setItem(EXCL_KEY,JSON.stringify(excluidas));
     const semExcluidas=d=>!excluidas.includes(d);
 
     const hist=history
