@@ -4667,11 +4667,27 @@ function saveGhToken(tok){saveGhCfg({ghToken:tok});}
 
 
 
+// O arquivo de dados já passa de 17 MB e só cresce a cada semana — baixá-lo (ou
+// mandá-lo de volta) inteiro é pesado, e em qualquer rede mais instável (wifi
+// fraco, dados móveis) o fetch pode cair no meio sem nenhum erro "de verdade"
+// do GitHub, só "Failed to fetch". Por isso toda chamada tenta de novo sozinha
+// antes de desistir — resolve boa parte das quedas transitórias sem precisar
+// que a pessoa clique em publicar de novo.
+async function fetchComRetry(url,opts,tentativas){
+  tentativas=tentativas||3;
+  for(let i=1;i<=tentativas;i++){
+    try{ return await fetch(url,opts); }
+    catch(e){
+      if(i===tentativas) throw new Error('falha de rede ao falar com o GitHub, mesmo após '+tentativas+' tentativas ('+e.message+') — verifique a conexão e tente de novo');
+      await new Promise(res=>setTimeout(res,700*i));
+    }
+  }
+}
 async function ghReq(path,opts){
   const token=getGhToken();
   if(!token) throw new Error('Token do GitHub não configurado');
   const o=opts||{};
-  const r=await fetch('https://api.github.com'+path,{
+  const r=await fetchComRetry('https://api.github.com'+path,{
     method:o.method||'GET',
     headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
     body:o.body?JSON.stringify(o.body):undefined
@@ -4848,7 +4864,7 @@ function utf8ToBase64(str){
 async function ghLerArquivoJson(path){
   const token=getGhToken();
   if(!token) throw new Error('Token do GitHub não configurado');
-  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BASE_BRANCH}`,{
+  const r=await fetchComRetry(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BASE_BRANCH}`,{
     headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github.raw'}
   });
   if(r.status===404)return null;
