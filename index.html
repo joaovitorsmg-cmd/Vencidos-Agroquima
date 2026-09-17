@@ -1189,7 +1189,9 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <!-- HISTORICO -->
 <div id="v-historico" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-history"></i> Histórico de Importações</h2>
-    <div class="sub">Todas as bases salvas — importe novos arquivos para acompanhar a evolução</div></div></div>
+    <div class="sub">Todas as bases salvas — importe novos arquivos para acompanhar a evolução</div></div>
+    <button class="btn ghost" style="font-size:12px" onclick="carregarHistoricoCompleto()" title="As semanas mais antigas ficam arquivadas à parte para não pesar a sincronização do dia a dia. Clique para trazê-las também."><i class="ti ti-database-import"></i> Carregar histórico completo</button>
+  </div>
   <div class="dropzone" id="dz" onclick="triggerImportHist()"
     ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDropGated(event)">
     <i class="ti ti-cloud-upload dz-icon"></i>
@@ -4653,6 +4655,16 @@ const GH_OWNER='joaovitorsmg-cmd';
 const GH_REPO='Vencidos-Agroquima';
 const GH_BASE_BRANCH='main';
 const GH_DATA_FILE='data/vencidos.json';
+// Arquivo de histórico "frio": semanas fora da janela recente saem do arquivo
+// principal e vão pra cá. Só é lido/escrito quando alguma semana sai da janela
+// (raro — normalmente 1x por semana), e só é baixado pelo navegador
+// de quem pedir explicitamente pra ver o histórico completo (carregarHistoricoCompleto).
+// Isso mantém o GH_DATA_FILE (lido/escrito em TODA importação/publicação) pequeno
+// pra sempre, em vez de crescer sem limite a cada semana.
+const GH_HIST_FILE='data/vencidos-historico.json';
+// ~1 mês (a maioria das semanas tem uns 4800 itens — cada uma pesa ~1,3 MB — por
+// isso a janela é curta: com 8 semanas o arquivo "quente" ainda ficava com 15 MB).
+const JANELA_SEMANAS_RECENTES=4;
 const GH_CFG_KEY='agroquima_gh_cfg';
 let ghSyncing=false;
 function getGhCfg(){try{return JSON.parse(localStorage.getItem(GH_CFG_KEY)||'{}');}catch(e){return {};}}
@@ -4827,13 +4839,49 @@ async function syncPush(){
       remoto.history.forEach(h=>{
         if(h&&!locais.has(h.importDate)&&semExcluidas(h.importDate)) hist.push(h);
       });
-      hist.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
+    }
+    hist.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
+
+    // Janela recente (o que fica no arquivo pequeno, sincronizado toda hora) x
+    // semanas mais antigas (só existem no histórico frio). Ver GH_HIST_FILE acima.
+    const histRecente=hist.slice(0,JANELA_SEMANAS_RECENTES);
+    const histAntigo=hist.slice(JANELA_SEMANAS_RECENTES);
+
+    // Só mexe no arquivo de histórico (pesado) se alguma semana antiga ainda não
+    // tiver sido arquivada — na maioria das publicações (mesma janela de sempre)
+    // isso não acontece, e o histórico nem é lido/escrito.
+    const datasJaArquivadas=new Set((remoto&&remoto.historicoDatas)||[]);
+    const novasParaArquivar=histAntigo.filter(h=>!datasJaArquivadas.has(h.importDate));
+    let historicoDatasFinal=Array.from(datasJaArquivadas);
+    if(novasParaArquivar.length){
+      let shaHist=null,remotoHist=null;
+      try{
+        const infoHist=await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_HIST_FILE}`);
+        shaHist=infoHist.sha;
+      }catch(e){ /* sem sha = histórico ainda não existe */ }
+      if(shaHist){
+        try{ remotoHist=await ghLerArquivoJson(GH_HIST_FILE); }
+        catch(e){ throw new Error('não consegui ler o histórico arquivado, publicação cancelada para não perder semanas antigas ('+e.message+')'); }
+      }
+      const histArq=(remotoHist&&Array.isArray(remotoHist.history))?remotoHist.history:[];
+      novasParaArquivar.forEach(h=>{
+        const i=histArq.findIndex(x=>x&&x.importDate===h.importDate);
+        if(i>=0)histArq[i]=h;else histArq.push(h);
+      });
+      histArq.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
+      const payloadHist={history:histArq,lastUpdate:new Date().toISOString()};
+      const contentHist=utf8ToBase64(JSON.stringify(payloadHist));
+      const bodyHist={message:'Arquiva histórico — '+new Date().toLocaleString('pt-BR'),content:contentHist,branch:GH_BASE_BRANCH};
+      if(shaHist)bodyHist.sha=shaHist;
+      await ghReq(`/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_HIST_FILE}`,{method:'PUT',body:bodyHist});
+      historicoDatasFinal=histArq.map(h=>h.importDate);
     }
 
     const payload={
-      history:hist,
+      history:histRecente,
       acoes:mergeAcoes(getAcoesSalvas(), remoto&&remoto.acoes),
       excluidas,
+      historicoDatas:historicoDatasFinal,
       lastUpdate:new Date().toISOString(),
       app:'agroquima-vencidos'
     };
@@ -4850,6 +4898,37 @@ async function syncPush(){
     loadConfigView();
     toast('Erro ao publicar: '+e.message,'red');
   }finally{ghSyncing=false;}
+}
+// Carrega as semanas mais antigas (fora da janela recente) sob demanda — só
+// quando a pessoa realmente quer ver o histórico desde o início. Não sincroniza
+// isso pra nuvem, só junta ao histórico já carregado neste navegador.
+async function carregarHistoricoCompleto(){
+  setSyncStatus('syncing','Carregando histórico completo...');
+  try{
+    const url=`./${GH_HIST_FILE}?t=${Date.now()}`;
+    const r=await fetch(url);
+    if(!r.ok){
+      if(r.status===404){toast('Ainda não há histórico arquivado.','amber');atualizarStatus();return;}
+      throw new Error('HTTP '+r.status);
+    }
+    const remote=await r.json();
+    const existentes=new Set(history.map(h=>h.importDate));
+    let adicionadas=0;
+    ((remote&&remote.history)||[]).forEach(h=>{
+      if(!h||existentes.has(h.importDate))return;
+      const snap=buildSnapshot(h.records||[]);snap.importDate=h.importDate;
+      history.push(snap);existentes.add(h.importDate);adicionadas++;
+    });
+    if(adicionadas){
+      history.sort((a,b)=>pdate(b.importDate)-pdate(a.importDate));
+      save();renderAll();
+    }
+    toast(adicionadas?('✓ Histórico completo carregado: '+adicionadas+' semana(s) a mais.'):'Nenhuma semana nova no histórico arquivado.','green');
+    atualizarStatus();
+  }catch(e){
+    toast('Erro ao carregar histórico completo: '+e.message,'red');
+    atualizarStatus();
+  }
 }
 function utf8ToBase64(str){
   const bytes=new TextEncoder().encode(str);
