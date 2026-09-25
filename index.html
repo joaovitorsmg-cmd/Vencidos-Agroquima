@@ -912,7 +912,7 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     </div>
 
     <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os lotes a vencer (<span id="futuro-count">0</span>)</div>
-      <div class="tw"><table><thead><tr><th>Produto</th><th>Fornecedor</th><th>Linha</th><th>Filial</th><th class="r">Qtd</th><th class="r">Vencimento</th><th class="r">Faltam</th><th class="r">Valor (R$)</th></tr></thead><tbody id="futuro-list"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>Produto</th><th>Fornecedor</th><th>Linha</th><th>Lote</th><th>Filial</th><th class="r">Qtd</th><th class="r">Vencimento</th><th class="r">Faltam</th><th class="r">Valor (R$)</th></tr></thead><tbody id="futuro-list"></tbody></table></div>
     </div>
   </div>
   </div>
@@ -3591,7 +3591,7 @@ function renderFuturo(){
   document.getElementById('futuro-count').textContent=itens.length;
   document.getElementById('futuro-list').innerHTML=itens.map(r=>{
     const urg=r.Dias<=30?'red':r.Dias<=90?'amber':r.Dias<=180?'green':'gray';
-    return`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${cleanFab(r.Fab)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,20)}</td><td style="font-size:12px">${r.Sigla}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r"><span class="chip ${urg}">${r.Dias}d</span></td><td class="r b">${brl(r.Total)}</td></tr>`;
+    return`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${cleanFab(r.Fab)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,20)}</td><td class="tiny muted">${r.Lote||'—'}</td><td style="font-size:12px">${r.Sigla}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r"><span class="chip ${urg}">${r.Dias}d</span></td><td class="r b">${brl(r.Total)}</td></tr>`;
   }).join('');
 }
 
@@ -3642,9 +3642,9 @@ function showFuturoFabDetail(fab){
       </div>
     </div>
     <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os lotes de ${fab} a vencer (${recs.length})</div>
-    <div class="tw"><table><thead><tr><th>Produto</th><th>Linha</th><th>Loja</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Faltam</th><th class="r">Valor (R$)</th></tr></thead>
-    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,16)}</td><td style="font-size:12px">${r.Sigla}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}
-    <tr class="total-row"><td colspan="6">Total ${fab}</td><td class="r">${brl(total)}</td></tr></tbody></table></div></div>`;
+    <div class="tw"><table><thead><tr><th>Produto</th><th>Linha</th><th>Lote</th><th>Loja</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Faltam</th><th class="r">Valor (R$)</th></tr></thead>
+    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,16)}</td><td class="tiny muted">${r.Lote||'—'}</td><td style="font-size:12px">${r.Sigla}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="7">Total ${fab}</td><td class="r">${brl(total)}</td></tr></tbody></table></div></div>`;
   destroyChart('futuro-fab-mes');
   safeChart('ch-futuro-fab-mes',{type:'bar',data:{labels:meses.map(m=>m.label),datasets:[{data:meses.map(m=>Math.round(m.total)),backgroundColor:'#0b5cab',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>brl(c.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}}}}}});
   window.scrollTo(0,0);
@@ -4455,9 +4455,9 @@ function showFabricanteDetail(fab){
       </div>
     </div>
     <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os produtos deste fabricante (${recs.length})</div>
-    <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Regional</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th></tr></thead>
-    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Gerente||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}
-    <tr class="total-row"><td colspan="6">Total ${fab}</td><td class="r">${brl(total)}</td></tr></tbody></table></div></div>`;
+    <div class="tw"><table><thead><tr><th>Produto</th><th>Loja</th><th>Regional</th><th>Lote</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Dias</th><th class="r">Total (R$)</th></tr></thead>
+    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td style="font-size:12px">${r.Sigla}</td><td class="tiny muted">${r.Gerente||'—'}</td><td class="tiny muted">${r.Lote||'—'}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="7">Total ${fab}</td><td class="r">${brl(total)}</td></tr></tbody></table></div></div>`;
   window.scrollTo(0,0);
   setTimeout(()=>enableSorting(),0);
 }
