@@ -186,6 +186,32 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 .ws-btn{padding:8px 16px;border:1px solid var(--border-2);border-radius:20px;background:var(--bg);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
 .ws-btn:hover{border-color:var(--brand);color:var(--brand)}
 .ws-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.fut-filtros{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:16px}
+.fut-pickers{display:flex;gap:10px;flex-wrap:wrap}
+.fut-search{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);padding:0 10px;height:34px}
+.fut-search.wide{min-width:240px}
+.fut-search i{color:var(--text3);font-size:14px}
+.fut-search input{border:none;outline:none;background:transparent;color:var(--text);font-size:12px;min-width:170px;height:30px}
+.fut-search:focus-within{border-color:var(--brand)}
+.fut-pick-drop{min-width:280px;left:0;right:auto;padding:8px 4px}
+.fut-pick-drop .fp-q{width:calc(100% - 16px);margin:0 8px 6px;padding:7px 10px;border:1px solid var(--border-2);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px}
+.fut-pick-drop .fp-btns{display:flex;gap:6px;padding:2px 10px 6px}
+.fut-pick-drop .fp-opts{max-height:260px;overflow-y:auto}
+.fut-pick-drop .fp-opts label{font-weight:500}
+.fut-det{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:14px;padding:0 16px}
+.fut-det>summary{cursor:pointer;padding:14px 0;font-size:13px;font-weight:700;color:var(--text2);list-style:none;display:flex;align-items:center;gap:8px}
+.fut-det>summary::-webkit-details-marker{display:none}
+.fut-det[open]>summary{border-bottom:1px solid var(--border);margin-bottom:10px}
+.fut-kpis{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end}
+.fut-kpi{flex:1;min-width:170px}
+.fut-kpi .k{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.fut-kpi .v{font-size:15px;font-weight:700;margin-top:2px}
+.fut-kpi .v.big{font-size:26px;font-weight:800;color:var(--brand)}
+.fut-kpi .s{font-size:12px;color:var(--text2)}
+.fut-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:18px;background:var(--bg3)}
+.fut-bar span{display:block;height:100%}
+.fut-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12px;color:var(--text2)}
+.fut-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
 .tier-card{border-radius:var(--r-lg);padding:18px;border:1px solid var(--border);position:relative;overflow:hidden}
 .tier-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px}
 .tier-card.t-red::before{background:var(--red)}
@@ -826,18 +852,19 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   <div id="fut-list-view">
   <div class="view-head"><div><h2><i class="ti ti-calendar-due"></i> Vencimento Futuro</h2>
     <div class="sub">Produtos que ainda não venceram — por fornecedor, linha, filial e regional</div></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn ghost sm" onclick="exportarFuturoXlsx()" title="Exportar lista filtrada em XLSX"><i class="ti ti-file-spreadsheet"></i> Exportar XLSX</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="fut-search"><i class="ti ti-search"></i><input type="search" class="fut-busca-inp" placeholder="Produto: descrição ou código" oninput="setFutBusca(this.value)" autocomplete="off"></div>
+      <button class="btn ghost sm" onclick="exportarFuturoXlsx()" title="Exportar XLSX (mês a mês + fornecedor x mês + lotes) respeitando os filtros"><i class="ti ti-file-spreadsheet"></i> Exportar XLSX</button>
       <button class="btn ghost icon-only view-export-btn" onclick="exportarAbaPNG('futuro','Vencimento_Futuro')" title="Exportar esta aba como imagem (PNG)"><i class="ti ti-download"></i></button>
     </div>
   </div>
-  <div class="alert brand"><i class="ti ti-bulb"></i><div><strong>Planejamento, não apagar incêndio.</strong> Aqui o horizonte é mais largo — até 24 meses à frente — para identificar fornecedores e linhas com grande volume comprado que vai vencer, a tempo de negociar devolução, redistribuir entre filiais ou acelerar a venda antes que vire perda. Use o gráfico "Quando Vence" para enxergar picos de concentração por mês.</div></div>
 
   <div id="futuro-fonte-notice" style="display:none;margin-bottom:12px"></div>
 
   <div class="window-selector">
-    <span class="ws-label">Mostrar o que vence em até:</span>
+    <span class="ws-label">Vence em até:</span>
     <div class="ws-btns">
+      <button class="ws-btn" data-dias="30" onclick="setFutWindow(30)">30 dias</button>
       <button class="ws-btn" data-dias="90" onclick="setFutWindow(90)">90 dias</button>
       <button class="ws-btn" data-dias="180" onclick="setFutWindow(180)">180 dias</button>
       <button class="ws-btn active" data-dias="365" onclick="setFutWindow(365)">12 meses</button>
@@ -846,30 +873,11 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
     </div>
   </div>
 
-  <!-- Filtros -->
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:16px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;flex-shrink:0">Regional:</span>
-      <div id="fut-reg-chips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-      <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Fornecedor:</span>
-      <select id="fut-fab" onchange="setFutFiltroFab(this.value)" style="padding:8px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:12px;min-width:180px"><option value="">Todos os Fornecedores</option></select>
-      <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Linha:</span>
-      <select id="fut-linha" onchange="setFutFiltroLinha(this.value)" style="padding:8px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:12px;min-width:180px"><option value="">Todas as Linhas</option></select>
-      <div class="col-picker-wrap">
-        <button class="btn sm" id="fut-loja-btn" onclick="toggleFutLojaPicker()" style="min-width:160px;justify-content:space-between">
-          <span id="fut-loja-lbl">Todas as Lojas</span><i class="ti ti-chevron-down" style="font-size:12px;margin-left:6px"></i>
-        </button>
-        <div class="col-picker-drop" id="fut-loja-drop" style="min-width:230px;max-height:290px;overflow-y:auto;left:auto;right:0">
-          <label onclick="clearFutLojas(event)" style="color:var(--brand);font-weight:800"><input type="checkbox" id="fut-loja-all" checked style="accent-color:var(--brand)"> Todas as Lojas</label>
-          <div class="divider" style="margin:4px 8px"></div>
-          <div id="fut-loja-opts"></div>
-        </div>
-      </div>
-      <button class="btn xs ghost" id="fut-clear-btn" onclick="clearFutFiltros()" style="display:none;color:var(--red);border-color:var(--red);white-space:nowrap"><i class="ti ti-x"></i> Limpar filtros</button>
-    </div>
-    <div id="futuro-filtro-ativo" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2);flex-wrap:wrap;align-items:center;gap:8px"></div>
+  <!-- Filtros (valem para TODA a aba: indicadores, gráficos, tabelas e exportação) -->
+  <div class="fut-filtros">
+    <div id="fut-pickers" class="fut-pickers"></div>
+    <button class="btn xs ghost" id="fut-clear-btn" onclick="clearFutFiltros()" style="display:none;color:var(--red);border-color:var(--red);white-space:nowrap"><i class="ti ti-x"></i> Limpar filtros</button>
+    <div id="futuro-filtro-ativo" style="display:none;width:100%;margin-top:4px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2);flex-wrap:wrap;align-items:center;gap:8px"></div>
   </div>
 
   <div id="futuro-empty" style="display:none" class="empty-state">
@@ -879,39 +887,37 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
   </div>
 
   <div id="futuro-content">
-    <div class="g4" id="futuro-tiers"></div>
     <div id="futuro-highlights"></div>
 
     <div class="card" style="margin-bottom:22px">
-      <div class="card-h"><i class="ti ti-calendar-stats"></i> Quando Vence — Valor por Mês</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Cada barra é o total em R$ que vence naquele mês, dentro do filtro atual. Clique numa barra para concentrar a análise só nesse mês.</div>
-      <div class="chartbox" style="height:260px"><canvas id="ch-futuro-mes"></canvas></div>
+      <div class="card-h"><i class="ti ti-calendar-stats"></i> Quando vence — valor por mês</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Clique numa barra para concentrar tudo nesse mês (clique de novo para soltar).</div>
+      <div class="chartbox" style="height:240px"><canvas id="ch-futuro-mes"></canvas></div>
     </div>
 
     <div class="card" style="margin-bottom:22px">
-      <div class="card-h"><i class="ti ti-building-factory-2"></i> Por Fornecedor</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Fornecedores com maior valor a vencer no período selecionado (top 10 no gráfico, todos na tabela). Clique numa barra ou linha para filtrar, ou use "Detalhar" para a composição completa por linha e filial.</div>
-      <div class="chartbox" style="height:280px"><canvas id="ch-futuro-fab"></canvas></div>
-      <div class="tw" style="margin-top:14px"><table><thead><tr><th>Fornecedor</th><th class="r">Itens</th><th class="r">Filiais</th><th class="r">Linhas</th><th class="r">Vence em (mín.)</th><th class="r">Valor (R$)</th><th class="r">% Total</th><th style="width:90px"></th></tr></thead><tbody id="futuro-fab"></tbody></table></div>
+      <div class="card-h"><i class="ti ti-building-factory-2"></i> Por fornecedor</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Respeita todos os filtros acima. Clique numa linha para marcar/desmarcar o fornecedor, ou em "Detalhar" para abrir a composição.</div>
+      <div class="chartbox" style="height:260px"><canvas id="ch-futuro-fab"></canvas></div>
+      <div class="tw" style="margin-top:14px"><table><thead><tr><th>Fornecedor</th><th class="r">Lotes</th><th class="r">Vence em (mín.)</th><th class="r">Valor (R$)</th><th class="r">% Total</th><th style="width:90px"></th></tr></thead><tbody id="futuro-fab"></tbody></table></div>
     </div>
 
-    <div class="g2" style="margin-bottom:22px">
-      <div class="card">
-        <div class="card-h"><i class="ti ti-box"></i> Por Linha</div>
-        <div class="tw"><table><thead><tr><th>Linha</th><th class="r">Itens</th><th class="r">Fornec.</th><th class="r">Valor (R$)</th></tr></thead><tbody id="futuro-linha"></tbody></table></div>
-      </div>
-      <div class="card">
-        <div class="card-h"><i class="ti ti-map-pin"></i> Por Regional</div>
-        <div class="tw"><table><thead><tr><th>Regional</th><th class="r">Itens</th><th class="r">Valor (R$)</th></tr></thead><tbody id="futuro-reg"></tbody></table></div>
-      </div>
-    </div>
+    <details class="fut-det" open>
+      <summary><i class="ti ti-box"></i> Por linha</summary>
+      <div class="tw"><table><thead><tr><th>Linha</th><th class="r">Lotes</th><th class="r">Valor (R$)</th><th class="r">% Total</th></tr></thead><tbody id="futuro-linha"></tbody></table></div>
+    </details>
+    <details class="fut-det">
+      <summary><i class="ti ti-map-pin"></i> Por regional</summary>
+      <div class="tw"><table><thead><tr><th>Regional</th><th class="r">Lotes</th><th class="r">Valor (R$)</th><th class="r">% Total</th></tr></thead><tbody id="futuro-reg"></tbody></table></div>
+    </details>
+    <details class="fut-det" style="margin-bottom:22px">
+      <summary><i class="ti ti-building-store"></i> Por filial</summary>
+      <div class="tw"><table><thead><tr><th>Filial</th><th>Regional</th><th class="r">Lotes</th><th class="r">Valor (R$)</th><th class="r">% Total</th></tr></thead><tbody id="futuro-filial"></tbody></table></div>
+    </details>
 
-    <div class="card" style="margin-bottom:22px">
-      <div class="card-h"><i class="ti ti-building-store"></i> Por Filial</div>
-      <div class="tw"><table><thead><tr><th>Filial</th><th>Regional</th><th class="r">Itens</th><th class="r">Valor (R$)</th></tr></thead><tbody id="futuro-filial"></tbody></table></div>
-    </div>
-
-    <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os lotes a vencer (<span id="futuro-count">0</span>)</div>
+    <div class="card"><div class="card-h" style="flex-wrap:wrap;gap:10px"><span><i class="ti ti-list-check"></i> Lotes a vencer (<span id="futuro-count">0</span>)</span>
+      <span class="fut-search" style="margin-left:auto;font-weight:400"><i class="ti ti-search"></i><input type="search" class="fut-busca-inp" placeholder="Filtrar tabela: descrição ou código" oninput="setFutBusca(this.value)" autocomplete="off"></span></div>
+      <div id="futuro-list-note" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
       <div class="tw"><table><thead><tr><th>Produto</th><th>Fornecedor</th><th>Linha</th><th>Lote</th><th>Filial</th><th class="r">Qtd</th><th class="r">Vencimento</th><th class="r">Faltam</th><th class="r">Valor (R$)</th></tr></thead><tbody id="futuro-list"></tbody></table></div>
     </div>
   </div>
@@ -1190,7 +1196,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-historico" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-history"></i> Histórico de Importações</h2>
     <div class="sub">Todas as bases salvas — importe novos arquivos para acompanhar a evolução</div></div>
-    <button class="btn ghost" style="font-size:12px" onclick="carregarHistoricoCompleto()" title="As semanas mais antigas ficam arquivadas à parte para não pesar a sincronização do dia a dia. Clique para trazê-las também."><i class="ti ti-database-import"></i> Carregar histórico completo</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" style="font-size:12px" id="btn-sb-push" onclick="sbEnviarHistorico()" title="Envia todas as semanas (atual + arquivo histórico) para o Supabase (projeto producao-ubs-fagro)"><i class="ti ti-cloud-upload"></i> Enviar histórico ao Supabase</button>
+    <button class="btn ghost" style="font-size:12px" onclick="carregarHistoricoCompleto()" title="As semanas mais antigas ficam arquivadas à parte para não pesar a sincronização do dia a dia. Clique para trazê-las também."><i class="ti ti-database-import"></i> Carregar histórico completo</button></div>
   </div>
   <div class="dropzone" id="dz" onclick="triggerImportHist()"
     ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDropGated(event)">
@@ -3208,17 +3215,29 @@ function renderAlertas(){
 }
 
 // ─── VENCIMENTO FUTURO (por Fornecedor / Linha / Filial / Regional) ───
-// Mesma fonte de dados "a vencer" dos Alertas (_alGetFonte), mas com horizonte
-// mais largo (até 24 meses) e cruzando por Fornecedor e Linha — pensado para
-// planejamento (negociar devolução, redistribuir entre filiais, acelerar
-// giro) e não só para o que já está na iminência de vencer.
+// Mesma fonte "a vencer" dos Alertas (_alGetFonte), com horizonte até 24 meses.
+// REGRA: todos os filtros do topo (regional, fornecedor, linha, filial, mês e busca
+// de produto) valem para a aba INTEIRA — indicadores, gráficos, tabelas, detalhe e
+// exportação — e só saem quando o usuário limpar. Cada filtro multi-seleção
+// (checkbox) usa conjunto vazio = "todos".
 let futWindow=365;
-let futFiltroReg='';
-let futFiltroFab='';
-let futFiltroLinha='';
-let futFiltroLojas=new Set();
 let futFiltroMes='';
+let futBusca='';
+let futBuscaTerms=[];
+const FUT_PICK={
+  reg:  {lbl:'Regional',  all:'Todas as Regionais',set:new Set(),none:false,q:'',opts:[],get:r=>r.Gerente||'—'},
+  fab:  {lbl:'Fornecedor',all:'Todos os Fornecedores',set:new Set(),none:false,q:'',opts:[],get:r=>cleanFab(r.Fab)},
+  linha:{lbl:'Linha',     all:'Todas as Linhas',set:new Set(),none:false,q:'',opts:[],get:r=>cleanLinha(r.Desc)||'—'},
+  loja: {lbl:'Filial',    all:'Todas as Filiais',set:new Set(),none:false,q:'',opts:[],get:r=>r.Sigla||'—'}
+};
+let _futPickBuilt=false;
 
+function _futNorm(s){return (s==null?'':String(s)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function _futMatchBusca(r){
+  if(!futBuscaTerms.length)return true;
+  const h=r._h||(r._h=_futNorm((r.Nome||'')+' '+cleanProd(r.Nome)+' '+(r.CodProduto||'')));
+  return futBuscaTerms.every(t=>h.includes(t));
+}
 function _futMesKey(r){
   const vt=pdate(r.DtVenc);if(!vt)return null;
   const d=new Date(vt);
@@ -3228,102 +3247,133 @@ function _futMesLabel(r){
   const vt=pdate(r.DtVenc);if(!vt)return '';
   return new Date(vt).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
 }
-// Aplica os filtros ativos a uma lista de registros "a vencer", exceto o(s)
-// eixo(s) passado(s) em skip — assim cada ranking (fornecedor, linha,
-// regional, mês) mostra todas as opções daquele eixo dentro do contexto dos
-// DEMAIS filtros, permitindo pivotar entre eles sem precisar limpar tudo.
-function _futAplicaFiltros(arr,skip={}){
-  let r=arr;
-  if(!skip.reg&&futFiltroReg)r=r.filter(x=>x.Gerente===futFiltroReg);
-  if(!skip.loja&&futFiltroLojas.size>0)r=r.filter(x=>futFiltroLojas.has(x.Sigla));
-  if(!skip.linha&&futFiltroLinha)r=r.filter(x=>cleanLinha(x.Desc)===futFiltroLinha);
-  if(!skip.fab&&futFiltroFab)r=r.filter(x=>cleanFab(x.Fab)===futFiltroFab);
-  if(!skip.mes&&futFiltroMes)r=r.filter(x=>_futMesKey(x)===futFiltroMes);
-  return r;
+function _futMesFull(key){const p=key.split('-');return p[1]+'/'+p[0];}
+function _futQ(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+function _futK(v){
+  const a=Math.abs(v);
+  if(a>=1e6)return 'R$ '+(v/1e6).toFixed(2).replace('.',',')+' mi';
+  if(a>=1e4)return 'R$ '+Math.round(v/1e3)+' mil';
+  return brl(v);
+}
+function _futHoje(){const h=new Date();h.setHours(0,0,0,0);return h.getTime();}
+function _futTodos(fonte){
+  const h=_futHoje();
+  return (fonte&&fonte.aVencer||[]).map(r=>{
+    const vt=pdate(r.DtVenc);
+    return{...r,Dias:vt?Math.round((vt-h)/86400000):(r.Dias||0)};
+  }).filter(r=>r.Dias>0);
 }
 
-function _futUpdateLojaOpts(){
-  const {fonte}=_alGetFonte();
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const todosGlobal=(fonte&&fonte.aVencer||[]).map(r=>{
-    const vt=pdate(r.DtVenc);
-    return{...r,Dias:vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0)};
-  }).filter(r=>r.Dias>0&&r.Dias<=futWindow);
-  const base=_futAplicaFiltros(todosGlobal,{loja:true});
-  const lojas=[...new Set(base.map(r=>r.Sigla))].sort();
-  const container=document.getElementById('fut-loja-opts');
-  if(!container)return;
-  container.innerHTML=lojas.map(l=>`<label><input type="checkbox" value="${l}" ${futFiltroLojas.size===0||futFiltroLojas.has(l)?'checked':''} onchange="toggleFutLoja('${l.replace(/'/g,"\\'")}',this.checked)"> ${l}</label>`).join('');
-  const allCb=document.getElementById('fut-loja-all');
-  if(allCb)allCb.checked=futFiltroLojas.size===0;
-  _futLojaLabel();
+// Aplica todos os filtros ativos, exceto os eixos em skip (usado só para listar
+// as opções de cada seletor dentro do contexto dos demais filtros).
+function _futAplicaFiltros(arr,skip={}){
+  let r=arr;
+  Object.keys(FUT_PICK).forEach(k=>{
+    const p=FUT_PICK[k];
+    if(!skip[k]&&p.set.size>0)r=r.filter(x=>p.set.has(p.get(x)));
+  });
+  if(!skip.mes&&futFiltroMes)r=r.filter(x=>_futMesKey(x)===futFiltroMes);
+  if(!skip.busca&&futBuscaTerms.length)r=r.filter(_futMatchBusca);
+  return r;
 }
-function _futLojaLabel(){
-  const lbl=document.getElementById('fut-loja-lbl');
-  if(!lbl)return;
-  if(futFiltroLojas.size===0)lbl.textContent='Todas as Lojas';
-  else if(futFiltroLojas.size===1)lbl.textContent=[...futFiltroLojas][0];
-  else lbl.textContent=futFiltroLojas.size+' lojas selecionadas';
+function _futTemFiltro(){
+  return Object.keys(FUT_PICK).some(k=>FUT_PICK[k].set.size>0)||!!futFiltroMes||futBuscaTerms.length>0;
 }
+
+// ── Seletores multi-seleção (checkbox) ──
+function _futBuildPickers(){
+  const host=document.getElementById('fut-pickers');
+  if(!host)return;
+  host.innerHTML=Object.keys(FUT_PICK).map(k=>{
+    const p=FUT_PICK[k];
+    return`<div class="col-picker-wrap">
+      <button class="btn sm" onclick="futTogglePicker('${k}',event)" style="min-width:175px;justify-content:space-between"><span><b style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px">${p.lbl}:</b> <span id="fp-lbl-${k}">${p.all}</span></span><i class="ti ti-chevron-down" style="font-size:12px;margin-left:6px"></i></button>
+      <div class="col-picker-drop fut-pick-drop" id="fp-drop-${k}" onclick="event.stopPropagation()">
+        <input type="search" class="fp-q" placeholder="Buscar ${p.lbl.toLowerCase()}…" oninput="futPickSearch('${k}',this.value)" autocomplete="off">
+        <div class="fp-btns"><button class="btn xs" onclick="futPickAll('${k}')"><i class="ti ti-checks"></i> Todos</button><button class="btn xs ghost" onclick="futPickNone('${k}')"><i class="ti ti-square-off"></i> Remover todos</button></div>
+        <div class="divider"></div>
+        <div class="fp-opts" id="fp-opts-${k}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  _futPickBuilt=true;
+}
+function futTogglePicker(k,e){
+  if(e)e.stopPropagation();
+  document.querySelectorAll('.fut-pick-drop.open').forEach(d=>{if(d.id!=='fp-drop-'+k)d.classList.remove('open');});
+  const d=document.getElementById('fp-drop-'+k);if(d)d.classList.toggle('open');
+}
+document.addEventListener('click',()=>{document.querySelectorAll('.fut-pick-drop.open').forEach(d=>d.classList.remove('open'));});
+function _futPickLabel(k){
+  const p=FUT_PICK[k],el=document.getElementById('fp-lbl-'+k);
+  if(!el)return;
+  if(p.set.size===0)el.textContent=p.none?'Selecione…':p.all;
+  else if(p.set.size===1)el.textContent=[...p.set][0];
+  else el.textContent=p.set.size+' selecionados';
+  el.style.color=p.set.size>0?'var(--brand)':'';
+  el.style.fontWeight=p.set.size>0?'700':'';
+}
+function _futRenderOpts(k,opts){
+  const p=FUT_PICK[k];
+  p.opts=opts;
+  const box=document.getElementById('fp-opts-'+k);
+  if(!box)return;
+  const st=box.scrollTop;
+  const q=_futNorm(p.q);
+  box.innerHTML=opts.map((o,i)=>{
+    if(q&&!_futNorm(o).includes(q))return '';
+    const on=p.set.size===0?!p.none:p.set.has(o);
+    return`<label><input type="checkbox" ${on?'checked':''} onchange="futPickToggle('${k}',${i},this.checked)"> <span>${o.replace(/</g,'&lt;')}</span></label>`;
+  }).join('')||'<div style="padding:8px 14px;font-size:12px;color:var(--text3)">Nada encontrado</div>';
+  box.scrollTop=st;
+  _futPickLabel(k);
+}
+function futPickSearch(k,v){FUT_PICK[k].q=v;_futRenderOpts(k,FUT_PICK[k].opts);}
+function futPickToggle(k,i,checked){
+  const p=FUT_PICK[k],v=p.opts[i];
+  if(v===undefined)return;
+  if(p.set.size===0&&!p.none&&!checked){p.opts.forEach(o=>{if(o!==v)p.set.add(o);});}
+  else if(checked){p.set.add(v);p.none=false;}
+  else p.set.delete(v);
+  if(p.set.size===0)p.none=true;
+  else if(p.opts.length&&p.set.size>=p.opts.length&&p.opts.every(o=>p.set.has(o))){p.set.clear();p.none=false;}
+  renderFuturo();
+}
+function futPickAll(k){const p=FUT_PICK[k];p.set.clear();p.none=false;renderFuturo();}
+function futPickNone(k){const p=FUT_PICK[k];p.set.clear();p.none=true;renderFuturo();}
+// Clique em linha de tabela/gráfico: liga/desliga o valor no filtro (multi)
+function futToggleVal(k,v){
+  const p=FUT_PICK[k];
+  if(p.set.has(v))p.set.delete(v);else p.set.add(v);
+  p.none=false;
+  renderFuturo();
+}
+
 function setFutWindow(dias){
   futWindow=dias;
   document.querySelectorAll('#v-futuro .ws-btn[data-dias]').forEach(b=>b.classList.toggle('active',parseInt(b.getAttribute('data-dias'))===dias));
   futFiltroMes='';
-  _futUpdateLojaOpts();
   renderFuturo();
-}
-function setFutFiltroReg(reg){
-  futFiltroReg=futFiltroReg===reg?'':reg;
-  futFiltroLojas=new Set();
-  _futUpdateLojaOpts();
-  renderFuturo();
-}
-function setFutFiltroFab(fab){
-  futFiltroFab=futFiltroFab===fab?'':fab;
-  const sel=document.getElementById('fut-fab');if(sel)sel.value=futFiltroFab;
-  _futUpdateLojaOpts();
-  renderFuturo();
-}
-function setFutFiltroLinha(linha){
-  futFiltroLinha=futFiltroLinha===linha?'':linha;
-  const sel=document.getElementById('fut-linha');if(sel)sel.value=futFiltroLinha;
-  _futUpdateLojaOpts();
-  renderFuturo();
-}
-function toggleFutLoja(loja,checked){
-  if(!checked&&futFiltroLojas.size===0){
-    // Mesma correção aplicada em toggleAlertaLoja: sem isso, desmarcar a primeira
-    // loja a partir do estado implícito "todas selecionadas" não tinha efeito.
-    document.querySelectorAll('#fut-loja-opts input[type=checkbox]').forEach(cb=>{
-      if(cb.value!==loja)futFiltroLojas.add(cb.value);
-    });
-  }else if(checked)futFiltroLojas.add(loja);
-  else futFiltroLojas.delete(loja);
-  const allCb=document.getElementById('fut-loja-all');
-  if(allCb)allCb.checked=futFiltroLojas.size===0;
-  _futLojaLabel();
-  renderFuturo();
-}
-function clearFutLojas(e){
-  if(e)e.stopPropagation();
-  futFiltroLojas=new Set();
-  _futUpdateLojaOpts();
-  renderFuturo();
-}
-function toggleFutLojaPicker(e){
-  if(e)e.stopPropagation();
-  const drop=document.getElementById('fut-loja-drop');
-  if(drop)drop.classList.toggle('open');
 }
 function setFutMes(mes){
   futFiltroMes=futFiltroMes===mes?'':mes;
   renderFuturo();
 }
+// Busca de produto (descrição ou código): todas as palavras digitadas precisam
+// aparecer no produto, sem diferenciar maiúsculas/acentos e sem exigir texto exato.
+let _futBuscaTimer=null;
+function setFutBusca(v){
+  futBusca=v||'';
+  futBuscaTerms=_futNorm(futBusca).split(/\s+/).filter(Boolean);
+  document.querySelectorAll('#v-futuro .fut-busca-inp').forEach(i=>{if(i.value!==futBusca&&document.activeElement!==i)i.value=futBusca;});
+  clearTimeout(_futBuscaTimer);
+  _futBuscaTimer=setTimeout(renderFuturo,180);
+}
 function clearFutFiltros(){
-  futFiltroReg='';futFiltroFab='';futFiltroLinha='';futFiltroLojas=new Set();futFiltroMes='';
-  const fabSel=document.getElementById('fut-fab');if(fabSel)fabSel.value='';
-  const linhaSel=document.getElementById('fut-linha');if(linhaSel)linhaSel.value='';
-  _futUpdateLojaOpts();
+  Object.keys(FUT_PICK).forEach(k=>{FUT_PICK[k].set.clear();FUT_PICK[k].none=false;FUT_PICK[k].q='';});
+  futFiltroMes='';futBusca='';futBuscaTerms=[];
+  document.querySelectorAll('#v-futuro .fut-busca-inp').forEach(i=>i.value='');
+  document.querySelectorAll('#v-futuro .fp-q').forEach(i=>i.value='');
   renderFuturo();
 }
 
@@ -3331,27 +3381,68 @@ function exportarFuturoXlsx(){
   if(typeof XLSX==='undefined'){toast('Biblioteca XLSX não carregada','red');return;}
   const {fonte}=_alGetFonte();
   if(!fonte){toast('Nenhuma fonte de dados disponível','red');return;}
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  let lista=(fonte.aVencer||[]).map(r=>{
-    const vt=pdate(r.DtVenc);
-    return{...r,Dias:vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0)};
-  }).filter(r=>r.Dias>0&&r.Dias<=futWindow);
-  lista=_futAplicaFiltros(lista);
+  const lista=_futAplicaFiltros(_futTodos(fonte).filter(r=>r.Dias<=futWindow)).sort((a,b)=>(pdate(a.DtVenc)||0)-(pdate(b.DtVenc)||0));
   if(!lista.length){toast('Nenhum item a exportar no filtro atual','amber');return;}
+  const soma=(a,f)=>a.reduce((s,r)=>s+(+r[f]||0),0);
+  const totalGeral=soma(lista,'Total');
   const wb=XLSX.utils.book_new();
-  const rows=[['Produto','Código','Fornecedor','Linha','Filial','Regional','Lote','Qtd','Vencimento','Faltam (dias)','Valor (R$)']];
-  lista.forEach(r=>rows.push([cleanProd(r.Nome),r.CodProduto||'',cleanFab(r.Fab),cleanLinha(r.Desc),r.Sigla,r.Gerente||'',r.Lote||'',r.Qtd,r.DtVenc,r.Dias,r.Total]));
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb,ws,'Vencimento Futuro');
-  const fname='vencimento_futuro_'+futWindow+'d'+(futFiltroFab?'_'+futFiltroFab.replace(/\s+/g,'_').slice(0,20):'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
-  XLSX.writeFile(wb,fname);
-  toast('XLSX exportado!','green');
+
+  // 1) Mês a mês
+  const pm={};
+  lista.forEach(r=>{const k=_futMesKey(r)||'sem-data';(pm[k]=pm[k]||{lotes:0,qtd:0,total:0});pm[k].lotes++;pm[k].qtd+=(+r.Qtd||0);pm[k].total+=(+r.Total||0);});
+  const meses=Object.keys(pm).sort();
+  const filtros=[];
+  Object.keys(FUT_PICK).forEach(k=>{if(FUT_PICK[k].set.size)filtros.push(FUT_PICK[k].lbl+': '+[...FUT_PICK[k].set].join(', '));});
+  if(futFiltroMes)filtros.push('Mês: '+_futMesFull(futFiltroMes));
+  if(futBusca.trim())filtros.push('Produto: "'+futBusca.trim()+'"');
+  const rows1=[['Vencimento futuro — mês a mês'],['Janela',futWindow===9999?'Tudo':'até '+futWindow+' dias'],['Filtros',filtros.join(' | ')||'nenhum'],[],['Mês','Lotes','Qtd','Valor (R$)','% do total','Acumulado (R$)']];
+  let acc=0;
+  meses.forEach(m=>{acc+=pm[m].total;rows1.push([m==='sem-data'?'Sem data':_futMesFull(m),pm[m].lotes,pm[m].qtd,Math.round(pm[m].total*100)/100,totalGeral?pm[m].total/totalGeral:0,Math.round(acc*100)/100]);});
+  rows1.push(['TOTAL',lista.length,soma(lista,'Qtd'),Math.round(totalGeral*100)/100,1,'']);
+  const ws1=XLSX.utils.aoa_to_sheet(rows1);
+  ws1['!cols']=[{wch:14},{wch:8},{wch:10},{wch:16},{wch:11},{wch:16}];
+  for(let i=5;i<rows1.length;i++){const c=ws1[XLSX.utils.encode_cell({r:i,c:4})];if(c&&typeof c.v==='number')c.z='0.0%';[3,5].forEach(cc=>{const x=ws1[XLSX.utils.encode_cell({r:i,c:cc})];if(x&&typeof x.v==='number')x.z='#,##0.00';});}
+  XLSX.utils.book_append_sheet(wb,ws1,'Mês a mês');
+
+  // 2) Fornecedor x Mês
+  const fm={};
+  lista.forEach(r=>{const f=cleanFab(r.Fab),k=_futMesKey(r)||'sem-data';(fm[f]=fm[f]||{total:0,m:{}});fm[f].total+=(+r.Total||0);fm[f].m[k]=(fm[f].m[k]||0)+(+r.Total||0);});
+  const fabs=Object.keys(fm).sort((a,b)=>fm[b].total-fm[a].total);
+  const rows2=[['Fornecedor',...meses.map(m=>m==='sem-data'?'Sem data':_futMesFull(m)),'Total (R$)']];
+  fabs.forEach(f=>rows2.push([f,...meses.map(m=>fm[f].m[m]?Math.round(fm[f].m[m]*100)/100:''),Math.round(fm[f].total*100)/100]));
+  rows2.push(['TOTAL',...meses.map(m=>Math.round(pm[m].total*100)/100),Math.round(totalGeral*100)/100]);
+  const ws2=XLSX.utils.aoa_to_sheet(rows2);
+  ws2['!cols']=[{wch:38},...meses.map(()=>({wch:12})),{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Fornecedor x Mês');
+
+  // 3) Produto x Mês (já respeita a busca de produto)
+  const pmx={};
+  lista.forEach(r=>{const p=cleanProd(r.Nome)+(r.CodProduto?' #'+r.CodProduto:''),k=_futMesKey(r)||'sem-data';(pmx[p]=pmx[p]||{total:0,qtd:0,m:{}});pmx[p].total+=(+r.Total||0);pmx[p].qtd+=(+r.Qtd||0);pmx[p].m[k]=(pmx[p].m[k]||0)+(+r.Total||0);});
+  const prods=Object.keys(pmx).sort((a,b)=>pmx[b].total-pmx[a].total);
+  const rows3=[['Produto','Qtd',...meses.map(m=>m==='sem-data'?'Sem data':_futMesFull(m)),'Total (R$)']];
+  prods.forEach(p=>rows3.push([p,pmx[p].qtd,...meses.map(m=>pmx[p].m[m]?Math.round(pmx[p].m[m]*100)/100:''),Math.round(pmx[p].total*100)/100]));
+  const ws3=XLSX.utils.aoa_to_sheet(rows3);
+  ws3['!cols']=[{wch:44},{wch:10},...meses.map(()=>({wch:12})),{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws3,'Produto x Mês');
+
+  // 4) Lotes
+  const rows4=[['Produto','Código','Fornecedor','Linha','Filial','Regional','Lote','Qtd','Vencimento','Faltam (dias)','Valor (R$)']];
+  lista.forEach(r=>rows4.push([cleanProd(r.Nome),r.CodProduto||'',cleanFab(r.Fab),cleanLinha(r.Desc),r.Sigla,r.Gerente||'',r.Lote||'',r.Qtd,r.DtVenc,r.Dias,r.Total]));
+  const ws4=XLSX.utils.aoa_to_sheet(rows4);
+  ws4['!cols']=[{wch:40},{wch:9},{wch:34},{wch:16},{wch:18},{wch:18},{wch:16},{wch:8},{wch:12},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws4,'Lotes');
+
+  const fab=FUT_PICK.fab.set.size===1?'_'+[...FUT_PICK.fab.set][0].replace(/\s+/g,'_').slice(0,20):'';
+  const busca=futBusca.trim()?'_'+_futNorm(futBusca).replace(/[^a-z0-9]+/g,'_').slice(0,15):'';
+  XLSX.writeFile(wb,'vencimento_futuro_'+(futWindow===9999?'tudo':futWindow+'d')+fab+busca+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('XLSX exportado (mês a mês + fornecedor x mês + lotes)','green');
 }
 
 function renderFuturo(){
   const empty=document.getElementById('futuro-empty');
   const content=document.getElementById('futuro-content');
   const {fonte:fonteDados,aviso:fonteAviso}=_alGetFonte();
+  if(!_futPickBuilt)_futBuildPickers();
 
   const fonteNotice=document.getElementById('futuro-fonte-notice');
   if(fonteNotice){
@@ -3370,76 +3461,41 @@ function renderFuturo(){
     return;
   }
 
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const todosGlobal=(fonteDados.aVencer||[]).map(r=>{
-    const vt=pdate(r.DtVenc);
-    return{...r,Dias:vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0)};
-  }).filter(r=>r.Dias>0);
-
+  const todosGlobal=_futTodos(fonteDados);
   if(todosGlobal.length===0){
     empty.style.display='block';content.style.display='none';
     empty.querySelector('h3').textContent='Nenhum produto a vencer';
     empty.querySelector('p').textContent='A importação completa mais recente não contém itens a vencer.';
     return;
   }
-
   const todosJanela=todosGlobal.filter(r=>r.Dias<=futWindow);
 
-  // Por Regional (contexto: tudo, exceto o próprio filtro de regional) — serve tanto
-  // para os chips quanto para a tabela "Por Regional", sem filtrar duas vezes.
-  const baseReg=_futAplicaFiltros(todosJanela,{reg:true});
-  const rm={};
-  baseReg.forEach(r=>{
-    const k=r.Gerente||'—';
-    if(!rm[k])rm[k]={reg:k,total:0,itens:0};
-    rm[k].total+=r.Total;rm[k].itens++;
+  // Opções de cada seletor: contexto dos DEMAIS filtros (permite pivotar sem limpar tudo)
+  Object.keys(FUT_PICK).forEach(k=>{
+    const p=FUT_PICK[k];
+    const base=_futAplicaFiltros(todosJanela,{[k]:true});
+    const opts=[...new Set(base.map(p.get))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    // mantém selecionados que sumiram do contexto, para o usuário poder desmarcá-los
+    p.set.forEach(v=>{if(!opts.includes(v))opts.push(v);});
+    _futRenderOpts(k,opts);
   });
-  const todasRegs=Object.keys(rm).sort();
-  const chipsEl=document.getElementById('fut-reg-chips');
-  if(chipsEl){
-    if(todasRegs.length===0){
-      chipsEl.innerHTML='<span style="font-size:12px;color:var(--text3)">—</span>';
-    }else{
-      const isAllActive=futFiltroReg==='';
-      chipsEl.innerHTML=
-        `<button class="chip${isAllActive?' brand':' gray'}" onclick="setFutFiltroReg('')" style="cursor:pointer;font-size:11px;padding:3px 10px;border:none">Todas</button>`+
-        todasRegs.map(reg=>{
-          const active=futFiltroReg===reg;
-          return`<button class="chip${active?' brand':' gray'}" onclick="setFutFiltroReg('${reg.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;padding:3px 10px;border:none">${reg} <span style="opacity:.7;font-size:10px">${rm[reg].itens}</span></button>`;
-        }).join('');
-    }
-  }
 
-  // Opções de loja (dropdown multi-seleção) — sempre atualizadas a cada render
-  _futUpdateLojaOpts();
-
-  // Popula selects de fornecedor/linha preservando o valor atual
-  const baseFabSel=_futAplicaFiltros(todosJanela,{fab:true});
-  const baseLinhaSel=_futAplicaFiltros(todosJanela,{linha:true});
-  const fabOpts=[...new Set(baseFabSel.map(r=>cleanFab(r.Fab)))].sort();
-  const linhaOpts=[...new Set(baseLinhaSel.map(r=>cleanLinha(r.Desc)).filter(Boolean))].sort();
-  const fabSelEl=document.getElementById('fut-fab');
-  if(fabSelEl){fabSelEl.innerHTML='<option value="">Todos os Fornecedores</option>'+fabOpts.map(f=>`<option value="${f}">${f}</option>`).join('');fabSelEl.value=futFiltroFab;}
-  const linhaSelEl=document.getElementById('fut-linha');
-  if(linhaSelEl){linhaSelEl.innerHTML='<option value="">Todas as Linhas</option>'+linhaOpts.map(l=>`<option value="${l}">${l}</option>`).join('');linhaSelEl.value=futFiltroLinha;}
-
-  // Itens totalmente filtrados (usados em tiers, destaques, filial e lista completa)
+  // TUDO abaixo usa os itens totalmente filtrados (exceto o gráfico de meses, que
+  // ignora só o próprio filtro de mês para continuar permitindo trocar de mês)
   const itens=_futAplicaFiltros(todosJanela).sort((a,b)=>b.Total-a.Total);
 
   const clearBtn=document.getElementById('fut-clear-btn');
   const filtroAtivo=document.getElementById('futuro-filtro-ativo');
-  const temFiltro=futFiltroReg||futFiltroFab||futFiltroLinha||futFiltroLojas.size>0||futFiltroMes;
+  const temFiltro=_futTemFiltro();
   if(clearBtn)clearBtn.style.display=temFiltro?'inline-flex':'none';
   if(filtroAtivo){
     if(temFiltro){
       filtroAtivo.style.display='flex';
       const parts=[];
-      if(futFiltroReg)parts.push(`<strong>Regional:</strong> ${futFiltroReg}`);
-      if(futFiltroFab)parts.push(`<strong>Fornecedor:</strong> ${futFiltroFab}`);
-      if(futFiltroLinha)parts.push(`<strong>Linha:</strong> ${futFiltroLinha}`);
-      if(futFiltroLojas.size>0)parts.push(`<strong>Lojas:</strong> ${[...futFiltroLojas].join(', ')}`);
-      if(futFiltroMes)parts.push(`<strong>Mês:</strong> ${futFiltroMes}`);
-      filtroAtivo.innerHTML=`<i class="ti ti-filter" style="font-size:13px"></i>&ensp;Filtro ativo — ${parts.join(' / ')}&ensp;<span style="color:var(--text3)">(${itens.length} iten${itens.length===1?'':'s'})</span>`;
+      Object.keys(FUT_PICK).forEach(k=>{const p=FUT_PICK[k];if(p.set.size)parts.push(`<strong>${p.lbl}:</strong> ${[...p.set].join(', ')}`);});
+      if(futFiltroMes)parts.push(`<strong>Mês:</strong> ${_futMesFull(futFiltroMes)}`);
+      if(futBuscaTerms.length)parts.push(`<strong>Produto:</strong> "${futBusca.trim().replace(/</g,'&lt;')}"`);
+      filtroAtivo.innerHTML=`<i class="ti ti-filter" style="font-size:13px"></i>&ensp;Filtro ativo — ${parts.join(' / ')}&ensp;<span style="color:var(--text3)">(${itens.length} lote${itens.length===1?'':'s'})</span>`;
     }else{
       filtroAtivo.style.display='none';
     }
@@ -3454,82 +3510,54 @@ function renderFuturo(){
   if(itens.length===0){
     empty.style.display='block';content.style.display='none';
     empty.querySelector('h3').textContent='Nenhum item para os filtros selecionados';
-    empty.querySelector('p').textContent='Os filtros ativos não retornaram itens nesta janela. Tente outra combinação ou limpe os filtros.';
+    empty.querySelector('p').textContent='Os filtros ativos não retornaram itens nesta janela. Tente outra combinação ou clique em "Limpar filtros".';
     return;
   }
   empty.style.display='none';content.style.display='block';
 
   const soma=arr=>arr.reduce((s,r)=>s+r.Total,0);
   const total=soma(itens);
+  const qtdTotal=itens.reduce((s,r)=>s+(+r.Qtd||0),0);
 
-  // Faixas de urgência (mesmo padrão dos Alertas, com faixas extras para o horizonte maior)
-  const faixas={
-    f30:itens.filter(r=>r.Dias<=30),
-    f90:itens.filter(r=>r.Dias>30&&r.Dias<=90),
-    f180:itens.filter(r=>r.Dias>90&&r.Dias<=180),
-    f365:itens.filter(r=>r.Dias>180&&r.Dias<=365),
-    fmais:itens.filter(r=>r.Dias>365)
+  const agrupa=(arr,fn)=>{
+    const m={};
+    arr.forEach(r=>{const k=fn(r);if(!m[k])m[k]={key:k,total:0,itens:0,qtd:0,minDias:99999,reg:r.Gerente};m[k].total+=r.Total;m[k].itens++;m[k].qtd+=(+r.Qtd||0);if(r.Dias<m[k].minDias)m[k].minDias=r.Dias;});
+    return Object.values(m).sort((a,b)=>b.total-a.total);
   };
-  const tiers=[];
-  if(faixas.f30.length)tiers.push({cls:'t-red',ic:'ti-alarm-filled',lbl:'≤30 dias',v:soma(faixas.f30),n:faixas.f30.length});
-  if(faixas.f90.length)tiers.push({cls:'t-amber',ic:'ti-clock-exclamation',lbl:'31 a 90 dias',v:soma(faixas.f90),n:faixas.f90.length});
-  if(faixas.f180.length)tiers.push({cls:'t-green',ic:'ti-clock',lbl:'91 a 180 dias',v:soma(faixas.f180),n:faixas.f180.length});
-  if(faixas.f365.length)tiers.push({cls:'t-gray',ic:'ti-calendar',lbl:'181 dias a 1 ano',v:soma(faixas.f365),n:faixas.f365.length});
-  if(faixas.fmais.length)tiers.push({cls:'t-gray',ic:'ti-calendar-time',lbl:'+1 ano',v:soma(faixas.fmais),n:faixas.fmais.length});
-  document.getElementById('futuro-tiers').innerHTML=tiers.map(t=>`
-    <div class="tier-card ${t.cls}">
-      <div class="tier-icon"><i class="ti ${t.ic}"></i></div>
-      <div class="tier-label">${t.lbl}</div>
-      <div class="tier-value">${brl(t.v)}</div>
-      <div class="tier-meta">${t.n} ${t.n===1?'item':'itens'}</div>
-    </div>`).join('');
+  const fornecedores=agrupa(itens,r=>cleanFab(r.Fab));
+  const linhas=agrupa(itens,r=>cleanLinha(r.Desc)||'—');
+  const regionais=agrupa(itens,r=>r.Gerente||'—');
+  const filiais=agrupa(itens,r=>r.Sigla||'—');
 
-  // Por Fornecedor (contexto: tudo, exceto o próprio filtro de fornecedor)
-  const baseFab=_futAplicaFiltros(todosJanela,{fab:true});
-  const fm={};
-  baseFab.forEach(r=>{
-    const f=cleanFab(r.Fab);
-    if(!fm[f])fm[f]={fab:f,total:0,itens:0,lojas:new Set(),linhas:new Set(),minDias:99999};
-    fm[f].total+=r.Total;fm[f].itens++;fm[f].lojas.add(r.Sigla);fm[f].linhas.add(cleanLinha(r.Desc));
-    if(r.Dias<fm[f].minDias)fm[f].minDias=r.Dias;
-  });
-  const fornecedores=Object.values(fm).map(x=>({...x,lojas:x.lojas.size,linhas:x.linhas.size})).sort((a,b)=>b.total-a.total);
-
-  // Por Linha (contexto: tudo, exceto o próprio filtro de linha)
-  const baseLinha=_futAplicaFiltros(todosJanela,{linha:true});
-  const lm={};
-  baseLinha.forEach(r=>{
-    const l=cleanLinha(r.Desc)||'—';
-    if(!lm[l])lm[l]={linha:l,total:0,itens:0,fornecedores:new Set()};
-    lm[l].total+=r.Total;lm[l].itens++;lm[l].fornecedores.add(cleanFab(r.Fab));
-  });
-  const linhas=Object.values(lm).map(x=>({...x,fornecedores:x.fornecedores.size})).sort((a,b)=>b.total-a.total);
-
-  // Por mês (contexto: tudo, exceto o próprio filtro de mês)
+  // Meses: usa filtro completo menos o próprio mês
   const baseMes=_futAplicaFiltros(todosJanela,{mes:true});
   const pm={};
-  baseMes.forEach(r=>{
-    const k=_futMesKey(r);if(!k)return;
-    if(!pm[k])pm[k]={key:k,total:0,label:_futMesLabel(r)};
-    pm[k].total+=r.Total;
-  });
+  baseMes.forEach(r=>{const k=_futMesKey(r);if(!k)return;if(!pm[k])pm[k]={key:k,total:0,label:_futMesLabel(r)};pm[k].total+=r.Total;});
   const meses=Object.values(pm).sort((a,b)=>a.key.localeCompare(b.key));
 
-  // Destaques — responde direto "quem/qual linha/quando concentra mais risco"
-  const topFab=fornecedores[0];
-  const topLinha=linhas[0];
-  const topMes=[...meses].sort((a,b)=>b.total-a.total)[0];
+  // Indicadores compactos + barra de faixas de urgência
+  const faixasDef=[
+    {lbl:'≤30 dias',cor:'var(--red)',f:r=>r.Dias<=30},
+    {lbl:'31–90 dias',cor:'var(--amber)',f:r=>r.Dias>30&&r.Dias<=90},
+    {lbl:'91–180 dias',cor:'var(--green)',f:r=>r.Dias>90&&r.Dias<=180},
+    {lbl:'181 d–1 ano',cor:'#7f8c9b',f:r=>r.Dias>180&&r.Dias<=365},
+    {lbl:'+1 ano',cor:'#b8c2cc',f:r=>r.Dias>365}
+  ].map(d=>{const a=itens.filter(d.f);return{...d,v:soma(a),n:a.length};}).filter(d=>d.n>0);
+  const topFab=fornecedores[0],topLinha=linhas[0],topMes=[...meses].sort((a,b)=>b.total-a.total)[0];
+  const kpi=(k,v,s)=>`<div class="fut-kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
   document.getElementById('futuro-highlights').innerHTML=`
-    <div class="card" style="margin-bottom:22px;background:linear-gradient(135deg,var(--brand-lt),var(--bg));border-left:4px solid var(--brand)">
-      <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center">
-        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Total a vencer (${futWindow===9999?'todos':'até '+futWindow+'d'})</div><div style="font-size:26px;font-weight:800;color:var(--brand)">${brl(total)}</div><div style="font-size:12px;color:var(--text2)">${itens.length} lote${itens.length===1?'':'s'} no filtro atual</div></div>
-        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Fornecedor mais exposto</div><div style="font-size:15px;font-weight:700">${topFab?topFab.fab:'—'}</div><div style="font-size:12px;color:var(--text2)">${topFab?brl(topFab.total)+' · '+(topFab.total/total*100).toFixed(0)+'% do total':''}</div></div>
-        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Linha mais exposta</div><div style="font-size:15px;font-weight:700">${topLinha?topLinha.linha:'—'}</div><div style="font-size:12px;color:var(--text2)">${topLinha?brl(topLinha.total):''}</div></div>
-        <div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Mês de maior concentração</div><div style="font-size:15px;font-weight:700">${topMes?topMes.label:'—'}</div><div style="font-size:12px;color:var(--text2)">${topMes?brl(topMes.total):''}</div></div>
+    <div class="card" style="margin-bottom:22px;border-left:4px solid var(--brand)">
+      <div class="fut-kpis">
+        <div class="fut-kpi"><div class="k">Total a vencer (${futWindow===9999?'todos':'até '+futWindow+'d'})</div><div class="v big">${brl(total)}</div><div class="s">${itens.length} lote${itens.length===1?'':'s'} · ${num(Math.round(qtdTotal))} un</div></div>
+        ${kpi('Fornecedor mais exposto',topFab?topFab.key:'—',topFab?_futK(topFab.total)+' · '+(topFab.total/total*100).toFixed(0)+'%':'')}
+        ${kpi('Linha mais exposta',topLinha?topLinha.key:'—',topLinha?_futK(topLinha.total)+' · '+(topLinha.total/total*100).toFixed(0)+'%':'')}
+        ${kpi('Mês de pico',topMes?topMes.label:'—',topMes?_futK(topMes.total):'')}
       </div>
+      <div class="fut-bar">${faixasDef.map(d=>`<span style="width:${(d.v/total*100).toFixed(2)}%;background:${d.cor}" title="${d.lbl}: ${brl(d.v)}"></span>`).join('')}</div>
+      <div class="fut-legend">${faixasDef.map(d=>`<span><i style="background:${d.cor}"></i>${d.lbl}: <b>${_futK(d.v)}</b> (${d.n})</span>`).join('')}</div>
     </div>`;
 
-  // Gráfico: Quando Vence (por mês) — clicar numa barra concentra tudo abaixo naquele mês
+  // Gráfico: Quando vence
   destroyChart('futuro-mes');
   safeChart('ch-futuro-mes',{
     type:'bar',
@@ -3537,87 +3565,49 @@ function renderFuturo(){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>brl(c.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'rgba(128,128,128,.1)'}}},onClick:(evt,els)=>{if(els&&els.length)setFutMes(meses[els[0].index].key);}}
   });
 
-  // Gráfico: Top 10 Fornecedores
+  // Gráfico + tabela: Fornecedores (já filtrados)
   destroyChart('futuro-fab');
   const t10=fornecedores.slice(0,10);
   safeChart('ch-futuro-fab',{
     type:'bar',
-    data:{labels:t10.map(f=>f.fab.slice(0,26)),datasets:[{data:t10.map(f=>Math.round(f.total)),backgroundColor:t10.map((f,i)=>f.fab===futFiltroFab?'#08376a':PALETTE[i%PALETTE.length]),borderRadius:5}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>brl(c.raw)}}},scales:{x:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}}},y:{ticks:{font:{size:10}}}},onClick:(evt,els)=>{if(els&&els.length)setFutFiltroFab(t10[els[0].index].fab);}}
+    data:{labels:t10.map(f=>f.key.slice(0,26)),datasets:[{data:t10.map(f=>Math.round(f.total)),backgroundColor:t10.map((f,i)=>FUT_PICK.fab.set.has(f.key)?'#08376a':PALETTE[i%PALETTE.length]),borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>brl(c.raw)}}},scales:{x:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}}},y:{ticks:{font:{size:10}}}},onClick:(evt,els)=>{if(els&&els.length)futToggleVal('fab',t10[els[0].index].key);}}
   });
-
-  // Tabela Por Fornecedor
+  const pct=v=>(v/total*100).toFixed(1)+'%';
+  const linhaSel=(k,o)=>{const on=FUT_PICK[k].set.has(o.key);return`<tr style="cursor:pointer${on?';background:var(--brand-lt)':''}" onclick="futToggleVal('${k}','${_futQ(o.key)}')">`;};
+  const ck=(k,o)=>FUT_PICK[k].set.has(o.key)?' <i class="ti ti-check" style="color:var(--brand);font-size:11px"></i>':'';
   document.getElementById('futuro-fab').innerHTML=fornecedores.map(f=>{
     const urg=f.minDias<=30?'red':f.minDias<=90?'amber':'green';
-    const active=futFiltroFab===f.fab;
-    return`<tr style="cursor:pointer${active?';background:var(--brand-lt)':''}" onclick="setFutFiltroFab('${f.fab.replace(/'/g,"\\'")}')">
-      <td class="b" style="font-size:12px">${f.fab}${active?' <i class="ti ti-check" style="color:var(--brand);font-size:11px"></i>':''}</td>
-      <td class="r">${f.itens}</td><td class="r">${f.lojas}</td><td class="r">${f.linhas}</td>
-      <td class="r"><span class="chip ${urg}">${f.minDias}d</span></td>
-      <td class="r b">${brl(f.total)}</td><td class="r">${(f.total/total*100).toFixed(1)}%</td>
-      <td class="c"><button class="btn xs" onclick="event.stopPropagation();showFuturoFabDetail('${f.fab.replace(/'/g,"\\'")}')"><i class="ti ti-search" style="font-size:11px"></i> Detalhar</button></td>
-    </tr>`;
+    return`${linhaSel('fab',f)}<td class="b" style="font-size:12px">${f.key}${ck('fab',f)}</td><td class="r">${f.itens}</td>
+      <td class="r"><span class="chip ${urg}">${f.minDias}d</span></td><td class="r b">${brl(f.total)}</td><td class="r">${pct(f.total)}</td>
+      <td class="c"><button class="btn xs" onclick="event.stopPropagation();showFuturoFabDetail('${_futQ(f.key)}')"><i class="ti ti-search" style="font-size:11px"></i> Detalhar</button></td></tr>`;
   }).join('');
+  document.getElementById('futuro-linha').innerHTML=linhas.map(l=>`${linhaSel('linha',l)}<td class="b" style="font-size:12px">${l.key}${ck('linha',l)}</td><td class="r">${l.itens}</td><td class="r b">${brl(l.total)}</td><td class="r">${pct(l.total)}</td></tr>`).join('');
+  document.getElementById('futuro-reg').innerHTML=regionais.map(o=>`${linhaSel('reg',o)}<td class="b" style="font-size:12px">${o.key}${ck('reg',o)}</td><td class="r">${o.itens}</td><td class="r b">${brl(o.total)}</td><td class="r">${pct(o.total)}</td></tr>`).join('');
+  document.getElementById('futuro-filial').innerHTML=filiais.map(f=>`${linhaSel('loja',f)}<td class="b" style="font-size:12px">${f.key}${ck('loja',f)}</td><td><span class="pill">${f.reg||'—'}</span></td><td class="r">${f.itens}</td><td class="r b">${brl(f.total)}</td><td class="r">${pct(f.total)}</td></tr>`).join('');
 
-  // Tabela Por Linha
-  document.getElementById('futuro-linha').innerHTML=linhas.map(l=>{
-    const active=futFiltroLinha===l.linha;
-    return`<tr style="cursor:pointer${active?';background:var(--brand-lt)':''}" onclick="setFutFiltroLinha('${l.linha.replace(/'/g,"\\'")}')">
-      <td class="b" style="font-size:12px">${l.linha}${active?' <i class="ti ti-check" style="color:var(--brand);font-size:11px"></i>':''}</td>
-      <td class="r">${l.itens}</td><td class="r">${l.fornecedores}</td><td class="r b">${brl(l.total)}</td>
-    </tr>`;
-  }).join('');
-
-  // Tabela Por Regional
-  const regionaisArr=Object.values(rm).sort((a,b)=>b.total-a.total);
-  document.getElementById('futuro-reg').innerHTML=regionaisArr.map(o=>{
-    const active=futFiltroReg===o.reg;
-    return`<tr style="cursor:pointer${active?';background:var(--brand-lt)':''}" onclick="setFutFiltroReg('${o.reg.replace(/'/g,"\\'")}')">
-      <td class="b" style="font-size:12px">${o.reg}${active?' <i class="ti ti-check" style="color:var(--brand);font-size:11px"></i>':''}</td>
-      <td class="r">${o.itens}</td><td class="r b">${brl(o.total)}</td>
-    </tr>`;
-  }).join('');
-
-  // Tabela Por Filial (escopada — reflete todos os filtros ativos)
-  const porFilial={};
-  itens.forEach(r=>{
-    const k=r.Sigla||'—';
-    if(!porFilial[k])porFilial[k]={key:k,regional:r.Gerente,total:0,itens:0};
-    porFilial[k].total+=r.Total;porFilial[k].itens++;
-  });
-  document.getElementById('futuro-filial').innerHTML=Object.values(porFilial).sort((a,b)=>b.total-a.total).map(f=>`<tr><td class="b" style="font-size:12px">${f.key}</td><td><span class="pill">${f.regional||'—'}</span></td><td class="r">${f.itens}</td><td class="r b">${brl(f.total)}</td></tr>`).join('');
-
-  // Lista completa — ordenada por valor (prioridade financeira)
+  // Lista de lotes (limitada para não travar o navegador; totais sempre sobre TUDO)
+  const LIM=1000;
   document.getElementById('futuro-count').textContent=itens.length;
-  document.getElementById('futuro-list').innerHTML=itens.map(r=>{
+  document.getElementById('futuro-list-note').innerHTML=`<b>${itens.length}</b> lote${itens.length===1?'':'s'} · <b>${num(Math.round(qtdTotal))}</b> un · <b>${brl(total)}</b>${itens.length>LIM?` — exibindo os ${LIM} maiores valores; use os filtros/busca para refinar (totais e exportação consideram todos)`:''}`;
+  document.getElementById('futuro-list').innerHTML=itens.slice(0,LIM).map(r=>{
     const urg=r.Dias<=30?'red':r.Dias<=90?'amber':r.Dias<=180?'green':'gray';
     return`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${cleanFab(r.Fab)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,20)}</td><td class="tiny muted">${r.Lote||'—'}</td><td style="font-size:12px">${r.Sigla}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r"><span class="chip ${urg}">${r.Dias}d</span></td><td class="r b">${brl(r.Total)}</td></tr>`;
-  }).join('');
+  }).join('')+`<tr class="total-row"><td colspan="5">Total filtrado</td><td class="r">${num(Math.round(qtdTotal))}</td><td></td><td></td><td class="r">${brl(total)}</td></tr>`;
 }
 
-// Drill-down de um fornecedor específico dentro do universo "a vencer" (independe
-// dos filtros ativos na lista, exatamente como showFabricanteDetail faz para vencidos).
+// Drill-down de um fornecedor: respeita os MESMOS filtros ativos (menos o de fornecedor)
 function showFuturoFabDetail(fab){
   const {fonte}=_alGetFonte();
   if(!fonte)return;
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const recs=(fonte.aVencer||[]).map(r=>{
-    const vt=pdate(r.DtVenc);
-    return{...r,Dias:vt?Math.round((vt-hoje.getTime())/86400000):(r.Dias||0)};
-  }).filter(r=>r.Dias>0&&cleanFab(r.Fab)===fab).sort((a,b)=>b.Total-a.Total);
-  const total=recs.reduce((s,r)=>s+r.Total,0);
-
-  const porLinha={};
-  recs.forEach(r=>{const k=cleanLinha(r.Desc)||'—';if(!porLinha[k])porLinha[k]={key:k,total:0,itens:0};porLinha[k].total+=r.Total;porLinha[k].itens++;});
-  const linhas=Object.values(porLinha).sort((a,b)=>b.total-a.total);
-
-  const porLoja={};
-  recs.forEach(r=>{const k=r.Sigla||'—';if(!porLoja[k])porLoja[k]={key:k,regional:r.Gerente,total:0,itens:0};porLoja[k].total+=r.Total;porLoja[k].itens++;});
-  const lojas=Object.values(porLoja).sort((a,b)=>b.total-a.total);
-
-  const porMes={};
-  recs.forEach(r=>{const k=_futMesKey(r);if(!k)return;if(!porMes[k])porMes[k]={key:k,total:0,label:_futMesLabel(r)};porMes[k].total+=r.Total;});
-  const meses=Object.values(porMes).sort((a,b)=>a.key.localeCompare(b.key));
+  const recs=_futAplicaFiltros(_futTodos(fonte).filter(r=>r.Dias<=futWindow),{fab:true}).filter(r=>cleanFab(r.Fab)===fab).sort((a,b)=>b.Total-a.Total);
+  const total=recs.reduce((s,r)=>s+r.Total,0)||1;
+  const agr=fn=>{const m={};recs.forEach(r=>{const k=fn(r);if(!m[k])m[k]={key:k,regional:r.Gerente,total:0,itens:0};m[k].total+=r.Total;m[k].itens++;});return Object.values(m).sort((a,b)=>b.total-a.total);};
+  const linhas=agr(r=>cleanLinha(r.Desc)||'—');
+  const lojas=agr(r=>r.Sigla||'—');
+  const pm={};
+  recs.forEach(r=>{const k=_futMesKey(r);if(!k)return;if(!pm[k])pm[k]={key:k,total:0,label:_futMesLabel(r)};pm[k].total+=r.Total;});
+  const meses=Object.values(pm).sort((a,b)=>a.key.localeCompare(b.key));
 
   document.getElementById('fut-list-view').style.display='none';
   const dv=document.getElementById('fut-detail-view');dv.style.display='block';
@@ -3625,7 +3615,7 @@ function showFuturoFabDetail(fab){
     <div class="detail-bar">
       <button class="btn ghost" onclick="closeFuturoFabDetail()"><i class="ti ti-arrow-left"></i> Voltar</button>
       <h2>${fab}</h2>
-      <span style="margin-left:auto;font-size:13px" class="dim">${lojas.length} loja(s) · ${recs.length} itens · ${brl(total)}</span>
+      <span style="margin-left:auto;font-size:13px" class="dim">${lojas.length} loja(s) · ${recs.length} lotes · ${brl(recs.reduce((s,r)=>s+r.Total,0))}${_futTemFiltro()?' · filtros ativos mantidos':''}</span>
     </div>
     <div class="card" style="margin-bottom:18px">
       <div class="card-h"><i class="ti ti-calendar-stats"></i> Quando vence — por mês</div>
@@ -3633,18 +3623,18 @@ function showFuturoFabDetail(fab){
     </div>
     <div class="g2" style="margin-bottom:18px">
       <div class="card"><div class="card-h"><i class="ti ti-box"></i> Por Linha</div>
-        <div class="tw"><table><thead><tr><th>Linha</th><th class="r">Itens</th><th class="r">Valor (R$)</th><th class="r">%</th></tr></thead>
+        <div class="tw"><table><thead><tr><th>Linha</th><th class="r">Lotes</th><th class="r">Valor (R$)</th><th class="r">%</th></tr></thead>
         <tbody>${linhas.map(l=>`<tr><td class="b" style="font-size:12px">${l.key}</td><td class="r">${l.itens}</td><td class="r b">${brl(l.total)}</td><td class="r">${(l.total/total*100).toFixed(1)}%</td></tr>`).join('')}</tbody></table></div>
       </div>
       <div class="card"><div class="card-h"><i class="ti ti-building-store"></i> Por Loja/Filial</div>
-        <div class="tw"><table><thead><tr><th>Loja</th><th>Regional</th><th class="r">Itens</th><th class="r">Valor (R$)</th><th class="r">%</th></tr></thead>
+        <div class="tw"><table><thead><tr><th>Loja</th><th>Regional</th><th class="r">Lotes</th><th class="r">Valor (R$)</th><th class="r">%</th></tr></thead>
         <tbody>${lojas.map(l=>`<tr><td class="b" style="font-size:12px">${l.key}</td><td><span class="pill">${l.regional||'—'}</span></td><td class="r">${l.itens}</td><td class="r b">${brl(l.total)}</td><td class="r">${(l.total/total*100).toFixed(1)}%</td></tr>`).join('')}</tbody></table></div>
       </div>
     </div>
-    <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Todos os lotes de ${fab} a vencer (${recs.length})</div>
+    <div class="card"><div class="card-h"><i class="ti ti-list-check"></i> Lotes de ${fab} a vencer (${recs.length})</div>
     <div class="tw"><table><thead><tr><th>Produto</th><th>Linha</th><th>Lote</th><th>Loja</th><th class="r">Qtd</th><th class="r">Venc.</th><th class="r">Faltam</th><th class="r">Valor (R$)</th></tr></thead>
-    <tbody>${recs.map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,16)}</td><td class="tiny muted">${r.Lote||'—'}</td><td style="font-size:12px">${r.Sigla}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}
-    <tr class="total-row"><td colspan="7">Total ${fab}</td><td class="r">${brl(total)}</td></tr></tbody></table></div></div>`;
+    <tbody>${recs.slice(0,1000).map(r=>`<tr><td class="b" style="font-size:12px">${prodNomeCod(r)}</td><td class="tiny muted">${cleanLinha(r.Desc).slice(0,16)}</td><td class="tiny muted">${r.Lote||'—'}</td><td style="font-size:12px">${r.Sigla}</td><td class="r">${num(r.Qtd)}</td><td class="r tiny">${r.DtVenc}</td><td class="r">${diasChip(r.Dias)}</td><td class="r b">${brl(r.Total)}</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="4">Total ${fab}</td><td class="r">${num(Math.round(recs.reduce((s,r)=>s+(+r.Qtd||0),0)))}</td><td colspan="2"></td><td class="r">${brl(recs.reduce((s,r)=>s+r.Total,0))}</td></tr></tbody></table></div></div>`;
   destroyChart('futuro-fab-mes');
   safeChart('ch-futuro-fab-mes',{type:'bar',data:{labels:meses.map(m=>m.label),datasets:[{data:meses.map(m=>Math.round(m.total)),backgroundColor:'#0b5cab',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>brl(c.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:10}}}}}});
   window.scrollTo(0,0);
@@ -3653,6 +3643,49 @@ function showFuturoFabDetail(fab){
 function closeFuturoFabDetail(){
   document.getElementById('fut-detail-view').style.display='none';
   document.getElementById('fut-list-view').style.display='block';
+}
+
+
+// ─── SUPABASE (projeto producao-ubs-fagro) ───
+// Só a chave ANON (pública, protegida por RLS) fica no front-end. Nunca colocar a service role aqui.
+const SB_URL='https://yeburvkopwbmnfcmthtz.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllYnVydmtvcHdibW5mY210aHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2ODk5NDMsImV4cCI6MjEwODI2NTk0M30.3t-4Q8SM9XV0OdQLHktMUmKNItg1byBkyv0HGN3B-74';
+function _sbH(extra){return Object.assign({apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},extra||{});}
+function _sbIso(d){const p=(d||'').split('/');return p.length===3?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):null;}
+// Upsert idempotente de uma semana (import_date é a chave): reenviar não duplica.
+async function sbUpsertSnapshot(importDate,records){
+  const iso=_sbIso(importDate);if(!iso)return false;
+  const r=await fetch(SB_URL+'/rest/v1/vencidos_snapshots?on_conflict=import_date',{method:'POST',
+    headers:_sbH({Prefer:'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify({import_date:iso,import_label:importDate,total_records:records.length,records:records,updated_at:new Date().toISOString()})});
+  if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,120));
+  return true;
+}
+async function sbEnviarHistorico(){
+  const btn=document.getElementById('btn-sb-push');
+  if(btn)btn.disabled=true;
+  try{
+    const mapa={};
+    for(const f of [GH_HIST_FILE,GH_DATA_FILE]){
+      try{
+        const r=await fetch('./'+f+'?t='+Date.now());
+        if(!r.ok)continue;
+        const j=await r.json();
+        (j.history||[]).forEach(h=>{if(h&&h.importDate&&Array.isArray(h.records))mapa[h.importDate]=h.records;});
+      }catch(e){}
+    }
+    // inclui também semanas só locais (importadas e ainda não publicadas)
+    (historyOriginal||[]).forEach(h=>{const rc=h.allRecords||h.records;if(h.importDate&&!mapa[h.importDate]&&Array.isArray(rc))mapa[h.importDate]=rc;});
+    const datas=Object.keys(mapa).sort((a,b)=>pdate(a)-pdate(b));
+    if(!datas.length){toast('Nada para enviar','amber');return;}
+    let ok=0;
+    for(const d of datas){
+      toast('Enviando '+d+' ('+(ok+1)+'/'+datas.length+')…','');
+      await sbUpsertSnapshot(d,mapa[d]);ok++;
+    }
+    toast('Supabase: '+ok+' semana(s) enviada(s)','green');
+  }catch(e){toast('Falha ao enviar ao Supabase: '+e.message,'red');}
+  finally{if(btn)btn.disabled=false;}
 }
 
 // ─── EVOLUÇÃO ───
@@ -3836,11 +3869,6 @@ document.addEventListener('click',function(e){
   if(alDrop&&alDrop.classList.contains('open')){
     const alBtn=document.getElementById('al-loja-btn');
     if(!alDrop.contains(e.target)&&e.target!==alBtn&&!(alBtn&&alBtn.contains(e.target))){alDrop.classList.remove('open');}
-  }
-  const futDrop=document.getElementById('fut-loja-drop');
-  if(futDrop&&futDrop.classList.contains('open')){
-    const futBtn=document.getElementById('fut-loja-btn');
-    if(!futDrop.contains(e.target)&&e.target!==futBtn&&!(futBtn&&futBtn.contains(e.target))){futDrop.classList.remove('open');}
   }
 });
 
