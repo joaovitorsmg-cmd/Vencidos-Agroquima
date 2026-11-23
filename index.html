@@ -1196,7 +1196,8 @@ tbody tr{transition:.1s}tbody tr:hover td{background:var(--bg2)}
 <div id="v-historico" style="display:none">
   <div class="view-head"><div><h2><i class="ti ti-history"></i> Histórico de Importações</h2>
     <div class="sub">Todas as bases salvas — importe novos arquivos para acompanhar a evolução</div></div>
-    <button class="btn ghost" style="font-size:12px" onclick="carregarHistoricoCompleto()" title="As semanas mais antigas ficam arquivadas à parte para não pesar a sincronização do dia a dia. Clique para trazê-las também."><i class="ti ti-database-import"></i> Carregar histórico completo</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" style="font-size:12px" id="btn-sb-push" onclick="sbEnviarHistorico()" title="Envia todas as semanas (atual + arquivo histórico) para o Supabase (projeto producao-ubs-fagro)"><i class="ti ti-cloud-upload"></i> Enviar histórico ao Supabase</button>
+    <button class="btn ghost" style="font-size:12px" onclick="carregarHistoricoCompleto()" title="As semanas mais antigas ficam arquivadas à parte para não pesar a sincronização do dia a dia. Clique para trazê-las também."><i class="ti ti-database-import"></i> Carregar histórico completo</button></div>
   </div>
   <div class="dropzone" id="dz" onclick="triggerImportHist()"
     ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDropGated(event)">
@@ -3642,6 +3643,49 @@ function showFuturoFabDetail(fab){
 function closeFuturoFabDetail(){
   document.getElementById('fut-detail-view').style.display='none';
   document.getElementById('fut-list-view').style.display='block';
+}
+
+
+// ─── SUPABASE (projeto producao-ubs-fagro) ───
+// Só a chave ANON (pública, protegida por RLS) fica no front-end. Nunca colocar a service role aqui.
+const SB_URL='https://yeburvkopwbmnfcmthtz.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllYnVydmtvcHdibW5mY210aHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2ODk5NDMsImV4cCI6MjEwODI2NTk0M30.3t-4Q8SM9XV0OdQLHktMUmKNItg1byBkyv0HGN3B-74';
+function _sbH(extra){return Object.assign({apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},extra||{});}
+function _sbIso(d){const p=(d||'').split('/');return p.length===3?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):null;}
+// Upsert idempotente de uma semana (import_date é a chave): reenviar não duplica.
+async function sbUpsertSnapshot(importDate,records){
+  const iso=_sbIso(importDate);if(!iso)return false;
+  const r=await fetch(SB_URL+'/rest/v1/vencidos_snapshots?on_conflict=import_date',{method:'POST',
+    headers:_sbH({Prefer:'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify({import_date:iso,import_label:importDate,total_records:records.length,records:records,updated_at:new Date().toISOString()})});
+  if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,120));
+  return true;
+}
+async function sbEnviarHistorico(){
+  const btn=document.getElementById('btn-sb-push');
+  if(btn)btn.disabled=true;
+  try{
+    const mapa={};
+    for(const f of [GH_HIST_FILE,GH_DATA_FILE]){
+      try{
+        const r=await fetch('./'+f+'?t='+Date.now());
+        if(!r.ok)continue;
+        const j=await r.json();
+        (j.history||[]).forEach(h=>{if(h&&h.importDate&&Array.isArray(h.records))mapa[h.importDate]=h.records;});
+      }catch(e){}
+    }
+    // inclui também semanas só locais (importadas e ainda não publicadas)
+    (historyOriginal||[]).forEach(h=>{const rc=h.allRecords||h.records;if(h.importDate&&!mapa[h.importDate]&&Array.isArray(rc))mapa[h.importDate]=rc;});
+    const datas=Object.keys(mapa).sort((a,b)=>pdate(a)-pdate(b));
+    if(!datas.length){toast('Nada para enviar','amber');return;}
+    let ok=0;
+    for(const d of datas){
+      toast('Enviando '+d+' ('+(ok+1)+'/'+datas.length+')…','');
+      await sbUpsertSnapshot(d,mapa[d]);ok++;
+    }
+    toast('Supabase: '+ok+' semana(s) enviada(s)','green');
+  }catch(e){toast('Falha ao enviar ao Supabase: '+e.message,'red');}
+  finally{if(btn)btn.disabled=false;}
 }
 
 // ─── EVOLUÇÃO ───
